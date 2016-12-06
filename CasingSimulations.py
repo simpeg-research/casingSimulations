@@ -568,7 +568,7 @@ def plotCurrentDensity(
     xmax=1000., zmin=0., zmax=-1200., real_or_imag='real'
 ):
     csx, ncx = csx, np.ceil(xmax/csx)
-    csz, ncz = csz, np.ceil(-zmax/csz)
+    csz, ncz = csz, np.ceil((zmin-zmax)/csz)
 
     xlim=[0., xmax]
     ylim=[zmax, zmin]
@@ -803,11 +803,11 @@ def plot_j_over_mu_z(
         ax[0].set_ylim([1e-11, 1e-6])
         ax[1].set_ylim([1e-9, 1e-5])
 
-    ax[0].legend(bbox_to_anchor=[1.15,1])
+    ax[0].legend(bbox_to_anchor=[1.15, 1])
     return ax
 
-# plot over mu
 
+# plot over mu
 def plot_j_over_mu_x(cp, fields, mesh, survey, freqind=0, z=-950., real_or_imag='real', subtract=None, ax=None, xlim = [0., 2000.]):
     print("{} Hz".format(cp.freqs[freqind]))
 
