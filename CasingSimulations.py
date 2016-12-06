@@ -256,18 +256,31 @@ def CasingCurrents(cp, fields, mesh, sigma_m, indActive, casingMap):
     casing_ind[[0, 1, 3]] = 0. # zero outside casing
     casing_ind[2] = 1. # 1 inside casing
 
-    actMap_Zeros = Maps.InjectActiveCells(mesh, indActive, 0.)
+    # actMap_Zeros = Maps.InjectActiveCells(mesh, indActive, 0.)
 
-    indCasing = actMap_Zeros * casingMap * casing_ind
+    # indCasing = actMap_Zeros * casingMap * casing_ind
 
-    casing_faces = mesh.aveF2CC.T * indCasing
-    casing_faces[casing_faces < 0.25] = 0
+    # casing_faces = mesh.aveF2CC.T * indCasing
+    # casing_faces[casing_faces < 0.25] = 0
+
+    casing_faces_x = (
+        (mesh.gridFx[:, 0] >= cp.casing_a) &
+        (mesh.gridFx[:, 0] <= cp.casing_b) &
+        (mesh.gridFx[:, 2] <= cp.casing_z[1]) &
+        (mesh.gridFx[:, 2] >= cp.casing_z[0])
+    )
+    casing_faces_z = (
+        (mesh.gridFz[:, 0] >= cp.casing_a) &
+        (mesh.gridFz[:, 0] <= cp.casing_b) &
+        (mesh.gridFz[:, 2] <= cp.casing_z[1]) &
+        (mesh.gridFz[:, 2] >= cp.casing_z[0])
+    )
 
     for mur in cp.muModels:
         j = fields[mur][:, 'j']
         jA = Utils.sdiag(mesh.area) * j
 
-        jACasing = Utils.sdiag(casing_faces) * jA
+        jACasing = Utils.sdiag(np.hstack[casing_faces_x, casing_faces_z]) * jA
 
         ixCasing = []
         izCasing = []
@@ -307,8 +320,8 @@ class DownHoleCasingSrc(object):
         src_b = self.src_b
 
         dgv_indx = (mesh.gridFz[:, 0] < mesh.hx.min())
-        dgv_indz = ((mesh.gridFz[:, 2] >= src_a[2])
-                    & (mesh.gridFz[:, 2] <= src_b[2] + 2*mesh.hz.min()))
+        dgv_indz = ((mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min())
+                    & (mesh.gridFz[:, 2] < src_b[2] + 1.5*mesh.hz.min()))
         dgv_ind = dgv_indx & dgv_indz
         return dgv_ind
 
@@ -353,7 +366,7 @@ class DownHoleCasingSrc(object):
         )
         sgv_indz = (
             (mesh.gridFz[:, 2] >= -mesh.hz.min()) &
-            (mesh.gridFz[:, 2] < 2*mesh.hz.min())
+            (mesh.gridFz[:, 2] < 1.*mesh.hz.min())
         )
         return sgv_indx & sgv_indz
 
@@ -485,7 +498,7 @@ class TopCasingSource(object):
         )
         sgv_indz = (
             (mesh.gridFz[:, 2] >= -mesh.hz.min()) &
-            (mesh.gridFz[:, 2] < 2*mesh.hz.min())
+            (mesh.gridFz[:, 2] < 1.5*mesh.hz.min())
         )
         return sgv_indx & sgv_indz
 
