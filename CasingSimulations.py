@@ -248,13 +248,13 @@ class CasingMesh(properties.HasProperties):
 
 
 # Calculate Casing Currents from fields object
-def CasingCurrents(cp, fields, mesh, sigma_m, indActive, casingMap):
+def CasingCurrents(cp, fields, mesh, survey):
     IxCasing = {}
     IzCasing = {}
 
-    casing_ind = sigma_m.copy()
-    casing_ind[[0, 1, 3]] = 0. # zero outside casing
-    casing_ind[2] = 1. # 1 inside casing
+    # casing_ind = sigma_m.copy()
+    # casing_ind[[0, 1, 3]] = 0. # zero outside casing
+    # casing_ind[2] = 1. # 1 inside casing
 
     # actMap_Zeros = Maps.InjectActiveCells(mesh, indActive, 0.)
 
@@ -280,16 +280,18 @@ def CasingCurrents(cp, fields, mesh, sigma_m, indActive, casingMap):
         j = fields[mur][:, 'j']
         jA = Utils.sdiag(mesh.area) * j
 
-        jACasing = Utils.sdiag(np.hstack[casing_faces_x, casing_faces_z]) * jA
+        jACasing = Utils.sdiag(
+            np.hstack([casing_faces_x, casing_faces_z])
+        ) * jA
 
         ixCasing = []
         izCasing = []
 
-        for freqind in range(len(cp.freqs)):
-            jxCasing = jACasing[:mesh.nFx, freqind].reshape(
+        for ind in range(len(survey.srcList)):
+            jxCasing = jACasing[:mesh.nFx, ind].reshape(
                 mesh.vnFx[0], mesh.vnFx[2], order='F'
             )
-            jzCasing = jACasing[mesh.nFx:, freqind].reshape(
+            jzCasing = jACasing[mesh.nFx:, ind].reshape(
                 mesh.vnFz[0], mesh.vnFz[2], order='F'
             )
 
@@ -422,34 +424,6 @@ class TopCasingSource(object):
         self.casing_a = casing_a
         self.freqs = freqs
 
-    # @property
-    # def dgv_ind(self):
-    #     # vertically directed wire in borehole
-    #     # go through the center of the well
-    #     mesh = self.mesh
-    #     src_a = self.src_a
-    #     src_b = self.src_b
-
-    #     dgv_indx = (mesh.gridFz[:, 0] < mesh.hx.min())
-    #     dgv_indz = ((mesh.gridFz[:, 2] >= src_a[2])
-    #                 & (mesh.gridFz[:, 2] <= src_b[2] + 2*mesh.hz.min()))
-    #     dgv_ind = dgv_indx & dgv_indz
-    #     return dgv_ind
-
-    # @property
-    # def dgh_ind2(self):
-    #     mesh = self.mesh
-    #     src_a = self.src_a
-    #     src_b = self.src_b
-
-    #     # couple to the casing downhole - top part
-    #     dgh_indx = mesh.gridFx[:, 0] <= self.casing_a  # + mesh.hx.min()*2
-
-    #     # couple to the casing downhole - bottom part
-    #     dgh_indz2 = ((mesh.gridFx[:, 2] <= src_a[2]) &
-    #                  (mesh.gridFx[:, 2] > src_a[2] - mesh.hz.min()))
-    #     return dgh_indx & dgh_indz2
-
     @property
     def th_ind(self):
         mesh = self.mesh
@@ -541,10 +515,6 @@ class TopCasingSource(object):
         return ax
 
 
-
-
-
-
 ##############################################################################
 #                                                                            #
 #                             Plotting Code                                  #
@@ -578,16 +548,25 @@ def plotCurrentDensity(
     mesh,
     fields_j, saveFig=False,
     figsize=(4, 5), fontsize=12, csx=5., csz=5.,
-    xmax=1000., zmin=0., zmax=-1200., real_or_imag='real'
+    xmax=1000., zmin=0., zmax=-1200., real_or_imag='real',
+    mirror=False, ax=None, fig=None, clim=None
 ):
     csx, ncx = csx, np.ceil(xmax/csx)
     csz, ncz = csz, np.ceil((zmin-zmax)/csz)
 
-    xlim=[0., xmax]
+    if mirror is True:
+        xlim = [-xmax, xmax]
+        x0 = [-xmax, -csx/2., zmax]
+        ncx *= 2.
+    else:
+        xlim = [0., xmax]
+        x0 = [0, -csx/2., zmax]
+
     ylim=[zmax, zmin]
+
     # define the tensor mesh
     meshcart = Mesh.TensorMesh(
-        [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], [0, -csx/2., zmax]
+        [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], x0
     )
 
     projF = mesh.getInterpolationMatCartMesh(meshcart, 'F')
@@ -595,7 +574,8 @@ def plotCurrentDensity(
     jcart = projF*fields_j
     jcart = getattr(jcart, real_or_imag)
 
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
     if saveFig is True:
         # this looks obnoxious inline, but nice in the saved png
         f = meshcart.plotSlice(
@@ -603,7 +583,7 @@ def plotCurrentDensity(
             pcolorOpts={
                 'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
             },
-            streamOpts={'arrowsize': 8, 'color': 'k'},
+            streamOpts={'arrowsize': 6, 'color': 'k'},
             ax=ax
         )
     else:
@@ -620,9 +600,12 @@ def plotCurrentDensity(
         )
     )
 
+    if clim is not None:
+        f.set_clim(clim)
+
     ax.set_ylim(ylim)
     ax.set_xlim(xlim)
-    ax.set_title('Current Density')
+    # ax.set_title('Current Density')
     ax.set_xlabel('radius (m)', fontsize=fontsize)
     ax.set_ylabel('z (m)', fontsize=fontsize)
 
@@ -634,7 +617,9 @@ def plotCurrentDensity(
 
 def plot_currents_over_freq(
     IxCasing, IzCasing, cp, mesh,
-    mur=1, subtract=None, real_or_imag='real', ax=None, xlim=[-1100., 0.]
+    mur=1, subtract=None, real_or_imag='real', ax=None, xlim=[-1100., 0.],
+    logScale=True, srcinds=[0], ylim_0=None, ylim_1=None
+
 ):
     print("mu = {} mu_0".format(mur))
 
@@ -649,49 +634,85 @@ def plot_currents_over_freq(
             which='both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8],
             alpha=0.5
         )
-        a.semilogy(
-            [cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
-        )
+        # getattr(a, 'semilogy' if logScale is True else 'plot')(
+        #     [cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
+        # )
         a.set_xlim(xlim)
         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-
+    pos_linestyle = ['-', '-.']
+    neg_linestyle = ['--', ':']
     leg = []
+
     for i, f in enumerate(cp.freqs):
-        Ix, Iz = ixCasing[i].copy(), izCasing[i].copy()
+        for srcind in srcinds:
+            # src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
+            # j = Utils.mkvc(fields[mur][src, 'j'].copy())
 
-        if subtract is not None:
-            Ix += -IxCasing[subtract][i].copy()
-            Iz += -IzCasing[subtract][i].copy()
+            Iind = i + srcind*len(cp.freqs)
 
-        Iz_plt = getattr(Iz, real_or_imag)
-        leg.append(
-            ax[0].semilogy(
-                mesh.vectorNz, Iz_plt, '-{}'.format(col[i]),
-                label="{} Hz".format(f)
-            )
-        )
-        ax[0].semilogy(mesh.vectorNz, -Iz_plt, '--{}'.format(col[i]))
+            Ix, Iz = ixCasing[Iind].copy(), izCasing[Iind].copy()
 
-        Ix_plt = getattr(Ix, real_or_imag)
-        ax[1].semilogy(mesh.vectorCCz, Ix_plt, '-{}'.format(col[i]))
-        ax[1].semilogy(mesh.vectorCCz, -Ix_plt, '--{}'.format(col[i]))
+            if subtract is not None:
+                Ix += -IxCasing[subtract][Iind].copy()
+                Iz += -IzCasing[subtract][Iind].copy()
 
-    if real_or_imag == 'real' and subtract is None:
-        if subtract is None:
-            ax[0].set_ylim([1e-3, 1.])
-            ax[1].set_ylim([3e-5, 2e-4])
-        else:
-            ax[0].set_ylim([1e-3, 1.])
-            ax[1].set_ylim(1e-5, 2e-4)
+            Ix_plt = getattr(Ix, real_or_imag)
+            Iz_plt = getattr(Iz, real_or_imag)
 
-    elif real_or_imag == 'imag' and subtract is None:
-        ax[0].set_ylim([1e-9, 1e-2])
-        ax[1].set_ylim([1e-12, 1e-5])
+            if logScale is True:
+                ax0 = ax[0].semilogy(
+                    mesh.vectorNz, Iz_plt,
+                    '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    ),
+                    label="{} Hz".format(f)
+                )
+                ax[0].semilogy(
+                    mesh.vectorNz, -Iz_plt,
+                    '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+                ax[1].semilogy(
+                    mesh.vectorCCz, Ix_plt, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+                ax[1].semilogy(
+                    mesh.vectorCCz, -Ix_plt, '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+            else:
+                ax0 = ax[0].plot(
+                    mesh.vectorNz, Iz_plt, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    ), label="{} Hz".format(f)
+                )
+                ax[1].plot(
+                    mesh.vectorCCz, Ix_plt, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+
+            leg.append(ax0)
+
+    if ylim_0 is not  None:
+        ax[0].set_ylim(ylim_0)
+
+    if ylim_1 is not None:
+        ax[1].set_ylim(ylim_1)
 
     ax[0].legend(bbox_to_anchor=[1.15, 1])
-    plt.show()
+    # plt.show()
 
     return ax
 
@@ -700,7 +721,9 @@ def plot_currents_over_freq(
 def plot_currents_over_mu(
     IxCasing, IzCasing, cp, mesh,
     freqind=0, real_or_imag='real',
-    subtract=None, ax=None
+    subtract=None, ax=None, logScale=True,
+    srcinds=[0],
+    ylim_0=None, ylim_1=None
 ):
     print("{} Hz".format(cp.freqs[freqind]))
 
@@ -712,60 +735,91 @@ def plot_currents_over_mu(
             which='both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8],
             alpha=0.5
         )
-        a.semilogy([cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3])
+        # getattr(a, 'semilogy' if logScale is True else 'plot')(
+        #     [cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
+        # )
         a.set_xlim([-1100., 0.])
     #     a.set_ylim([1e-3, 1.])
         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-
+    pos_linestyle = ['-', '-.']
+    neg_linestyle = ['--', ':']
     leg = []
+
     for i, mur in enumerate(cp.muModels):
+        for srcind in srcinds:
 
-        ixCasing = IxCasing[mur]
-        izCasing = IzCasing[mur]
+            Iind = i + srcind*len(cp.freqs)
 
-        Ix, Iz = ixCasing[freqind].copy(), izCasing[freqind].copy()
+            ixCasing = IxCasing[mur]
+            izCasing = IzCasing[mur]
 
-        if subtract is not None:
-            Ix = Ix - IxCasing[subtract][freqind]
-            Iz = Iz - IzCasing[subtract][freqind]
+            Ix, Iz = ixCasing[Iind].copy(), izCasing[Iind].copy()
 
-        Iz_plt = getattr(Iz, real_or_imag)
-        leg.append(
-            ax[0].semilogy(
-                mesh.vectorNz, Iz_plt, '-{}'.format(col[i]),
-                label="{} $\mu_0$".format(mur)
-            )
-        )
-        ax[0].semilogy(mesh.vectorNz, -Iz_plt, '--{}'.format(col[i]))
+            if subtract is not None:
+                Ix = Ix - IxCasing[subtract][Iind]
+                Iz = Iz - IzCasing[subtract][Iind]
 
-        Ix_plt = getattr(Ix, real_or_imag)
-        ax[1].semilogy(mesh.vectorCCz, Ix_plt, '-{}'.format(col[i]))
-        ax[1].semilogy(mesh.vectorCCz, -Ix_plt, '--{}'.format(col[i]))
+            Iz_plt = getattr(Iz, real_or_imag)
+            Ix_plt = getattr(Ix, real_or_imag)
 
-    if real_or_imag == 'real' and subtract is None:
-        ax[0].set_ylim([1e-3, 1.])
-        ax[1].set_ylim([3e-5, 2e-4])
+            if logScale is True:
+                ax0 = ax[0].semilogy(
+                    mesh.vectorNz, Iz_plt, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind], color=col[i]
+                    ), label="{} $\mu_0$".format(mur)
+                )
+                ax[0].semilogy(
+                    mesh.vectorNz, -Iz_plt, '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind], color=col[i]
+                    )
+                )
+                ax[1].semilogy(
+                    mesh.vectorCCz, Ix_plt, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind], color=col[i]
+                    )
+                )
+                ax[1].semilogy(
+                    mesh.vectorCCz, -Ix_plt, '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind], color=col[i]
+                    )
+                )
+            else:
+                ax0 = ax[0].plot(
+                    mesh.vectorNz, Iz_plt, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind], color=col[i]
+                    ), label="{} $\mu_0$".format(mur)
+                )
+                ax[1].plot(
+                    mesh.vectorCCz, Ix_plt, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind], color=col[i]
+                    )
+                )
 
-    elif real_or_imag == 'imag':
-        ax[0].set_ylim([1e-9, 1e-2])
-        ax[1].set_ylim([1e-12, 1e-5])
+            leg.append(ax0)
+
+    if ylim_0 is not  None:
+        ax[0].set_ylim(ylim_0)
+
+    if ylim_1 is not None:
+        ax[1].set_ylim(ylim_1)
 
     ax[0].legend(bbox_to_anchor=[1.15, 1])
-    plt.show()
+    # plt.show()
     return ax
 
 
 # plot over mu
 def plot_j_over_mu_z(
-    cp, fields, mesh, survey, freqind=0, r=1., zlim=[-1100., 0.],
-    real_or_imag='real', subtract=None, ax=None
+    cp, fields, mesh, survey, freqind=0, r=1., xlim=[-1100., 0.],
+    real_or_imag='real', subtract=None, ax=None, logScale=True, srcinds=[0],
+    ylim_0=None, ylim_1=None
 ):
     print("{} Hz".format(cp.freqs[freqind]))
 
     x_plt = np.r_[r]
-    z_plt = np.linspace(zlim[0], zlim[1], int(zlim[1]-zlim[0]))
+    z_plt = np.linspace(xlim[0], xlim[1], int(xlim[1]-xlim[0]))
 
     XYZ = Utils.ndgrid(x_plt, np.r_[0], z_plt)
 
@@ -774,54 +828,103 @@ def plot_j_over_mu_z(
 
     Pc = mesh.getInterpolationMat(XYZ, 'CC')
     Zero = sp.csr_matrix(Pc.shape)
-    Pcx,Pcz = sp.hstack([Pc,Zero]),sp.hstack([Zero,Pc])
+    Pcx, Pcz = sp.hstack([Pc, Zero]), sp.hstack([Zero, Pc])
 
     if ax is None:
-        fig, ax = plt.subplots(2,1, figsize=(10,8))
+        fig, ax = plt.subplots(2, 1, figsize=(10, 8))
 
     for a in ax:
-        a.grid(which='both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8], alpha=0.5)
-        a.semilogy([cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3])
-        a.set_xlim([-1100., 0.])
+        a.grid(
+            which='both', linestyle='-', linewidth=0.4,
+            color=[0.8, 0.8, 0.8], alpha=0.5
+        )
+        # getattr(a, 'semilogy' if logScale is True else 'plot')(
+        #     [cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
+        # )
+        a.set_xlim(xlim)
         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-
+    pos_linestyle = ['-', '-.']
+    neg_linestyle = ['--', ':']
     leg = []
+
     for i, mur in enumerate(cp.muModels):
+        for srcind in srcinds:
+            src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
+            j = Utils.mkvc(fields[mur][src, 'j'].copy())
 
-        j = Utils.mkvc(fields[mur][survey.srcList[freqind],'j'].copy())
+            if subtract is not None:
+                j = j - Utils.mkvc(
+                    fields[subtract][src, 'j'].copy()
+                )
 
-        if subtract is not None:
-            j = j - Utils.mkvc(fields[subtract][survey.srcList[freqind],'j'].copy())
+            if real_or_imag == 'real':
+                j = j.real
+            else:
+                j = j.imag
 
-        if real_or_imag == 'real':
-            j = j.real
-        else:
-            j = j.imag
+            jx, jz = Pfx * j, Pfz * j
 
-        jx, jz = Pfx *j, Pfz *j
+            if logScale is True:
+                ax0 = ax[0].semilogy(
+                    z_plt, jz, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    ),
+                    label="{} $\mu_0$".format(mur)
+                )
+                ax[0].semilogy(
+                    z_plt, -jz, '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
 
-        leg.append(ax[0].semilogy(z_plt, jz, '-{}'.format(col[i]), label="{} $\mu_0$".format(mur)))
-        ax[0].semilogy(z_plt,-jz,'--{}'.format(col[i]))
+                ax[1].semilogy(
+                    z_plt, jx, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+                ax[1].semilogy(
+                    z_plt, -jx, '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+            else:
+                ax0 = ax[0].plot(
+                    z_plt, jz, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    ), label="{} $\mu_0$".format(mur)
+                )
+                ax[1].plot(
+                    z_plt, jx, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
 
-        ax[1].semilogy(z_plt, jx, '-{}'.format(col[i]))
-        ax[1].semilogy(z_plt,-jx,'--{}'.format(col[i]))
+            leg.append(ax0)
 
-    if real_or_imag == 'real':
-        ax[0].set_ylim([1e-10, 1e-4])
-        ax[1].set_ylim([1e-8, 1e-3])
+    if ylim_0 is not  None:
+        ax[0].set_ylim(ylim_0)
 
-    elif real_or_imag == 'imag':
-        ax[0].set_ylim([1e-11, 1e-6])
-        ax[1].set_ylim([1e-9, 1e-5])
+    if ylim_1 is not None:
+        ax[1].set_ylim(ylim_1)
 
     ax[0].legend(bbox_to_anchor=[1.15, 1])
     return ax
 
 
 # plot over mu
-def plot_j_over_mu_x(cp, fields, mesh, survey, freqind=0, z=-950., real_or_imag='real', subtract=None, ax=None, xlim = [0., 2000.]):
+def plot_j_over_mu_x(
+    cp, fields, mesh, survey, srcind=0, freqind=0, z=-950., real_or_imag='real',
+    subtract=None, ax=None, xlim=[0., 2000.], logScale=True, srcinds=[0],
+    ylim_0=None, ylim_1=None
+):
     print("{} Hz".format(cp.freqs[freqind]))
 
     x_plt = np.linspace(xlim[0], xlim[1], xlim[1])
@@ -834,51 +937,83 @@ def plot_j_over_mu_x(cp, fields, mesh, survey, freqind=0, z=-950., real_or_imag=
 
     Pc = mesh.getInterpolationMat(XYZ, 'CC')
     Zero = sp.csr_matrix(Pc.shape)
-    Pcx,Pcz = sp.hstack([Pc,Zero]),sp.hstack([Zero,Pc])
+    Pcx, Pcz = sp.hstack([Pc, Zero]), sp.hstack([Zero, Pc])
 
     if ax is None:
-        fig, ax = plt.subplots(2,1, figsize=(10,8))
+        fig, ax = plt.subplots(2, 1, figsize=(10, 8))
 
     for a in ax:
-        a.grid(which='both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8], alpha=0.5)
+        a.grid(
+            which='both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8],
+            alpha=0.5
+        )
 #         a.semilogy([src_a[2], src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3])
         a.set_xlim(xlim)
 #         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-
+    pos_linestyle = ['-', '-.']
+    neg_linestyle = ['--', ':']
     leg = []
+
     for i, mur in enumerate(cp.muModels):
+        for srcind in srcinds:
+            src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
+            j = Utils.mkvc(fields[mur][src, 'j'].copy())
 
-        j = Utils.mkvc(fields[mur][survey.srcList[freqind],'j'].copy())
+            if subtract is not None:
+                j = j - Utils.mkvc(
+                    fields[subtract][src, 'j'].copy()
+                )
 
-        if subtract is not None:
-            j = j - Utils.mkvc(fields[subtract][survey.srcList[freqind],'j'].copy())
+            if real_or_imag == 'real':
+                j = j.real
+            else:
+                j = j.imag
 
-        if real_or_imag == 'real':
-            j = j.real
-        else:
-            j = j.imag
+            jx, jz = Pfx * j, Pfz * j
 
-        jx, jz = Pfx *j, Pfz *j
+            if logScale is True:
+                if np.any(jz > 0):
+                    ax0 = ax[0].semilogy(
+                        x_plt, jz, '{linestyle}{color}'.format(
+                            linestyle=pos_linestyle[srcind], color=col[i]
+                        ), label="{} $\mu_0$".format(mur)
+                    )
+                if np.any(jz < 0):
+                    ax[0].semilogy(
+                        x_plt, -jz, '{linestyle}{color}'.format(
+                            linestyle=neg_linestyle[srcind], color=col[i]
+                        )
+                    )
 
-        if np.any(jz > 0):
-            leg.append(ax[0].semilogy(x_plt, jz, '-{}'.format(col[i]), label="{} $\mu_0$".format(mur)))
-        if np.any(jz < 0):
-            ax[0].semilogy(x_plt,-jz,'--{}'.format(col[i]))
+                if np.any(jx > 0):
+                    ax[1].semilogy(x_plt, jx, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind], color=col[i]
+                    ))
+                if np.any(jx < 0):
+                    ax[1].semilogy(
+                        x_plt, -jx, '{linestyle}{color}'.format(
+                            linestyle=neg_linestyle[srcind], color=col[i]
+                        )
+                    )
+            else:
+                ax0 = ax[0].plot(
+                    x_plt, jz, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind], color=col[i]
+                    ), label="{} $\mu_0$".format(mur)
+                )
+                ax[1].semilogy(x_plt, jx, '{linestyle}{color}'.format(
+                    linestyle=pos_linestyle[srcind], color=col[i]
+                ))
 
-        if np.any(jx > 0):
-            ax[1].semilogy(x_plt, jx, '-{}'.format(col[i]))
-        if np.any(jx < 0):
-            ax[1].semilogy(x_plt,-jx,'--{}'.format(col[i]))
+        leg.append(ax0)
 
-    if real_or_imag == 'real':
-        ax[0].set_ylim([1e-11, 2e-6])
-        ax[1].set_ylim([1e-11, 2e-5])
+    if ylim_0 is not  None:
+        ax[0].set_ylim(ylim_0)
 
-    elif real_or_imag == 'imag':
-        ax[0].set_ylim([1e-11, 1e-6])
-        ax[1].set_ylim([1e-9, 1e-5])
+    if ylim_1 is not None:
+        ax[1].set_ylim(ylim_1)
 
-    ax[0].legend(bbox_to_anchor=[1.15,1])
+    ax[0].legend(bbox_to_anchor=[1.15, 1])
     return ax
