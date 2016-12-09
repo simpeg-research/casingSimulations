@@ -641,8 +641,8 @@ def plot_currents_over_freq(
         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-    pos_linestyle = ['-', '-.']
-    neg_linestyle = ['--', ':']
+    pos_linestyle = ['-', '-']
+    neg_linestyle = ['--', '--']
     leg = []
 
     for i, f in enumerate(cp.freqs):
@@ -711,7 +711,7 @@ def plot_currents_over_freq(
     if ylim_1 is not None:
         ax[1].set_ylim(ylim_1)
 
-    ax[0].legend(bbox_to_anchor=[1.15, 1])
+    ax[0].legend(bbox_to_anchor=[1.25, 1])
     # plt.show()
 
     return ax
@@ -721,7 +721,7 @@ def plot_currents_over_freq(
 def plot_currents_over_mu(
     IxCasing, IzCasing, cp, mesh,
     freqind=0, real_or_imag='real',
-    subtract=None, ax=None, logScale=True,
+    subtract=None, ax=None, fig=None, logScale=True,
     srcinds=[0],
     ylim_0=None, ylim_1=None
 ):
@@ -743,8 +743,8 @@ def plot_currents_over_mu(
         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-    pos_linestyle = ['-', '-.']
-    neg_linestyle = ['--', ':']
+    pos_linestyle = ['-', '-']
+    neg_linestyle = ['--', '--']
     leg = []
 
     for i, mur in enumerate(cp.muModels):
@@ -805,7 +805,7 @@ def plot_currents_over_mu(
     if ylim_1 is not None:
         ax[1].set_ylim(ylim_1)
 
-    ax[0].legend(bbox_to_anchor=[1.15, 1])
+    ax[0].legend(bbox_to_anchor=[1.25, 1])
     # plt.show()
     return ax
 
@@ -814,7 +814,7 @@ def plot_currents_over_mu(
 def plot_j_over_mu_z(
     cp, fields, mesh, survey, freqind=0, r=1., xlim=[-1100., 0.],
     real_or_imag='real', subtract=None, ax=None, logScale=True, srcinds=[0],
-    ylim_0=None, ylim_1=None
+    ylim_0=None, ylim_1=None, fig=None
 ):
     print("{} Hz".format(cp.freqs[freqind]))
 
@@ -845,8 +845,8 @@ def plot_j_over_mu_z(
         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-    pos_linestyle = ['-', '-.']
-    neg_linestyle = ['--', ':']
+    pos_linestyle = ['-', '-']
+    neg_linestyle = ['--', '--']
     leg = []
 
     for i, mur in enumerate(cp.muModels):
@@ -915,17 +915,124 @@ def plot_j_over_mu_z(
     if ylim_1 is not None:
         ax[1].set_ylim(ylim_1)
 
-    ax[0].legend(bbox_to_anchor=[1.15, 1])
+    ax[0].legend(bbox_to_anchor=[1.25, 1])
+    return ax
+
+
+# plot over mu
+def plot_j_over_freq_z(
+    cp, fields, mesh, survey, mur=1., r=1., xlim=[-1100., 0.],
+    real_or_imag='real', subtract=None, ax=None, logScale=True, srcinds=[0],
+    ylim_0=None, ylim_1=None, fig=None
+):
+    print("mu = {} mu_0".format(mur))
+
+    x_plt = np.r_[r]
+    z_plt = np.linspace(xlim[0], xlim[1], int(xlim[1]-xlim[0]))
+
+    XYZ = Utils.ndgrid(x_plt, np.r_[0], z_plt)
+
+    Pfx = mesh.getInterpolationMat(XYZ, 'Fx')
+    Pfz = mesh.getInterpolationMat(XYZ, 'Fz')
+
+    Pc = mesh.getInterpolationMat(XYZ, 'CC')
+    Zero = sp.csr_matrix(Pc.shape)
+    Pcx, Pcz = sp.hstack([Pc, Zero]), sp.hstack([Zero, Pc])
+
+    if ax is None:
+        fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+
+    for a in ax:
+        a.grid(
+            which='both', linestyle='-', linewidth=0.4,
+            color=[0.8, 0.8, 0.8], alpha=0.5
+        )
+
+        a.set_xlim(xlim)
+        a.invert_xaxis()
+
+    col = ['b', 'g', 'r', 'c', 'm', 'y']
+    pos_linestyle = ['-', '-']
+    neg_linestyle = ['--', '--']
+    leg = []
+
+    for i, freq in enumerate(cp.freqs):
+        for srcind in srcinds:
+            src = survey.getSrcByFreq(freq)[srcind]
+            j = Utils.mkvc(fields[mur][src, 'j'].copy())
+
+            if subtract is not None:
+                j = j - Utils.mkvc(
+                    fields[subtract][src, 'j'].copy()
+                )
+
+            if real_or_imag == 'real':
+                j = j.real
+            else:
+                j = j.imag
+
+            jx, jz = Pfx * j, Pfz * j
+
+            if logScale is True:
+                ax0 = ax[0].semilogy(
+                    z_plt, jz, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    ),
+                    label="{} Hz".format(freq)
+                )
+                ax[0].semilogy(
+                    z_plt, -jz, '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+
+                ax[1].semilogy(
+                    z_plt, jx, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+                ax[1].semilogy(
+                    z_plt, -jx, '{linestyle}{color}'.format(
+                        linestyle=neg_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+            else:
+                ax0 = ax[0].plot(
+                    z_plt, jz, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    ), label="{} $\mu_0$".format(mur)
+                )
+                ax[1].plot(
+                    z_plt, jx, '{linestyle}{color}'.format(
+                        linestyle=pos_linestyle[srcind],
+                        color=col[i]
+                    )
+                )
+
+            leg.append(ax0)
+
+    if ylim_0 is not  None:
+        ax[0].set_ylim(ylim_0)
+
+    if ylim_1 is not None:
+        ax[1].set_ylim(ylim_1)
+
+    ax[0].legend(bbox_to_anchor=[1.25, 1])
     return ax
 
 
 # plot over mu
 def plot_j_over_mu_x(
-    cp, fields, mesh, survey, srcind=0, freqind=0, z=-950., real_or_imag='real',
-    subtract=None, ax=None, xlim=[0., 2000.], logScale=True, srcinds=[0],
-    ylim_0=None, ylim_1=None
+    cp, fields, mesh, survey, srcind=0, mur=1, z=-950., real_or_imag='real',
+    subtract=None, xlim=[0., 2000.], logScale=True, srcinds=[0],
+    ylim_0=None, ylim_1=None, ax=None, fig=None
 ):
-    print("{} Hz".format(cp.freqs[freqind]))
+    print("mu = {} mu_0".format(mur))
 
     x_plt = np.linspace(xlim[0], xlim[1], xlim[1])
     z_plt = np.r_[z]
@@ -952,11 +1059,11 @@ def plot_j_over_mu_x(
 #         a.invert_xaxis()
 
     col = ['b', 'g', 'r', 'c', 'm', 'y']
-    pos_linestyle = ['-', '-.']
-    neg_linestyle = ['--', ':']
+    pos_linestyle = ['-', '-']
+    neg_linestyle = ['--', '--']
     leg = []
 
-    for i, mur in enumerate(cp.muModels):
+    for i, f in enumerate(cp.freqs):
         for srcind in srcinds:
             src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
             j = Utils.mkvc(fields[mur][src, 'j'].copy())
@@ -1015,5 +1122,5 @@ def plot_j_over_mu_x(
     if ylim_1 is not None:
         ax[1].set_ylim(ylim_1)
 
-    ax[0].legend(bbox_to_anchor=[1.15, 1])
+    ax[0].legend(bbox_to_anchor=[1.25, 1])
     return ax
