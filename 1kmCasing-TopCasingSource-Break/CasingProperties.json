@@ -1,0 +1,1 @@
+{"layer_z": [-1000.0, -900.0], "dsz": 0.0, "sigmaback": 0.01, "sigmalayer": 0.01, "muModels": [50.0], "casing_t": 0.01, "sigmacasing": 5500000.0, "freqs": [1.0], "__class__": "CasingProperties", "casing_top": 0.0, "src_b": [10000.0, 0.0, 0.0], "casing_l": 1000.0, "sigmainside": 1.0, "casing_d": 0.1, "sigmaair": 1e-08}
