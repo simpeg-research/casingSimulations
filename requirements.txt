@@ -1,0 +1,3 @@
+pymatsolver
+git+https://github.com/simpeg/simpeg.git@em/feat/3Dcyl
+git+https://github.com/simpeg/discretize@feat/3Dcylmesh
