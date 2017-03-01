@@ -7,6 +7,9 @@ matrix:
   allow_failures:
     - python: 3.6
 
+env:
+  - TEST_DIR=tests
+
 sudo: false
 
 before_install:
@@ -26,10 +29,14 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pillow cython ipython;
     fi
-  - pip install -r requirements.txt
+  - pip install nose-cov python-coveralls pymatsolver
+  - pip install nose-cov python-coveralls git+https://github.com/simpeg/simpeg.git@em/feat/3Dcyl
+  - pip install nose-cov python-coveralls git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh
+  - python setup.py install
+  - python setup.py build_ext --inplace
 
 script:
-  - nosetests tests
+  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
