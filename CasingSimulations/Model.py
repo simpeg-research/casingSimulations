@@ -1,6 +1,7 @@
 import numpy as np
 import properties
-from SimPEG import Utils
+from SimPEG import Maps, Utils
+from scipy.constants import mu_0
 
 ##############################################################################
 #                                                                            #
@@ -10,7 +11,7 @@ from SimPEG import Utils
 
 
 # Parameters to set up the model
-class CasingProperties(properties.HasProperties):
+class CasingParameters(properties.HasProperties):
     """
     Simulation Parameters
     """
@@ -41,8 +42,8 @@ class CasingProperties(properties.HasProperties):
     )
 
     # Magnetic Permeability
-    mu_casing = properties.Float(
-        "permeability of the casing",
+    mur_casing = properties.Float(
+        "relative permeability of the casing",
         default= 100.
     )
 
@@ -108,3 +109,92 @@ class CasingProperties(properties.HasProperties):
     @property
     def casing_z(self):
         return np.r_[-self.casing_l, 0.] + self.casing_top
+
+
+class PhysicalProperties(object):
+    """
+    Physical properties on the mesh
+    """
+    def __init__(self, mesh, cp):
+        self.mesh = mesh
+        self.cp = cp
+
+    @property
+    def casing_xind(self):
+        """
+        x-indices of the casing
+        """
+        return (
+            (self.mesh.gridCC[:, 0] > self.cp.casing_a) &
+            (self.mesh.gridCC[:, 0] < self.cp.casing_b)
+        )
+
+    @property
+    def casing_zind(self):
+        """
+        z-indices of the casing
+        """
+        return (
+            (self.mesh.gridCC[:, 2] > self.cp.casing_z[0]) &
+            (self.mesh.gridCC[:, 2] < self.cp.casing_z[1])
+        )
+
+    @property
+    def inside_xind(self):
+        return (self.mesh.gridCC[:, 0] < self.cp.casing_a)
+
+    @property
+    def casing_ind(self):
+        return self.casing_xind & self.casing_zind
+
+    @property
+    def inside_ind(self):
+        return self.inside_xind & self.casing_zind
+
+    @property
+    def air_ind(self):
+        return self.mesh.gridCC[:, 2] > 0.
+
+    @property
+    def layer_ind(self):
+        return (
+            (self.mesh.gridCC[:, 2] > self.cp.layer_z[0]) &
+            (self.mesh.gridCC[:, 2] < self.cp.layer_z[1])
+        )
+
+    @property
+    def sigma(self):
+        if getattr(self, '_sigma', None) is None:
+            sigma = self.cp.sigma_back * np.ones(self.mesh.nC)
+            sigma[self.air_ind] = self.cp.sigma_air
+            sigma[self.layer_ind] = self.cp.sigma_layer
+            sigma[self.casing_ind] = self.cp.sigma_casing
+            sigma[self.inside_ind] = self.cp.sigma_inside
+            self._sigma = sigma
+        return self._sigma
+
+    @property
+    def mur(self):
+        if getattr(self, '_mur', None) is None:
+            mur = np.ones(self.mesh.nC)
+            mur[self.casing_ind] = self.cp.mur_casing
+            self._mur = mur
+        return self._mur
+
+    @property
+    def mu(self):
+        return mu_0 * self.mur
+
+    @property
+    def model(self):
+        return np.hstack([self.sigma, self.mu])
+
+    @property
+    def wires(self):
+        if getattr(self, '_wires', None) is None:
+            self._wires = Maps.Wires(
+                ('sigma', self.mesh.nC), ('mu', self.mesh.nC)
+            )
+        return self._wires
+
+

@@ -80,8 +80,8 @@ class DownHoleCasingSrc(BaseCasingSrc):
 
             if not mesh.isSymmetric:
                 dowhhole_electrode_indy = (
-                    (mesh.gridFx[:, 1] > src_a[1] - mesh.hy.min()/2.) &
-                    (mesh.gridFx[:, 1] < src_a[1] + mesh.hy.min()/2.)
+                    (mesh.gridFx[:, 1] > src_a[1] - mesh.hy.min()) &
+                    (mesh.gridFx[:, 1] < src_a[1] + mesh.hy.min())
                 )
                 self._downhole_electrode = (
                     self._downhole_electrode & dowhhole_electrode_indy
@@ -110,8 +110,8 @@ class DownHoleCasingSrc(BaseCasingSrc):
 
             if not self.isSymmetric:
                 surface_wirey = (
-                    (mesh.gridFy[:, 1] > src_b[1] - mesh.hy.min()/2.) &
-                    (mesh.gridFy[:, 1] < src_b[1] + mesh.hy.min()/2.)
+                    (mesh.gridFy[:, 1] > src_b[1] - mesh.hy.min()) &
+                    (mesh.gridFy[:, 1] < src_b[1] + mesh.hy.min())
                 )
 
                 self._surface_wire & surface_wirey
@@ -141,8 +141,8 @@ class DownHoleCasingSrc(BaseCasingSrc):
 
             if mesh.isSymmetric:
                 surface_electrodey = (
-                    (mesh.gridFy[:, 1] > src_b[1] - mesh.hy.min()/2.) &
-                    (mesh.gridFy[:, 1] < src_b[1] + mesh.hy.min()/2.)
+                    (mesh.gridFy[:, 1] > src_b[1] - mesh.hy.min()) &
+                    (mesh.gridFy[:, 1] < src_b[1] + mesh.hy.min())
                 )
                 self._surface_electrode = (
                     self._surface_electrode & surface_electrodey
@@ -223,23 +223,22 @@ class TopCasingSource(BaseCasingSrc):
             src_a = self.src_a
             src_b = self.src_b
 
-            if mesh.isSymmetric is True:
-                tophole_electrodex = (
-                    (mesh.gridFz[:, 0] <= self.casing_a + mesh.hx.min()/2.) &
-                    (mesh.gridFz[:, 0] > self.casing_a - mesh.hx.min()/2.)
-                )
+            tophole_electrodex = (
+                (mesh.gridFz[:, 0] <= self.casing_a + mesh.hx.min()/2.) &
+                (mesh.gridFz[:, 0] > self.casing_a - mesh.hx.min()/2.)
+            )
 
-                tophole_electrodez = (
-                    (mesh.gridFz[:, 2] < src_a[2] + 1.5*mesh.hz.min()) &
-                    (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min())
-                )
+            tophole_electrodez = (
+                (mesh.gridFz[:, 2] < src_a[2] + 1.5*mesh.hz.min()) &
+                (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min())
+            )
 
             self._tophole_electrode = tophole_electrodex & tophole_electrodez
 
             if not mesh.isSymmetric:
                 tophole_electrodey = (
-                    (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()/2.) &
-                    (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min()/2.)
+                    (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()) &
+                    (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min())
                 )
                 self._tophole_electrode = (
                     self._tophole_electrode & tophole_electrodey
@@ -270,9 +269,10 @@ class TopCasingSource(BaseCasingSrc):
 
             if not mesh.isSymmetric:
                 surface_wirey = (
-                    (mesh.gridFx[:, 1] < src_b[1] + self.hy.min()/2.) &
-                    (mesh.gridFx[:, 1] > src_b[1] - self.hy.min()/2.)
+                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()) &
+                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min())
                 )
+                self._surface_wire = self._surface_wire & surface_wirey
         return self._surface_wire
 
     @property
@@ -291,15 +291,15 @@ class TopCasingSource(BaseCasingSrc):
                 (mesh.gridFz[:, 0] < src_b[0]*1.1)
             )
             surface_electrodez = (
-                (mesh.gridFz[:, 2] >= -mesh.hz.min()) &
+                (mesh.gridFz[:, 2] > -0.5*mesh.hz.min()) &
                 (mesh.gridFz[:, 2] < 1.5*mesh.hz.min())
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
             if not mesh.isSymmetric:
                 surface_electrodey = (
-                    (mesh.gridFy[:, 1] < src_b[1] + mesh.hy.min()/2.) &
-                    (mesh.gridFy[:, 1] > src_b[1] - mesh.hy.min()/2.)
+                    (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min()) &
+                    (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min())
                 )
                 self._surface_electrode = (
                     self._surface_electrode & surface_electrodey
@@ -352,3 +352,33 @@ class TopCasingSource(BaseCasingSrc):
         )
 
         return ax
+
+    def validate(self):
+        # check the surface electrode only has one x and one y location
+        surface_electrode = self.mesh.gridFz[self.surface_electrode, :]
+        assert len(np.unique(surface_electrode[:, 0])) == 1, (
+            'the surface electrode has more than one x-location'
+        )
+        assert len(np.unique(surface_electrode[:, 1])) == 1, (
+            'the surface electrode has more than one y-location'
+        )
+
+        # check the top casing electrode only has one x and one y location
+        tophole_electrode = self.mesh.gridFz[self.tophole_electrode, :]
+        assert len(np.unique(tophole_electrode[:, 0])) == 1, (
+            'the tophole electrode has more than one x-location'
+        )
+        assert len(np.unique(tophole_electrode[:, 1])) == 1, (
+            'the tophole electrode has more than one y-location'
+        )
+
+        # check the surface wire only has one y and one z location
+        surface_wire = self.mesh.gridFx[self.surface_wire, :]
+        assert len(np.unique(surface_wire[:, 1])) == 1, (
+            'the surface wire has more than one y-location'
+        )
+        assert len(np.unique(surface_wire[:, 2])) == 1, (
+            'the surface wire has more than one z-location'
+        )
+
+        return True

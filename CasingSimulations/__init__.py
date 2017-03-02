@@ -1,4 +1,4 @@
-from .Model import CasingProperties
+from .Model import CasingParameters, PhysicalProperties
 from .Mesh import CasingMesh
 from .Physics import (
     CasingCurrents, plotCurrentDensity, plot_currents_over_freq,
