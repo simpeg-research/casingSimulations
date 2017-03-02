@@ -37,7 +37,7 @@ install:
   - python setup.py build_ext --inplace
 
 script:
-  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+  - nosetests $TEST_DIR
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
