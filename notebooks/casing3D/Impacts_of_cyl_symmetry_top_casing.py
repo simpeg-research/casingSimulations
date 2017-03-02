@@ -16,9 +16,12 @@ from SimPEG import Utils, Maps
 import CasingSimulations
 
 from pymatsolver import Pardiso
+from discretize.utils import mkvc
+plotIt = False
 
-import matplotlib.pyplot as plt
-get_ipython().magic(u'matplotlib inline')
+if plotIt:
+    import matplotlib.pyplot as plt
+# get_ipython().magic(u'matplotlib inline')
 
 
 # In[2]:
@@ -104,7 +107,7 @@ print(NN[1].shape, self.nCx)
 
 # In[12]:
 
-from discretize.utils import mkvc
+
 
 
 # In[13]:
@@ -246,7 +249,7 @@ prb3D.pair(survey3D)
 
 # In[27]:
 
-get_ipython().run_cell_magic(u'time', u'', u'\nfields2D = prb2D.fields(physprops2D.model)')
+fields2D = prb2D.fields(physprops2D.model)
 
 
 
@@ -257,10 +260,10 @@ np.save('fields2DtopCasing', fields2D[:, 'hSolution'])
 
 # In[ ]:
 
-get_ipython().run_cell_magic(u'time', u'', u'\nfields3D = prb3D.fields(physprops3D.model)')
+fields3D = prb3D.fields(physprops3D.model)
 
 
-# In[ ]:
+# # In[ ]:
 
 np.save('fields3DtopCasing', fields3D[:, 'hSolution'])
 

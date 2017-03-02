@@ -1,6 +1,4 @@
 from SimPEG import Utils
-import matplotlib
-matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
