@@ -103,6 +103,13 @@ class CasingMesh(properties.HasProperties):
                 self._hy = 2*np.pi * np.ones(self.ncy) / self.ncy
         return self._hy
 
+    @hy.setter
+    def hy(self, val):
+        H = val.sum()
+        if H != 2*np.pi:
+            val = val*2*np.pi/val.sum()
+        self._hy = val
+
     @property
     def ncz(self):
         """
