@@ -5,6 +5,9 @@ import numpy as np
 import scipy.sparse as sp
 import sympy
 
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from scipy.constants import mu_0
 
@@ -15,8 +18,6 @@ from pymatsolver import Pardiso
 
 import CasingSimulations
 
-import matplotlib
-matplotlib.use('Agg')
 
 plotIt = False
 TOL = 1e-4
