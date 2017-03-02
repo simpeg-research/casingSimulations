@@ -6,8 +6,7 @@ from SimPEG.EM import FDEM
 
 class BaseCasingSrc(object):
     def __init__(self, mesh, cp):
-        assert(
-            cp.src_a[1] == cp.src_b[1],
+        assert cp.src_a[1] == cp.src_b[1], (
             'non y-axis aligned sources have not been implemented'
         )
         self.mesh = mesh
