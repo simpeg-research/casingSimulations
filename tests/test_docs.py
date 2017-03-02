@@ -1,9 +1,9 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import subprocess
 import unittest
 import os
-
-import matplotlib
-matplotlib.use('Agg')
 
 
 class Doc_Test(unittest.TestCase):

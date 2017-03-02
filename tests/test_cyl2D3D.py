@@ -1,12 +1,12 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import unittest
 import discretize
 from discretize import utils
 import numpy as np
 import scipy.sparse as sp
 import sympy
-
-import matplotlib
-matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 from scipy.constants import mu_0
