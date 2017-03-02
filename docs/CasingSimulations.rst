@@ -12,7 +12,7 @@ Model
 Mesh
 ----
 
-.. automodule:: CasingSimulations.CasingMesh
+.. automodule:: CasingSimulations.Mesh
     :show-inheritance:
     :members:
     :undoc-members:
