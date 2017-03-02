@@ -1,6 +1,6 @@
 from .Model import CasingProperties
-from .CasingMesh import CasingMesh
-from .CasingPhysics import (
+from .Mesh import CasingMesh
+from .Physics import (
     CasingCurrents, plotCurrentDensity, plot_currents_over_freq,
     plot_currents_over_mu, plot_j_over_mu_z, plot_j_over_freq_z,
     plot_j_over_mu_x

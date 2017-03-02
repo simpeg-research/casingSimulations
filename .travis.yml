@@ -29,6 +29,7 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pillow cython ipython;
     fi
+  - pip install -r requirements_dev.txt
   - pip install nose-cov python-coveralls pymatsolver
   - pip install nose-cov python-coveralls git+https://github.com/simpeg/simpeg.git@em/feat/3Dcyl
   - pip install nose-cov python-coveralls git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh

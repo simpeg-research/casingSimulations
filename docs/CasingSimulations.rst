@@ -1,7 +1,35 @@
 Casing Simulations
 ==================
 
-.. automodule:: CasingSimulations.CasingSimulations
+Model
+-----
+
+.. automodule:: CasingSimulations.Model
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Mesh
+----
+
+.. automodule:: CasingSimulations.CasingMesh
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Sources
+-------
+
+.. automodule:: CasingSimulations.Sources
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
+Physics
+-------
+
+.. automodule:: CasingSimulations.Physics
     :show-inheritance:
     :members:
     :undoc-members:
