@@ -29,13 +29,12 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pillow cython ipython;
     fi
-  - pip install -r requirements_dev.txt
+  - python setup.py install
   - pip install nose-cov python-coveralls pymatsolver
   - git clone https://github.com/simpeg/simpeg.git
-  - cd SimPEG; git checkout em/feat/3Dcyl; python setup.py install; cd ../
+  - cd SimPEG; git checkout em/feat/3Dcyl; python setup.py install; cd ..;
   - git clone https://github.com/simpeg/discretize.git
-  - cd discretize; git checkout feat/3Dcylmesh; python setup.py install; cd ../
-  - python setup.py install
+  - cd discretize; git checkout feat/3Dcylmesh; python setup.py install; cd ..;
 
 script:
   - nosetests $TEST_DIR
