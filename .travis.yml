@@ -34,9 +34,8 @@ install:
   - git clone https://github.com/simpeg/simpeg.git
   - cd SimPEG; git checkout em/feat/3Dcyl; python setup.py install; cd ../
   - git clone https://github.com/simpeg/discretize.git
-  - cd discretise; git checkout feat/3Dcylmesh; python setup.py install; cd ../
+  - cd discretize; git checkout feat/3Dcylmesh; python setup.py install; cd ../
   - python setup.py install
-  - python setup.py build_ext --inplace
 
 script:
   - nosetests $TEST_DIR
