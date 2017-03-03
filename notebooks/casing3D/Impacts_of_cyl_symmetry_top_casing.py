@@ -162,7 +162,7 @@ if plotIt:
 # validate the source terms
 src3D.validate()
 src2D.validate()
-
+print('validated sources')
 
 # In[20]:
 
@@ -248,7 +248,7 @@ prb2D.pair(survey2D)
 prb3D.pair(survey3D)
 
 
-# In[27]:
+# # In[27]:
 
 fields2D = prb2D.fields(physprops2D.model)
 

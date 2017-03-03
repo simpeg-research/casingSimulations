@@ -107,8 +107,8 @@ class DownHoleCasingSrc(BaseCasingSrc):
 
             if not self.isSymmetric:
                 surface_wirey = (
-                    (mesh.gridFy[:, 1] > src_b[1] - mesh.hy.min()) &
-                    (mesh.gridFy[:, 1] < src_b[1] + mesh.hy.min())
+                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()) &
+                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min())
                 )
 
                 self._surface_wire & surface_wirey
@@ -136,7 +136,7 @@ class DownHoleCasingSrc(BaseCasingSrc):
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
-            if mesh.isSymmetric:
+            if not mesh.isSymmetric:
                 surface_electrodey = (
                     (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min()) &
                     (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min())
