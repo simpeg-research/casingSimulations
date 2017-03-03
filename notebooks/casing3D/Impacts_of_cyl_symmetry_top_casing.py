@@ -17,6 +17,7 @@ import CasingSimulations
 
 from pymatsolver import Pardiso
 from discretize.utils import mkvc
+
 plotIt = False
 
 if plotIt:
