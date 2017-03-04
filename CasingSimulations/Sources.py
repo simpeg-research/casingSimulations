@@ -30,26 +30,31 @@ class DownHoleCasingSrc(BaseCasingSrc):
         super(DownHoleCasingSrc, self).__init__(mesh, cp)
 
     @property
-    def wire_in_casing(self):
+    def wire_in_borehole(self):
         """
         Indices of the verically directed wire inside of the borehole. It goes
         through the center of the well
         """
-        if getattr(self, '_wire_in_casing', None) is None:
+        if getattr(self, '_wire_in_borehole', None) is None:
             mesh = self.mesh
             src_a = self.src_a
             src_b = self.src_b
 
-            wire_in_casingx = (mesh.gridFz[:, 0] < mesh.hx.min())
-            wire_in_casingz = (
+            wire_in_boreholex = (mesh.gridFz[:, 0] < mesh.hx.min())
+            wire_in_boreholez = (
                 (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min()) &
                 (mesh.gridFz[:, 2] < src_b[2] + 1.5*mesh.hz.min())
             )
 
-            wire_in_casing = wire_in_casingx & wire_in_casingz
+            if not mesh.isSymmetric:
+                wire_in_boreholey = (
+                    (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()) &
+                    (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min())
+                )
 
-            self._wire_in_casing
-        return self.wire_in_casing
+            self._wire_in_borehole = wire_in_boreholex & wire_in_boreholez
+
+        return self._wire_in_borehole
 
     @property
     def downhole_electrode(self):
@@ -70,27 +75,26 @@ class DownHoleCasingSrc(BaseCasingSrc):
                 (mesh.gridFx[:, 2] > src_a[2] - mesh.hz.min())
             )
 
-            # if mesh.isSymmetric:
-            self._dowhnole_electrode = (
+            self._downhole_electrode = (
                 downhole_electrode_indx & downhole_electrode_indz2
             )
 
             if not mesh.isSymmetric:
                 dowhhole_electrode_indy = (
-                    (mesh.gridFx[:, 1] > src_a[1] - mesh.hy.min()) &
-                    (mesh.gridFx[:, 1] < src_a[1] + mesh.hy.min())
+                    (mesh.gridFx[:, 1] > src_a[1] - mesh.hy.min()/2.) &
+                    (mesh.gridFx[:, 1] < src_a[1] + mesh.hy.min()/2.)
                 )
                 self._downhole_electrode = (
                     self._downhole_electrode & dowhhole_electrode_indy
                 )
 
-        return self._dowhnole_electrode
+        return self._downhole_electrode
 
     @property
     def surface_wire(self):
         """
-        Horizontal part of the wire that runs along the surface (one cell above)
-        from the center of the well to the return electrode
+        Horizontal part of the wire that runs along the surface
+        (one cell above) from the center of the well to the return electrode
         """
         if getattr(self, '_surface_wire', None) is None:
             mesh = self.mesh
@@ -105,13 +109,13 @@ class DownHoleCasingSrc(BaseCasingSrc):
             )
             self._surface_wire = surface_wirex & surface_wirez
 
-            if not self.isSymmetric:
+            if not mesh.isSymmetric:
                 surface_wirey = (
-                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()) &
-                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min())
+                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.) &
+                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.)
                 )
 
-                self._surface_wire & surface_wirey
+                self._surface_wire = self._surface_wire & surface_wirey
 
         return self._surface_wire
 
@@ -132,7 +136,7 @@ class DownHoleCasingSrc(BaseCasingSrc):
             )
             surface_electrodez = (
                 (mesh.gridFz[:, 2] >= src_b[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < src_b[2] + 1.*mesh.hz.min())
+                (mesh.gridFz[:, 2] < src_b[2] + mesh.hz.min())
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
@@ -158,7 +162,7 @@ class DownHoleCasingSrc(BaseCasingSrc):
             dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
             dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
 
-            dg_z[self.wire_in_casing] = -1.  # part of wire through borehole
+            dg_z[self.wire_in_borehole] = -1.  # part of wire through borehole
             dg_x[self.downhole_electrode] = 1.  # downhole hz part of wire
             dg_x[self.surface_wire] = -1.  # horizontal part of wire along surface
             dg_z[self.surface_electrode] = 1.  # vertical part of return electrode
@@ -181,8 +185,8 @@ class DownHoleCasingSrc(BaseCasingSrc):
         mesh = self.mesh
 
         ax.plot(
-            mesh.gridFz[self.wire_in_casing, 0],
-            mesh.gridFz[self.wire_in_casing, 2], 'rv'
+            mesh.gridFz[self.wire_in_borehole, 0],
+            mesh.gridFz[self.wire_in_borehole, 2], 'rv'
         )
         ax.plot(
             mesh.gridFx[self.downhole_electrode, 0],
@@ -199,9 +203,68 @@ class DownHoleCasingSrc(BaseCasingSrc):
 
         return ax
 
+    def validate(self):
+        """
+        Make sure that each segment of the wire is only going through a
+        single face
+
+        .. todo:: check that
+        """
+        # check the surface electrode only has one x and one y location
+        surface_electrode = self.mesh.gridFz[self.surface_electrode, :]
+        assert len(np.unique(surface_electrode[:, 0])) == 1, (
+            'the surface electrode has more than one x-location'
+        )
+        assert len(np.unique(surface_electrode[:, 1])) == 1, (
+            'the surface electrode has more than one y-location'
+        )
+
+        # check the surface wire only has one y and one z location
+        surface_wire = self.mesh.gridFx[self.surface_wire, :]
+        assert len(np.unique(surface_wire[:, 1])) == 1, (
+            'the surface wire has more than one y-location'
+        )
+        assert len(np.unique(surface_wire[:, 2])) == 1, (
+            'the surface wire has more than one z-location'
+        )
+
+        # check that the down-hole electrode has only one y, one z location
+        downhole_electrode = self.mesh.gridFx[self.downhole_electrode, :]
+        assert len(np.unique(downhole_electrode[:, 1])) == 1, (
+            'the downhole electrode has more than one y-location'
+        )
+        assert len(np.unique(downhole_electrode[:, 2])) == 1, (
+            'the downhole electrode has more than one z-location'
+        )
+
+        # check that the down-hole electrode has only one y, one z location
+        downhole_electrode = self.mesh.gridFx[self.downhole_electrode, :]
+        assert len(np.unique(downhole_electrode[:, 1])) == 1, (
+            'the downhole electrode has more than one y-location'
+        )
+        assert len(np.unique(downhole_electrode[:, 2])) == 1, (
+            'the downhole electrode has more than one z-location'
+        )
+
+        # check that the wire inside the borehole has only one x, y, location
+        wire_in_borehole = self.mesh.gridFz[self.wire_in_borehole, :]
+        assert len(np.unique(downhole_electrode[:, 1])) == 1, (
+            'the downhole electrode has more than one y-location'
+        )
+        assert len(np.unique(downhole_electrode[:, 2])) == 1, (
+            'the downhole electrode has more than one z-location'
+        )
+        return True
+
 
 class TopCasingSource(BaseCasingSrc):
+    """
+    Source that has one electrode coupled to the top of the casing, one return
+    electrode and a wire in between. This source is set up to live on faces.
 
+    :param discretize.CylMesh mesh: the cylindrical simulation mesh
+    :param CasingSimulations cp: Casing parameters object
+    """
     def __init__(self, mesh, cp):
         self.mesh = mesh
         self.src_a = cp.src_a
@@ -266,8 +329,8 @@ class TopCasingSource(BaseCasingSrc):
 
             if not mesh.isSymmetric:
                 surface_wirey = (
-                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()) &
-                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min())
+                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.) &
+                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.)
                 )
                 self._surface_wire = self._surface_wire & surface_wirey
         return self._surface_wire
