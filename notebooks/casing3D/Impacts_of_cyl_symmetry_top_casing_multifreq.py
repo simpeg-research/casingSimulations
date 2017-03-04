@@ -22,7 +22,7 @@ from pymatsolver import Pardiso
 import matplotlib.pyplot as plt
 
 
-# In[5]:
+# In[57]:
 
 sigma_back = 1e-1 # wholespace
 
@@ -31,7 +31,7 @@ cp = CasingSimulations.CasingParameters(
     casing_l = 1000.,
     src_a = np.r_[0., np.pi, 0.], # the source fcts will take care of coupling it to the casing
     src_b = np.r_[1e3, np.pi, 0.], # return electrode
-    freqs = np.r_[1e-1, 0.5, 1., 2.],
+    freqs = np.r_[0.25, 0.5, 1., 2.],
     sigma_back = sigma_back, # wholespace
     sigma_layer = sigma_back,
     sigma_air = sigma_back,
@@ -40,22 +40,22 @@ cp = CasingSimulations.CasingParameters(
 print('Casing Parameters: ', cp.serialize())
 
 
-# In[10]:
+# In[58]:
 
 print('skin depths in casing: ', cp.skin_depth(sigma=cp.sigma_casing, mu=cp.mur_casing*mu_0))
 print('casing thickness: ',  cp.casing_t)
 
 
-# In[14]:
+# In[59]:
 
 print('skin depths in background: ', cp.skin_depth())
 
 
 # # Set up meshes
 
-# In[19]:
+# In[71]:
 
-npadx, npadz = 11, 22
+npadx, npadz = 9, 20
 dx2 = 200.
 csz = 0.25
 
@@ -63,29 +63,26 @@ mesh2D = CasingSimulations.CasingMesh(
     cp=cp, npadx=npadx, npadz=npadz, dx2=dx2, csz=csz
 ).mesh
 
-
-# In[20]:
-
-print(mesh2D.vectorNz.min(), mesh2D.vectorNz.max(), mesh2D.vectorNx.max())
+print(mesh2D.vectorNx.max(), mesh2D.vectorNz.min(), mesh2D.vectorNz.max())
 
 
-# In[21]:
+# In[72]:
 
-ncy = 3
+ncy = 1
 nstretchy = 3
 stretchfact = 1.6
 hy = utils.meshTensor([(1, nstretchy, -stretchfact), (1, ncy), (1, nstretchy, stretchfact)])
 hy = hy * 2*np.pi/hy.sum()
 
 
-# In[22]:
+# In[73]:
 
 mesh3D = CasingSimulations.CasingMesh(
     cp=cp, npadx=npadx, npadz=npadz, dx2=dx2, hy=hy, csz=csz
 ).mesh
 
 
-# In[23]:
+# In[74]:
 
 print(mesh2D.nC, mesh3D.nC)
 
@@ -256,9 +253,29 @@ print('Elapsed time for 2D: {}'.format(time.time()-t))
 
 # In[28]:
 
+# %%time
 t = time.time()
 fields3D = prb3D.fields(physprops3D.model)
 np.save('fields2DMultiFreqtopCasing', fields3D[:, 'hSolution'])
 print('Elapsed time for 3D: {}'.format(time.time()-t))
 
+
+# In[29]:
+
+h2D = np.load('fields2DMultiFreqtopCasing.npy')
+h3D = np.load('fields3DMultiFreqtopCasing.npy')
+
+
+# In[30]:
+
+prb2D.model = physprops2D.model
+fields2D = prb2D.fieldsPair(mesh2D, survey2D)
+fields2D[:, 'hSolution'] = h2D
+
+
+# In[31]:
+
+prb3D.model = physprops3D.model
+fields3D = prb3D.fieldsPair(mesh3D, survey3D)
+fields3D[:, 'hSolution'] = h3D
 
