@@ -19,6 +19,8 @@ import CasingSimulations
 
 from pymatsolver import Pardiso
 
+import matplotlib.pyplot as plt
+
 
 # In[5]:
 
