@@ -33,3 +33,21 @@ Physics
     :show-inheritance:
     :members:
     :undoc-members:
+
+
+View
+----
+
+.. automodule:: CasingSimulations.View
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
+Utils
+-----
+
+.. automodule:: CasingSimulations.Utils
+    :show-inheritance:
+    :members:
+    :undoc-members:

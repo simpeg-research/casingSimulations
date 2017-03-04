@@ -5,7 +5,7 @@ from SimPEG.EM import FDEM
 
 
 class BaseCasingSrc(object):
-    def __init__(self, mesh, cp):
+    def __init__(self, cp, mesh):
         assert cp.src_a[1] == cp.src_b[1], (
             'non y-axis aligned sources have not been implemented'
         )
@@ -26,8 +26,8 @@ class DownHoleCasingSrc(BaseCasingSrc):
     :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
     """
 
-    def __init__(self, mesh, cp):
-        super(DownHoleCasingSrc, self).__init__(mesh, cp)
+    def __init__(self, cp, mesh):
+        super(DownHoleCasingSrc, self).__init__(cp, mesh)
 
     @property
     def wire_in_borehole(self):
@@ -257,7 +257,7 @@ class DownHoleCasingSrc(BaseCasingSrc):
         return True
 
 
-class TopCasingSource(BaseCasingSrc):
+class TopCasingSrc(BaseCasingSrc):
     """
     Source that has one electrode coupled to the top of the casing, one return
     electrode and a wire in between. This source is set up to live on faces.
@@ -265,7 +265,7 @@ class TopCasingSource(BaseCasingSrc):
     :param discretize.CylMesh mesh: the cylindrical simulation mesh
     :param CasingSimulations cp: Casing parameters object
     """
-    def __init__(self, mesh, cp):
+    def __init__(self, cp, mesh):
         self.mesh = mesh
         self.src_a = cp.src_a
         self.src_b = cp.src_b

@@ -1,5 +1,7 @@
 import numpy as np
 import properties
+import json
+import os
 from SimPEG import Maps, Utils
 from scipy.constants import mu_0
 
@@ -76,7 +78,7 @@ class CasingParameters(properties.HasProperties):
 
     freqs = properties.Array(
         "source frequencies",
-        default=np.r_[1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1],
+        default=np.r_[0.5],
         dtype=float
     )
 
@@ -90,7 +92,7 @@ class CasingParameters(properties.HasProperties):
         default=np.r_[1e4, 0., 0.]
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, filename=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
     # useful quantities to work in
@@ -118,6 +120,17 @@ class CasingParameters(properties.HasProperties):
         if f is None:
             f = self.freqs
         return np.sqrt(2./(2.*np.pi*f*mu*sigma))
+
+    def save(self, filename='CasingParameters.json', directory='.'):
+        """
+        Save the casing properties to json
+        :param str file: filename for saving the casing properties
+        """
+        if not os.path.isdir(directory):  # check if the directory exists
+            os.mkdir(directory)  # if not, create it
+        f = '/'.join([directory, filename])
+        with open(f, 'w') as outfile:
+            cp = json.dump(self.serialize(), outfile)
 
 
 class PhysicalProperties(object):

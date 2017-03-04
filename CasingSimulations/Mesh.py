@@ -1,12 +1,19 @@
 import numpy as np
 import properties
-from SimPEG import Mesh, Utils
+import json
+import os
+
+import discretize as Mesh
+from SimPEG import Utils
+
+from discretize.utils import mkvc
 
 
 class CasingMesh(properties.HasProperties):
     """
     Mesh that makes sense for casing examples
     """
+
     # X-direction of the mesh
     csx1 = properties.Float(
         "finest cells in the x-direction", default=2.5e-3
@@ -163,3 +170,53 @@ class CasingMesh(properties.HasProperties):
 
         return ax
 
+    def save(self, filename='MeshParameters.json', directory='.'):
+        """
+        Save the casing mesh parameters to json
+        :param str file: filename for saving the casing mesh parameters
+        """
+        if not os.path.isdir(directory):  # check if the directory exists
+            os.mkdir(directory)  # if not, create it
+        f = '/'.join([directory, filename])
+        with open(f, 'w') as outfile:
+            cp = json.dump(self.serialize(), outfile)
+
+
+# grab 2D slices
+def face3DthetaSlice(mesh3D, j3D, theta_ind=0):
+    """
+    Grab a theta slice through a 3D field defined on faces
+    (x, z components), consistent with what would be found from a
+    2D simulation
+
+    :param discretize.CylMesh mesh3D: 3D cyl mesh
+    :param numpy.ndarray j3D: vector of fluxes on mesh
+    :param int theta_ind: index of the theta slice that you want
+    """
+    j3D_x = j3D[:mesh3D.nFx].reshape(mesh3D.vnFx, order='F')
+    j3D_z = j3D[mesh3D.vnF[:2].sum():].reshape(mesh3D.vnFz, order='F')
+
+    j3Dslice = np.vstack([
+        utils.mkvc(j3D_x[:, theta_ind, :], 2),
+        utils.mkvc(j3D_z[:, theta_ind, :], 2)
+    ])
+
+    return j3Dslice
+
+
+def edge3DthetaSlice(mesh3D, h3D, theta_ind=0):
+    """
+    Grab a theta slice through a 3D field defined on edges
+    (y component), consistent with what would be found from a
+    2D simulation
+
+    :param discretize.CylMesh mesh3D: 3D cyl mesh
+    :param numpy.ndarray h3D: vector of fields on mesh
+    :param int theta_ind: index of the theta slice that you want
+    """
+
+    h3D_y = h3D[mesh3D.nEx:mesh3D.vnE[:2].sum()].reshape(
+        mesh3D.vnEy, order='F'
+    )
+
+    return mkvc(h3D_y[:, theta_ind, :])

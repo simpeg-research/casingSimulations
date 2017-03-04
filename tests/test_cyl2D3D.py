@@ -90,7 +90,7 @@ class Test2Dv3DCyl(unittest.TestCase):
 
         sigma_back = 1e-1 # wholespace
 
-        cp = CasingSimulations.CasingProperties(
+        cp = CasingSimulations.CasingParameters(
             casing_l = 10.,
             src_a = np.r_[0., 0., -9.],
             src_b = np.r_[0., 0., -1.],
@@ -127,13 +127,15 @@ class Test2Dv3DCyl(unittest.TestCase):
         ]
 
         # get phys prop models
-        sigma2D, mu2D = getPhysProps(mesh2D, cp)
-        sigma3D, mu3D = getPhysProps(mesh3D, cp)
+        physprops2D = CasingSimulations.PhysicalProperties(mesh2D, cp)
+        physprops3D = CasingSimulations.PhysicalProperties(mesh3D, cp)
 
         # plot the phys prop models
         fig, ax = plt.subplots(1, 1)
         plt.colorbar(
-            mesh2D.plotImage(np.log10(sigma2D), ax=ax, mirror=True)[0], ax=ax
+            mesh2D.plotImage(
+                np.log10(physprops2D.sigma),
+                ax=ax, mirror=True)[0], ax=ax
         )
         ax.set_xlim([-1., 1.])
         ax.set_ylim([-20., 10.])
@@ -141,16 +143,18 @@ class Test2Dv3DCyl(unittest.TestCase):
         if plotIt:
             plt.show()
 
-        # use wires to have 2 active models
-        wires2D = Maps.Wires(('sigma', mesh2D.nC), ('mu', mesh2D.nC))
-        wires3D = Maps.Wires(('sigma', mesh3D.nC), ('mu', mesh3D.nC))
-
         # create the problems and surveys
         prb2D = FDEM.Problem3D_h(
-            mesh2D, sigmaMap=wires2D.sigma, muMap=wires2D.mu, Solver=Pardiso
+            mesh2D,
+            sigmaMap=physprops2D.wires.sigma,
+            muMap=physprops2D.wires.mu,
+            Solver=Pardiso
         )
         prb3D = FDEM.Problem3D_h(
-            mesh3D, sigmaMap=wires3D.sigma, muMap=wires3D.mu, Solver=Pardiso
+            mesh3D,
+            sigmaMap=physprops3D.wires.sigma,
+            muMap=physprops3D.wires.mu,
+            Solver=Pardiso
         )
 
         survey2D = FDEM.Survey(srcList2D)
@@ -160,10 +164,10 @@ class Test2Dv3DCyl(unittest.TestCase):
         prb3D.pair(survey3D)
 
         print('starting 2D solve ... ')
-        fields2D = prb2D.fields(np.hstack([sigma2D, mu2D]))
+        fields2D = prb2D.fields(physprops2D.model)
         print('  ... done \n')
         print('starting 3D solve ...')
-        fields3D = prb3D.fields(np.hstack([sigma3D, mu3D]))
+        fields3D = prb3D.fields(physprops3D.model)
         print('  ... done \n')
 
         # assign the properties that will be helpful
