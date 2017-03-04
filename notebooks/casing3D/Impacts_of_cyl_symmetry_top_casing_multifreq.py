@@ -19,9 +19,6 @@ import CasingSimulations
 
 from pymatsolver import Pardiso
 
-import matplotlib.pyplot as plt
-get_ipython().magic(u'matplotlib inline')
-
 
 # In[5]:
 
@@ -257,7 +254,6 @@ print('Elapsed time for 2D: {}'.format(time.time()-t))
 
 # In[28]:
 
-# %%time
 t = time.time()
 fields3D = prb3D.fields(physprops3D.model)
 np.save('fields2DMultiFreqtopCasing', fields3D[:, 'hSolution'])
