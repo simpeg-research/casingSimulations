@@ -1,14 +1,11 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import discretize
-from discretize import utils
+import time
 import numpy as np
 import scipy.sparse as sp
 import sympy
 from scipy.constants import mu_0
+
+import discretize
+from discretize import utils
 
 from SimPEG.EM import FDEM
 from SimPEG import Utils, Maps
