@@ -351,6 +351,10 @@ class TopCasingSource(BaseCasingSrc):
         return ax
 
     def validate(self):
+        """
+        Make sure that each segment of the wire is only going through a
+        single face
+        """
         # check the surface electrode only has one x and one y location
         surface_electrode = self.mesh.gridFz[self.surface_electrode, :]
         assert len(np.unique(surface_electrode[:, 0])) == 1, (
