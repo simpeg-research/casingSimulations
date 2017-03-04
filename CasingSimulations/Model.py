@@ -110,12 +110,14 @@ class CasingParameters(properties.HasProperties):
     def casing_z(self):
         return np.r_[-self.casing_l, 0.] + self.casing_top
 
-    def skin_depth(self, sigma=None, f=None):
+    def skin_depth(self, sigma=None, mu=None, f=None):
         if sigma is None:
             sigma = self.sigma_back
+        if mu is None:
+            mu = mu_0
         if f is None:
             f = self.freqs
-        return 500./np.sqrt(sigma * f)
+        return np.sqrt(2./(2.*np.pi*f*mu*sigma))
 
 
 class PhysicalProperties(object):
