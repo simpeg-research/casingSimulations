@@ -1,5 +1,5 @@
 from .Model import CasingParameters, PhysicalProperties
-from .Mesh import CasingMesh, edge3DthetaSlice, face3DthetaSlice
+from .Mesh import MeshGenerator, edge3DthetaSlice, face3DthetaSlice
 from .Physics import (
     CasingCurrents, plotCurrentDensity, plot_currents_over_freq,
     plot_currents_over_mu, plot_j_over_mu_z, plot_j_over_freq_z,

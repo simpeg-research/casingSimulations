@@ -32,17 +32,17 @@ class ForwardSimulationTest(unittest.TestCase):
         dx2 = 200.
         csz = 0.25
 
-        mesh2D = CasingSimulations.CasingMesh(
+        meshGenerator = CasingSimulations.MeshGenerator(
             cp=cp, npadx=npadx, npadz=npadz, dx2=dx2, csz=csz
         )
 
         src = CasingSimulations.Sources.TopCasingSrc(
-            cp, mesh2D.mesh
+            cp, meshGenerator.mesh
         )
         src.validate()
 
         simulation = CasingSimulations.Run.SimulationFDEM(
-            cp, mesh2D, src, directory=self.dir2D
+            cp, meshGenerator, src, directory=self.dir2D
         )
 
         fields2D = simulation.run()

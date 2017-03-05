@@ -9,7 +9,7 @@ from SimPEG import Utils
 from discretize.utils import mkvc
 
 
-class CasingMesh(properties.HasProperties):
+class MeshGenerator(properties.HasProperties):
     """
     Mesh that makes sense for casing examples
     """
