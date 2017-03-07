@@ -13,7 +13,7 @@ from SimPEG.EM import FDEM
 from SimPEG import Utils, Maps
 
 from .Model import PhysicalProperties, CasingParameters
-from . import Mesh
+from .Mesh import MeshGenerator
 from . import Sources
 
 
@@ -64,7 +64,7 @@ class BaseSimulation(properties.HasProperties):
         # CasingParameters object
         if isinstance(mesh, str):
             with open(mesh, 'r') as outfile:
-                mesh = Mesh.deserialize(
+                mesh = MeshGenerator.deserialize(
                     json.load(outfile)
                 )
         self.mesh = mesh
