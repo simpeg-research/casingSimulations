@@ -3,6 +3,7 @@ import properties
 import json
 import os
 
+from .Model import CasingParameters
 import discretize as Mesh
 from SimPEG import Utils
 
@@ -12,6 +13,8 @@ from discretize.utils import mkvc
 class MeshGenerator(properties.HasProperties):
     """
     Mesh that makes sense for casing examples
+
+    :param CasingSimulations.CasingParameters cp: casing parameters object
     """
 
     # X-direction of the mesh
@@ -57,6 +60,7 @@ class MeshGenerator(properties.HasProperties):
     # Instantiate the class with casing parameters
     def __init__(self, cp, **kwargs):
         Utils.setKwargs(self, **kwargs)
+        assert isinstance(cp, CasingParameters)
         self.cp = cp
 
     @property
