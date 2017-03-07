@@ -65,7 +65,7 @@ class BaseSimulation(properties.HasProperties):
         if isinstance(mesh, str):
             with open(mesh, 'r') as outfile:
                 mesh = MeshGenerator.deserialize(
-                    json.load(outfile)
+                    self.cp, json.load(outfile)
                 )
         self.mesh = mesh
 
