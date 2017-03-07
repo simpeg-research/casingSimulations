@@ -12,7 +12,7 @@ from SimPEG.EM import FDEM
 from SimPEG import Utils, Maps
 
 from .Model import PhysicalProperties, CasingParameters
-from .CasingSimulations import Mesh
+from . import Mesh
 from . import Sources
 
 
