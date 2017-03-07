@@ -21,7 +21,7 @@ class BaseSimulation(properties.HasProperties):
     """
     Base class wrapper to run an EM Forward Simulation
     :param CasingSimulations.CasingParameters cp: casing parameters object
-    :param CasingSimulations.Mesh mesh: a CasingSimulation mesh object
+    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     formulation = properties.StringChoice(
@@ -88,7 +88,7 @@ class SimulationFDEM(BaseSimulation):
     """
     A wrapper to run an FDEM Forward Simulation
     :param CasingSimulations.CasingParameters cp: casing parameters object
-    :param CasingSimulations.Mesh mesh: a CasingSimulation mesh object
+    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     def __init__(self, cp, mesh, src, **kwargs):
