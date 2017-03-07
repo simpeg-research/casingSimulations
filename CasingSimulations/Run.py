@@ -2,6 +2,7 @@ import time
 import numpy as np
 import scipy.sparse as sp
 import os
+import json
 from scipy.constants import mu_0
 
 import discretize
