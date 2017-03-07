@@ -51,16 +51,16 @@ class BaseSimulation(properties.HasProperties):
 
     def __init__(self, cp, mesh, src, **kwargs):
         # if cp is a string, it is a filename, load in the json and create the
-        # CasingProperties object
+        # CasingParameters object
         if isinstance(cp, str):
             with open(cp, 'r') as outfile:
-                cp = CasingProperties.deserialize(
+                cp = CasingParameters.deserialize(
                     json.load(outfile)
                 )
         self.cp = cp
 
         # if cp is a string, it is a filename, load in the json and create the
-        # CasingProperties object
+        # CasingParameters object
         if isinstance(mesh, str):
             with open(mesh, 'r') as outfile:
                 mesh = Mesh.deserialize(
