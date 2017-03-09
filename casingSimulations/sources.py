@@ -37,6 +37,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
         Indices of the verically directed wire inside of the borehole. It goes
         through the center of the well
         """
+
         if getattr(self, '_wire_in_borehole', None) is None:
             mesh = self.mesh
             src_a = self.src_a
@@ -73,7 +74,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             surface_wirex = (mesh.gridFx[:, 0] <= src_b[0])
             surface_wirez = (
                 (mesh.gridFx[:, 2] > mesh.hz.min()) &
-                (mesh.gridFx[:, 2] < 2*mesh.hz.min())
+                (mesh.gridFx[:, 2] <= 1.75*mesh.hz.min())
             )
             self._surface_wire = surface_wirex & surface_wirez
 
@@ -104,7 +105,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             surface_electrodez = (
                 (mesh.gridFz[:, 2] >= src_b[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < src_b[2] + mesh.hz.min())
+                (mesh.gridFz[:, 2] < src_b[2] + 1.75*mesh.hz.min())
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
@@ -384,7 +385,7 @@ class TopCasingSrc(BaseCasingSrc):
             )
             surface_wirez = (
                 (mesh.gridFx[:, 2] > src_b[2] + mesh.hz.min()) &
-                (mesh.gridFx[:, 2] < src_b[2] + 2*mesh.hz.min())
+                (mesh.gridFx[:, 2] <= src_b[2] + 1.75*mesh.hz.min())
             )
             self._surface_wire = surface_wirex & surface_wirez
 

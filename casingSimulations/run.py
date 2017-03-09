@@ -14,6 +14,7 @@ from SimPEG import Utils, Maps
 
 from .model import PhysicalProperties, CasingParameters
 from .mesh import CylMeshGenerator, TensorMeshGenerator
+from .utils import load_properties
 from . import sources
 
 
@@ -45,11 +46,11 @@ class BaseSimulation(properties.HasProperties):
         default='meshParameters.json'
     )
 
-    mesh_type = properties.StringChoice(
-        "type of mesh cyl or tensor",
-        default="cyl",
-        choices=["cyl", "tensor", "Cyl", "Tensor"]
-    )
+    # mesh_type = properties.StringChoice(
+    #     "type of mesh cyl or tensor",
+    #     default="cyl",
+    #     choices=["cyl", "tensor", "Cyl", "Tensor"]
+    # )
 
     fields_filename = properties.String(
         "filename for the fields",
@@ -60,33 +61,26 @@ class BaseSimulation(properties.HasProperties):
         # set keyword arguments
         Utils.setKwargs(self, **kwargs)
 
-        if self.mesh_type.lower() == 'cyl':
-            MeshGenerator = CylMeshGenerator
-        elif self.mesh_type.lower() == 'tensor':
-            MeshGenerator = TensorMeshGenerator
+        # if self.mesh_type.lower() == 'cyl':
+        #     MeshGenerator = CylMeshGenerator
+        # elif self.mesh_type.lower() == 'tensor':
+        #     MeshGenerator = TensorMeshGenerator
 
         # if cp is a string, it is a filename, load in the json and create the
         # CasingParameters object
         if isinstance(cp, str):
-            with open(cp, 'r') as outfile:
-                cp = CasingParameters.deserialize(
-                    json.load(outfile)
-                )
+            cp = load_properties(cp)
         self.cp = cp
 
         # if cp is a string, it is a filename, load in the json and create the
         # CasingParameters object
         if isinstance(mesh, str):
-            with open(mesh, 'r') as outfile:
-                mesh = MeshGenerator.deserialize(
-                    json.load(outfile)
-                )
-                # mesh.deserialize(json.load(outfile))
+            mesh = load_properties(mesh)
         self.mesh = mesh
 
         # if src is a string, create a source of that type
         if isinstance(src, str):
-            src = getattr(Sources, src)(
+            src = getattr(sources, src)(
                 self.cp, self.mesh.mesh
             )
         self.src = src
@@ -94,6 +88,7 @@ class BaseSimulation(properties.HasProperties):
         # if the working directory does not exsist, create it
         if not os.path.isdir(self.directory):
             os.mkdir(self.directory)
+
 
 class SimulationFDEM(BaseSimulation):
     """

@@ -4,18 +4,76 @@ import json
 import os
 
 import properties
-import discretize as Mesh
 from SimPEG import Utils
 
+import discretize
+from discretize import utils
 from discretize.utils import mkvc
 
 from .model import CasingParameters
 
+# __all__ = [TensorMeshGenerator, CylMeshGenerator]
 
-class TensorMeshGenerator(properties.HasProperties):
+
+class BaseMeshGenerator(properties.HasProperties):
+    """
+    Base Mesh Generator Class
+    """
+    # # Z-direction of mesh
+    # csz = properties.Float(
+    #     "cell size in the z-direction", default=0.05
+    # )
+    # nca = properties.Integer(
+    #     "number of fine cells above the air-earth interface", default=10
+    # )
+
+    # # padding factors
+
+
+    # # number of padding cells
+    # npadz = properties.Integer(
+    #     "number of padding cells in z", default=38
+    # )
+    # npadx = properties.Integer(
+    #     "number of padding cells required to get to infinity!", default=23
+    # )
+
+    # casing parameters
+    cp = properties.Instance(
+        "casing parameters instance",
+        CasingParameters,
+        required=True
+    )
+
+    def __init__(self, **kwargs):
+        Utils.setKwargs(self, **kwargs)
+
+    @property
+    def mesh(self):
+        if getattr(self, '_mesh', None) is None:
+            self._mesh = self._discretizePair(
+                [self.hx, self.hy, self.hz],
+                x0=self.x0
+            )
+        return self._mesh
+
+    def save(self, filename='MeshParameters.json', directory='.'):
+        """
+        Save the casing mesh parameters to json
+        :param str file: filename for saving the casing mesh parameters
+        """
+        if not os.path.isdir(directory):  # check if the directory exists
+            os.mkdir(directory)  # if not, create it
+        f = '/'.join([directory, filename])
+        with open(f, 'w') as outfile:
+            cp = json.dump(self.serialize(), outfile)
+
+
+class TensorMeshGenerator(BaseMeshGenerator):
     """
     Tensor mesh designed based on the source and formulation
     """
+    # cell sizes in each of the dimensions
     csx = properties.Float(
         "cell size in the x-direction", default=25.
     )
@@ -25,6 +83,8 @@ class TensorMeshGenerator(properties.HasProperties):
     csz = properties.Float(
         "cell size in the z-direction", default=25.
     )
+
+    # padding factors in each direction
     pfx = properties.Float(
         "padding factor to pad to infinity", default=1.5
     )
@@ -35,8 +95,141 @@ class TensorMeshGenerator(properties.HasProperties):
         "padding factor to pad to infinity", default=1.5
     )
 
+    # number of extra cells horizontally, above the air-earth interface and
+    # below the casing
+    nch = properties.Integer(
+        "number of cells to add on each side of the mesh horizontally",
+        default=10.
+    )
+    nca = properties.Integer(
+        "number of extra cells above the air-earth interface",
+        default=5.
+    )
+    ncb = properties.Integer(
+        "number of cells below the casing",
+        default=5.
+    )
 
-class CylMeshGenerator(properties.HasProperties):
+    # number of padding cells in each direction
+    npadx = properties.Integer(
+        "number of x-padding cells", default=10
+    )
+    npady = properties.Integer(
+        "number of y-padding cells", default=10
+    )
+    npadz = properties.Integer(
+        "number of z-padding cells", default=10
+    )
+
+    # domain extent in the y-direction
+    domain_y = properties.Float(
+        "domain extent in the y-direction", default=1000.
+    )
+
+    _discretizePair = discretize.TensorMesh
+
+    # Instantiate the class with casing parameters
+    def __init__(self, **kwargs):
+        super(TensorMeshGenerator, self).__init__(**kwargs)
+
+    @property
+    def x0(self):
+        if getattr(self, '_x0', None) is None:
+            self._x0 = np.r_[
+                -self.hx[:self.npadx+self.ncx-self.nch].sum(),
+                -self.hy[:self.npady+self.ncy-self.nch].sum(),
+                -self.hz[:self.npadz+self.ncz-self.nca].sum()
+            ]
+        return self._x0
+
+    @x0.setter
+    def x0(self, value):
+        assert len(value) == 3, (
+            'length of x0 must be 3, not {}'.format(len(x0))
+        )
+
+        self._x0 = value
+
+    # Domain extents in the x, z directions
+    @property
+    def domain_x(self):
+        if getattr(self, '_domain_x', None) is None:
+            self._domain_x = (self.cp.src_a[0] - self.cp.src_b[0])
+        return self._domain_x
+
+    @domain_x.setter
+    def domain_x(self, value):
+        self._domain_x = value
+
+    @property
+    def domain_z(self):
+        if getattr(self, '_domain_z', None) is None:
+            self._domain_z = (self.cp.src_a[0] - self.cp.src_b[0])
+        return self._domain_z
+
+    @domain_z.setter
+    def domain_z(self, value):
+        self._domain_z = value
+
+    # number of cells in each direction
+    @property
+    def ncx(self):
+        if getattr(self, '_ncx', None) is None:
+            self._ncx = int(
+                np.ceil(self.domain_x / self.csx) +
+                2*self.nch
+            )
+        return self._ncx
+
+    @property
+    def ncy(self):
+        if getattr(self, '_ncy', None) is None:
+            self._ncy = int(
+                np.ceil(self.domain_y / self.csy) + 2*self.nch
+            )
+        return self._ncy
+
+    @property
+    def ncz(self):
+        if getattr(self, '_ncz', None) is None:
+            self._ncz = int(
+                np.ceil(self.domain_z / self.csz) + self.nca + self.ncb
+            )
+        return self._ncz
+
+    # cell spacings in each direction
+    @property
+    def hx(self):
+        if getattr(self, '_hx', None) is None:
+            self._hx = utils.meshTensor([
+                (self.csx, self.npadx, -self.pfx),
+                (self.csx, self.ncx),
+                (self.csx, self.npadx, self.pfx)
+            ])
+        return self._hx
+
+    @property
+    def hy(self):
+        if getattr(self, '_hy', None) is None:
+            self._hy = utils.meshTensor([
+                (self.csy, self.npady, -self.pfy),
+                (self.csy, self.ncy),
+                (self.csy, self.npady, self.pfy)
+            ])
+        return self._hy
+
+    @property
+    def hz(self):
+        if getattr(self, '_hz', None) is None:
+            self._hz = utils.meshTensor([
+                (self.csz, self.npadz, -self.pfz),
+                (self.csz, self.ncz),
+                (self.csz, self.npadz, self.pfz)
+            ])
+        return self._hz
+
+
+class CylMeshGenerator(BaseMeshGenerator):
     """
     Mesh that makes sense for casing examples
 
@@ -56,11 +249,8 @@ class CylMeshGenerator(properties.HasProperties):
     pfx2 = properties.Float(
         "padding factor to pad to infinity", default=1.5
     )
-    dx2 = properties.Float(
+    domain_x2 = properties.Float(
         "domain extent for uniform cell region", default=1000.
-    )
-    npadx = properties.Integer(
-        "number of padding cells required to get to infinity!", default=23
     )
 
     # Theta direction of the mesh
@@ -69,29 +259,33 @@ class CylMeshGenerator(properties.HasProperties):
         "1 --> cyl symmetric", default=1
     )
 
-    # Z-direction of mesh
+    # z-direction of the mesh
     csz = properties.Float(
         "cell size in the z-direction", default=0.05
     )
-    nza = properties.Integer(
-        "number of fine cells above the air-earth interface", default=10
+    nca = properties.Integer(
+        "number of fine cells above the air-earth interface", default=5
+    )
+    ncb = properties.Integer(
+        "number of fine cells below the casing", default=5
     )
     pfz = properties.Float(
         "padding factor in the z-direction", default=1.5
+    )
+
+    # number of padding cells
+    npadx = properties.Integer(
+        "number of padding cells required to get to infinity!", default=23
     )
     npadz = properties.Integer(
         "number of padding cells in z", default=38
     )
 
-    cp = properties.Instance(
-        "casing properties instance",
-        CasingParameters,
-        required=True
-    )
+    _discretizePair = discretize.CylMesh
 
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        super(CylMeshGenerator, self).__init__(**kwargs)
 
     @property
     def ncx1(self):
@@ -122,7 +316,7 @@ class CylMeshGenerator(properties.HasProperties):
             hx1b *= (dx1*self.csx2 - sum(hx1a))/sum(hx1b)
 
             # second uniform chunk of mesh
-            ncx2 = np.ceil((self.dx2 - dx1)/self.csx2)
+            ncx2 = np.ceil((self.domain_x2 - dx1)/self.csx2)
             hx2a = Utils.meshTensor([(self.csx2, ncx2)])
 
             # pad to infinity
@@ -159,7 +353,8 @@ class CylMeshGenerator(properties.HasProperties):
         if getattr(self, '_ncz', None) is None:
             # number of core z-cells (add 10 below the end of the casing)
             self._ncz = (
-                np.int(np.ceil(-self.cp.casing_z[0]/self.csz))+10
+                np.int(np.ceil(-self.cp.casing_z[0]/self.csz)) +
+                self.nca + self.ncb
             )
         return self._ncz
 
@@ -175,13 +370,16 @@ class CylMeshGenerator(properties.HasProperties):
         return self._hz
 
     @property
-    def mesh(self):
-        if getattr(self, '_mesh', None) is None:
-            self._mesh = Mesh.CylMesh(
-                [self.hx, self.hy, self.hz],
-                [0., 0., -np.sum(self.hz[:self.npadz+self.ncz-self.nza])]
-            )
-        return self._mesh
+    def x0(self):
+        if getattr(self, '_x0', None) is None:
+            self._x0 = np.r_[
+                0., 0., -np.sum(self.hz[:self.npadz+self.ncz-self.nca])
+            ]
+        return self._x0
+
+    @x0.setter
+    def x0(self, value):
+        assert len(value) == 3, 'x0 must be length 3, not {}'.format(len(x0))
 
     # Plot the physical Property Models
     def plotModels(self, sigma, mu, xlim=[0., 1.], zlim=[-1200., 100.], ax=None):
@@ -204,53 +402,3 @@ class CylMeshGenerator(properties.HasProperties):
 
         return ax
 
-    def save(self, filename='MeshParameters.json', directory='.'):
-        """
-        Save the casing mesh parameters to json
-        :param str file: filename for saving the casing mesh parameters
-        """
-        if not os.path.isdir(directory):  # check if the directory exists
-            os.mkdir(directory)  # if not, create it
-        f = '/'.join([directory, filename])
-        with open(f, 'w') as outfile:
-            cp = json.dump(self.serialize(), outfile)
-
-
-# grab 2D slices
-def face3DthetaSlice(mesh3D, j3D, theta_ind=0):
-    """
-    Grab a theta slice through a 3D field defined on faces
-    (x, z components), consistent with what would be found from a
-    2D simulation
-
-    :param discretize.CylMesh mesh3D: 3D cyl mesh
-    :param numpy.ndarray j3D: vector of fluxes on mesh
-    :param int theta_ind: index of the theta slice that you want
-    """
-    j3D_x = j3D[:mesh3D.nFx].reshape(mesh3D.vnFx, order='F')
-    j3D_z = j3D[mesh3D.vnF[:2].sum():].reshape(mesh3D.vnFz, order='F')
-
-    j3Dslice = np.vstack([
-        utils.mkvc(j3D_x[:, theta_ind, :], 2),
-        utils.mkvc(j3D_z[:, theta_ind, :], 2)
-    ])
-
-    return j3Dslice
-
-
-def edge3DthetaSlice(mesh3D, h3D, theta_ind=0):
-    """
-    Grab a theta slice through a 3D field defined on edges
-    (y component), consistent with what would be found from a
-    2D simulation
-
-    :param discretize.CylMesh mesh3D: 3D cyl mesh
-    :param numpy.ndarray h3D: vector of fields on mesh
-    :param int theta_ind: index of the theta slice that you want
-    """
-
-    h3D_y = h3D[mesh3D.nEx:mesh3D.vnE[:2].sum()].reshape(
-        mesh3D.vnEy, order='F'
-    )
-
-    return mkvc(h3D_y[:, theta_ind, :])

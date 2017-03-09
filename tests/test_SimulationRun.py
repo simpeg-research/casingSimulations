@@ -32,8 +32,8 @@ class ForwardSimulationTest(unittest.TestCase):
         dx2 = 200.
         csz = 0.25
 
-        meshGenerator = casingSimulations.MeshGenerator(
-            cp=cp, npadx=npadx, npadz=npadz, dx2=dx2, csz=csz
+        meshGenerator = casingSimulations.CylMeshGenerator(
+            cp=cp, npadx=npadx, npadz=npadz, domain_x2=dx2, csz=csz
         )
 
         src = casingSimulations.sources.TopCasingSrc(

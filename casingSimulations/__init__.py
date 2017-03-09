@@ -1,7 +1,6 @@
 from .model import CasingParameters, PhysicalProperties
 from .mesh import (
     CylMeshGenerator, TensorMeshGenerator,
-    edge3DthetaSlice, face3DthetaSlice
 )
 from .physics import (
     CasingCurrents, plotCurrentDensity, plot_currents_over_freq,
@@ -11,7 +10,9 @@ from .physics import (
 from .view import plotEdge2D, plotFace2D
 import sources
 import run
-from utils import load_properties
+from .utils import (
+    load_properties, edge3DthetaSlice, face3DthetaSlice
+)
 
 __version__   = '0.0.1'
 __author__    = 'Lindsey Heagy'

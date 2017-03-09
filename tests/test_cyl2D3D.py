@@ -105,11 +105,11 @@ class Test2Dv3DCyl(unittest.TestCase):
         npadx, npadz = 11, 26
         dx2 = 500.
 
-        mesh2D = casingSimulations.MeshGenerator(
-            cp=cp, npadx=npadx, npadz=npadz, dx2=dx2
+        mesh2D = casingSimulations.CylMeshGenerator(
+            cp=cp, npadx=npadx, npadz=npadz, domain_x2=dx2
         ).mesh
-        mesh3D = casingSimulations.MeshGenerator(
-            cp=cp, ncy=4, npadx=npadx, npadz=npadz, dx2=dx2
+        mesh3D = casingSimulations.CylMeshGenerator(
+            cp=cp, ncy=4, npadx=npadx, npadz=npadz, domain_x2=dx2
         ).mesh
 
         # get wirepath on mesh
