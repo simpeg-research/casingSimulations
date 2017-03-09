@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import shutil
 
-import CasingSimulations
+import casingSimulations
 
 
 plotIt = False
@@ -17,7 +17,7 @@ class ForwardSimulationTest(unittest.TestCase):
     def test_simulation2D(self):
         sigma_back = 1e-1 # wholespace
 
-        cp = CasingSimulations.CasingParameters(
+        cp = casingSimulations.CasingParameters(
             casing_l = 1000.,
             src_a = np.r_[0., np.pi, 0.], # the source fcts will take care of coupling it to the casing
             src_b = np.r_[1e3, np.pi, 0.], # return electrode
@@ -32,16 +32,16 @@ class ForwardSimulationTest(unittest.TestCase):
         dx2 = 200.
         csz = 0.25
 
-        meshGenerator = CasingSimulations.MeshGenerator(
+        meshGenerator = casingSimulations.MeshGenerator(
             cp=cp, npadx=npadx, npadz=npadz, dx2=dx2, csz=csz
         )
 
-        src = CasingSimulations.Sources.TopCasingSrc(
+        src = casingSimulations.sources.TopCasingSrc(
             cp, meshGenerator.mesh
         )
         src.validate()
 
-        simulation = CasingSimulations.Run.SimulationFDEM(
+        simulation = casingSimulations.run.SimulationFDEM(
             cp, meshGenerator, src, directory=self.dir2D
         )
 

@@ -4,7 +4,7 @@ Casing Simulations
 Model
 -----
 
-.. automodule:: CasingSimulations.Model
+.. automodule:: casingSimulations.model
     :show-inheritance:
     :members:
     :undoc-members:
@@ -12,7 +12,7 @@ Model
 Mesh
 ----
 
-.. automodule:: CasingSimulations.Mesh
+.. automodule:: casingSimulations.mesh
     :show-inheritance:
     :members:
     :undoc-members:
@@ -20,7 +20,7 @@ Mesh
 Sources
 -------
 
-.. automodule:: CasingSimulations.Sources
+.. automodule:: casingSimulations.sources
     :show-inheritance:
     :members:
     :undoc-members:
@@ -29,7 +29,7 @@ Sources
 Physics
 -------
 
-.. automodule:: CasingSimulations.Physics
+.. automodule:: casingSimulations.physics
     :show-inheritance:
     :members:
     :undoc-members:
@@ -38,7 +38,7 @@ Physics
 View
 ----
 
-.. automodule:: CasingSimulations.View
+.. automodule:: casingSimulations.view
     :show-inheritance:
     :members:
     :undoc-members:
@@ -47,7 +47,7 @@ View
 Utils
 -----
 
-.. automodule:: CasingSimulations.Utils
+.. automodule:: casingSimulations.utils
     :show-inheritance:
     :members:
     :undoc-members:

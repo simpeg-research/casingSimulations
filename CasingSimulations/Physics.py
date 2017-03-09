@@ -3,6 +3,7 @@ from SimPEG import Utils
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
+
 # Calculate Casing Currents from fields object
 def CasingCurrents(cp, fields, mesh, survey):
     IxCasing = {}

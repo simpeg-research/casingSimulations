@@ -16,7 +16,7 @@ from SimPEG import Utils, Maps
 
 from pymatsolver import Pardiso
 
-import CasingSimulations
+import casingSimulations
 
 
 plotIt = False
@@ -29,7 +29,7 @@ def getSrcWire(mesh, cp):
     Define a wirepath on the mesh
 
     :param discretize.BaseMesh mesh: mesh on which to define the source
-    :param CasingSimulations cp: casing parameters
+    :param casingSimulations cp: casing parameters
     :rtype: numpy.ndarray
     :return: source current density on the mesh
     """
@@ -50,7 +50,7 @@ def getPhysProps(mesh, cp):
     Put the phys prop models on the mesh
 
     :param discretize.BaseMesh mesh: simulation mesh
-    :param CasingSimulations cp: casing parameters
+    :param casingSimulations cp: casing parameters
     :rtype: tuple
     :return: (sigma, mu) on mesh
     """
@@ -90,7 +90,7 @@ class Test2Dv3DCyl(unittest.TestCase):
 
         sigma_back = 1e-1 # wholespace
 
-        cp = CasingSimulations.CasingParameters(
+        cp = casingSimulations.CasingParameters(
             casing_l = 10.,
             src_a = np.r_[0., 0., -9.],
             src_b = np.r_[0., 0., -1.],
@@ -105,10 +105,10 @@ class Test2Dv3DCyl(unittest.TestCase):
         npadx, npadz = 11, 26
         dx2 = 500.
 
-        mesh2D = CasingSimulations.MeshGenerator(
+        mesh2D = casingSimulations.MeshGenerator(
             cp=cp, npadx=npadx, npadz=npadz, dx2=dx2
         ).mesh
-        mesh3D = CasingSimulations.MeshGenerator(
+        mesh3D = casingSimulations.MeshGenerator(
             cp=cp, ncy=4, npadx=npadx, npadz=npadz, dx2=dx2
         ).mesh
 
@@ -127,8 +127,8 @@ class Test2Dv3DCyl(unittest.TestCase):
         ]
 
         # get phys prop models
-        physprops2D = CasingSimulations.PhysicalProperties(mesh2D, cp)
-        physprops3D = CasingSimulations.PhysicalProperties(mesh3D, cp)
+        physprops2D = casingSimulations.PhysicalProperties(mesh2D, cp)
+        physprops3D = casingSimulations.PhysicalProperties(mesh3D, cp)
 
         # plot the phys prop models
         fig, ax = plt.subplots(1, 1)

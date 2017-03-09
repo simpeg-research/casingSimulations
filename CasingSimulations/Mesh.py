@@ -3,14 +3,40 @@ import properties
 import json
 import os
 
-from .Model import CasingParameters
+import properties
 import discretize as Mesh
 from SimPEG import Utils
 
 from discretize.utils import mkvc
 
+from .model import CasingParameters
 
-class MeshGenerator(properties.HasProperties):
+
+class TensorMeshGenerator(properties.HasProperties):
+    """
+    Tensor mesh designed based on the source and formulation
+    """
+    csx = properties.Float(
+        "cell size in the x-direction", default=25.
+    )
+    csy = properties.Float(
+        "cell size in the y-direction", default=25.
+    )
+    csz = properties.Float(
+        "cell size in the z-direction", default=25.
+    )
+    pfx = properties.Float(
+        "padding factor to pad to infinity", default=1.5
+    )
+    pfy = properties.Float(
+        "padding factor to pad to infinity", default=1.5
+    )
+    pfz = properties.Float(
+        "padding factor to pad to infinity", default=1.5
+    )
+
+
+class CylMeshGenerator(properties.HasProperties):
     """
     Mesh that makes sense for casing examples
 
@@ -57,11 +83,15 @@ class MeshGenerator(properties.HasProperties):
         "number of padding cells in z", default=38
     )
 
+    cp = properties.Instance(
+        "casing properties instance",
+        CasingParameters,
+        required=True
+    )
+
     # Instantiate the class with casing parameters
-    def __init__(self, cp, **kwargs):
+    def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert isinstance(cp, CasingParameters)
-        self.cp = cp
 
     @property
     def ncx1(self):

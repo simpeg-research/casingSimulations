@@ -12,9 +12,9 @@ from pymatsolver import Pardiso
 from SimPEG.EM import FDEM
 from SimPEG import Utils, Maps
 
-from .Model import PhysicalProperties, CasingParameters
-from .Mesh import MeshGenerator
-from . import Sources
+from .model import PhysicalProperties, CasingParameters
+from .mesh import CylMeshGenerator, TensorMeshGenerator
+from . import sources
 
 
 class BaseSimulation(properties.HasProperties):
@@ -45,12 +45,26 @@ class BaseSimulation(properties.HasProperties):
         default='meshParameters.json'
     )
 
+    mesh_type = properties.StringChoice(
+        "type of mesh cyl or tensor",
+        default="cyl",
+        choices=["cyl", "tensor", "Cyl", "Tensor"]
+    )
+
     fields_filename = properties.String(
         "filename for the fields",
         default='fields.npy'
     )
 
     def __init__(self, cp, mesh, src, **kwargs):
+        # set keyword arguments
+        Utils.setKwargs(self, **kwargs)
+
+        if self.mesh_type.lower() == 'cyl':
+            MeshGenerator = CylMeshGenerator
+        elif self.mesh_type.lower() == 'tensor':
+            MeshGenerator = TensorMeshGenerator
+
         # if cp is a string, it is a filename, load in the json and create the
         # CasingParameters object
         if isinstance(cp, str):
@@ -64,24 +78,22 @@ class BaseSimulation(properties.HasProperties):
         # CasingParameters object
         if isinstance(mesh, str):
             with open(mesh, 'r') as outfile:
-                mesh = MeshGenerator(self.cp)
-                mesh.deserialize(json.load(outfile))
+                mesh = MeshGenerator.deserialize(
+                    json.load(outfile)
+                )
+                # mesh.deserialize(json.load(outfile))
         self.mesh = mesh
 
         # if src is a string, create a source of that type
         if isinstance(src, str):
             src = getattr(Sources, src)(
-                self.mesh.mesh, self.cp
+                self.cp, self.mesh.mesh
             )
         self.src = src
-
-        # set keyword arguments
-        Utils.setKwargs(self, **kwargs)
 
         # if the working directory does not exsist, create it
         if not os.path.isdir(self.directory):
             os.mkdir(self.directory)
-
 
 class SimulationFDEM(BaseSimulation):
     """

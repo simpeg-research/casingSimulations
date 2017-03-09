@@ -1,5 +1,5 @@
 import json
-import CasingSimulations
+import casingSimulations
 
 
 def load_properties(filename, targetClass):

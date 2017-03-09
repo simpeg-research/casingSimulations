@@ -89,7 +89,7 @@ class CasingParameters(properties.HasProperties):
 
     src_b = properties.Array(
         "B electrode location",
-        default=np.r_[1e4, 0., 0.]
+        default=np.r_[1e3, 0., 0.]
     )
 
     def __init__(self, filename=None, **kwargs):
@@ -131,6 +131,12 @@ class CasingParameters(properties.HasProperties):
         f = '/'.join([directory, filename])
         with open(f, 'w') as outfile:
             cp = json.dump(self.serialize(), outfile)
+
+    def copy(self):
+        """
+        Make a copy of the current CasingParameters object
+        """
+        return CasingParameters.deserialize(self.serialize())
 
 
 class PhysicalProperties(object):
@@ -218,5 +224,6 @@ class PhysicalProperties(object):
                 ('sigma', self.mesh.nC), ('mu', self.mesh.nC)
             )
         return self._wires
+
 
 
