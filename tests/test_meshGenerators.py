@@ -59,8 +59,8 @@ class TestMeshConstruction(unittest.TestCase):
             [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)]
         )
 
-        x0x = -hx[:npadx+ncx-nch].sum()
-        x0y = -hy[:npady+ncy-nch].sum()
+        x0x = -hx.sum()/2. + (cart_cp.src_b[0] + cart_cp.src_a[0])/2.
+        x0y = -hy.sum()/2.
         x0z = -hz[:npadz+ncz-nca].sum()
 
         x0 = np.r_[x0x, x0y, x0z]
