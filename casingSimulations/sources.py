@@ -50,13 +50,16 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
                 (mesh.gridFz[:, 2] < src_b[2] + 1.5*mesh.hz.min())
             )
 
-            if ((isinstance(mesh, discretize.CylMesh) and not mesh.isSymmetric) or isinstance(mesh, discretize.TensorMesh)):
-                wire_in_boreholey = (
-                    (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()) &
-                    (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min())
-                )
-
             self._wire_in_borehole = wire_in_boreholex & wire_in_boreholez
+
+            if getattr(mesh, 'isSymmetric', None) is not True:
+                wire_in_boreholey = (
+                    (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()/2.) &
+                    (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min()/2.)
+                )
+                self._wire_in_borehole = (
+                    self._wire_in_borehole & wire_in_boreholey
+                )
 
         return self._wire_in_borehole
 
@@ -79,7 +82,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             self._surface_wire = surface_wirex & surface_wirez
 
-            if ((isinstance(mesh, discretize.CylMesh) and not mesh.isSymmetric) or isinstance(mesh, discretize.TensorMesh)):
+            if getattr(mesh, 'isSymmetric', None) is not True:
                 surface_wirey = (
                     (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.) &
                     (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.)
@@ -110,10 +113,10 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
-            if ((isinstance(mesh, discretize.CylMesh) and not mesh.isSymmetric) or isinstance(mesh, discretize.TensorMesh)):
+            if getattr(mesh, 'isSymmetric', None) is not True:
                 surface_electrodey = (
-                    (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min()) &
-                    (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min())
+                    (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min()/2.) &
+                    (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min()/2.)
                 )
                 self._surface_electrode = (
                     self._surface_electrode & surface_electrodey
@@ -194,10 +197,10 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
         # check that the wire inside the borehole has only one x, y, location
         wire_in_borehole = self.mesh.gridFz[self.wire_in_borehole, :]
         assert len(np.unique(wire_in_borehole[:, 0])) == 1, (
-            'the downhole electrode has more than one y-location'
+            'the wire in borehole has more than one x-location'
         )
         assert len(np.unique(wire_in_borehole[:, 1])) == 1, (
-            'the downhole electrode has more than one z-location'
+            'the wire in borehole has more than one y-location'
         )
         return True
 
@@ -238,7 +241,7 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
                 downhole_electrode_indx & downhole_electrode_indz2
             )
 
-            if ((isinstance(mesh, discretize.CylMesh) and not mesh.isSymmetric) or isinstance(mesh, discretize.TensorMesh)):
+            if getattr(mesh, 'isSymmetric', None) is not True:
                 dowhhole_electrode_indy = (
                     (mesh.gridFx[:, 1] > src_a[1] - mesh.hy.min()/2.) &
                     (mesh.gridFx[:, 1] < src_a[1] + mesh.hy.min()/2.)
@@ -349,7 +352,7 @@ class TopCasingSrc(BaseCasingSrc):
 
             self._tophole_electrode = tophole_electrodex & tophole_electrodez
 
-            if ((isinstance(mesh, discretize.CylMesh) and not mesh.isSymmetric) or isinstance(mesh, discretize.TensorMesh)):
+            if getattr(mesh, 'isSymmetric', None) is not True:
                 tophole_electrodey = (
                     (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()) &
                     (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min())
@@ -381,7 +384,7 @@ class TopCasingSrc(BaseCasingSrc):
             )
             self._surface_wire = surface_wirex & surface_wirez
 
-            if ((isinstance(mesh, discretize.CylMesh) and not mesh.isSymmetric) or isinstance(mesh, discretize.TensorMesh)):
+            if getattr(mesh, 'isSymmetric', None) is not True:
                 surface_wirey = (
                     (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.) &
                     (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.)
@@ -410,7 +413,7 @@ class TopCasingSrc(BaseCasingSrc):
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
-            if ((isinstance(mesh, discretize.CylMesh) and not mesh.isSymmetric) or isinstance(mesh, discretize.TensorMesh)):
+            if getattr(mesh, 'isSymmetric', None) is not True:
                 surface_electrodey = (
                     (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min()) &
                     (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min())
