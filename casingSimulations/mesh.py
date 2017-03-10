@@ -234,9 +234,10 @@ class CylMeshGenerator(BaseMeshGenerator):
     )
 
     # Theta direction of the mesh
-    ncy = properties.Integer(
-        "number of cells in the theta direction of the mesh. "
-        "1 --> cyl symmetric", default=1
+    hy = properties.Array(
+        "cell spacings in the y direction",
+        dtype=float,
+        default=np.r_[2*np.pi] # default is cyl symmetric
     )
 
     # z-direction of the mesh
@@ -306,24 +307,39 @@ class CylMeshGenerator(BaseMeshGenerator):
 
         return self._hx
 
-    @property
-    def hy(self):
-        """
-        cell spacings in the y-direction
-        """
-        if getattr(self, '_hy', None) is None:
-            if self.ncy == 1:
-                self._hy = 1
-            else:
-                self._hy = 2*np.pi * np.ones(self.ncy) / self.ncy
-        return self._hy
+    @properties.observer('hy')
+    def _ensure_2pi(self, change):
+        value = change['value']
+        if len(value) == 1:
+            assert value == np.r_[1.]
+        else:
+            assert np.absolute(value.sum() - 2*np.pi) < 1e-6
 
-    @hy.setter
-    def hy(self, val):
-        H = val.sum()
-        if H != 2*np.pi:
-            val = val*2*np.pi/val.sum()
-        self._hy = val
+    # @property
+    # def hy(self):
+    #     """
+    #     cell spacings in the y-direction
+    #     """
+    #     if getattr(self, '_hy', None) is None:
+    #         if self.ncy == 1:
+    #             self._hy = 1
+    #         else:
+    #             self._hy = 2*np.pi * np.ones(self.ncy) / self.ncy
+    #     return self._hy
+
+    # @hy.setter
+    # def hy(self, val):
+    #     H = val.sum()
+    #     if H != 2*np.pi:
+    #         val = val*2*np.pi/val.sum()
+    #     self._hy = val
+
+    @property
+    def ncy(self):
+        if getattr(self, '_ncz', None) is None:
+            self._ncy = len(self.hy)
+        return self.ncy
+
 
     @property
     def ncz(self):
