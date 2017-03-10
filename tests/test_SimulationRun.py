@@ -14,7 +14,7 @@ class ForwardSimulationTest(unittest.TestCase):
 
     dir2D = './sim2D'
 
-    def test_simulation2D(self):
+    def setUp(self):
         sigma_back = 1e-1 # wholespace
 
         cp = casingSimulations.CasingParameters(
@@ -36,13 +36,12 @@ class ForwardSimulationTest(unittest.TestCase):
             cp=cp, npadx=npadx, npadz=npadz, domain_x2=dx2, csz=csz
         )
 
-        src = casingSimulations.sources.TopCasingSrc(
-            cp, meshGenerator.mesh
-        )
-        src.validate()
+        self.cp = cp
+        self.meshGenerator = meshGenerator
 
+    def runSimulation(self, src):
         simulation = casingSimulations.run.SimulationFDEM(
-            cp, meshGenerator, src, directory=self.dir2D
+            self.cp, self.meshGenerator, src, directory=self.dir2D
         )
 
         fields2D = simulation.run()
@@ -50,6 +49,33 @@ class ForwardSimulationTest(unittest.TestCase):
         loadedFields = np.load('/'.join([self.dir2D, 'fields.npy']))
 
         self.assertTrue(np.all(fields2D[:, 'h'] == loadedFields))
+
+    def test_simulation2DTopCasing(self):
+
+        src = casingSimulations.sources.TopCasingSrc(
+            self.cp, self.meshGenerator.mesh
+        )
+        src.validate()
+
+        self.runSimulation(src)
+
+    def test_simulation2DDownHoleCasingSrc(self):
+
+        src = casingSimulations.sources.DownHoleCasingSrc(
+            self.cp, self.meshGenerator.mesh
+        )
+        src.validate()
+
+        self.runSimulation(src)
+
+    def test_simulation2DDownHoleTerminatingSrc(self):
+
+        src = casingSimulations.sources.DownHoleTerminatingSrc(
+            self.cp, self.meshGenerator.mesh
+        )
+        src.validate()
+
+        self.runSimulation(src)
 
     def tearDown(self):
         for d in [self.dir2D]:
