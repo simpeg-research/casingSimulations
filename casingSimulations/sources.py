@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 import properties
 import discretize
+from discretize.utils import closestPoints
 
 from SimPEG import Utils
 from SimPEG.EM import FDEM
@@ -32,6 +33,35 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
     def __init__(self, cp, mesh):
         super(DownHoleTerminatingSrc, self).__init__(cp, mesh)
 
+
+    @property
+    def src_a_closest(self):
+        """
+        closest face to where we want the return current electrode
+        """
+        if getattr(self, '_src_a_closest', None) is None:
+            # find the z location of the closest face to the src
+            src_a_closest = (
+                self.mesh.gridFz[closestPoints(self.mesh, self.src_a, 'Fz'), :]
+            )
+            assert(len(src_a_closest) == 1), 'multiple source locs found'
+            self._src_a_closest = src_a_closest[0]
+        return self._src_a_closest
+
+    @property
+    def src_b_closest(self):
+        """
+        closest face to where we want the return current electrode
+        """
+        if getattr(self, '_src_b_closest', None) is None:
+            # find the z location of the closest face to the src
+            src_b_closest = (
+                self.mesh.gridFz[closestPoints(self.mesh, self.src_b, 'Fz'), :]
+            )
+            assert(len(src_b_closest) == 1), 'multiple source locs found'
+            self._src_b_closest = src_b_closest[0]
+        return self._src_b_closest
+
     @property
     def wire_in_borehole(self):
         """
@@ -44,7 +74,10 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             src_a = self.src_a
             src_b = self.src_b
 
-            wire_in_boreholex = (mesh.gridFz[:, 0] < mesh.hx.min())
+            wire_in_boreholex = (
+                (mesh.gridFz[:, 0] < self.src_a_closest[0] + mesh.hx.min()/2.) &
+                (mesh.gridFz[:, 0] > self.src_a_closest[0] - mesh.hx.min()/2.)
+            )
             wire_in_boreholez = (
                 (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min()) &
                 (mesh.gridFz[:, 2] < src_b[2] + 1.5*mesh.hz.min())
@@ -52,7 +85,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
 
             self._wire_in_borehole = wire_in_boreholex & wire_in_boreholez
 
-            if getattr(mesh, 'isSymmetric', None) is not True:
+            if getattr(mesh, 'isSymmetric', False) is False:
                 wire_in_boreholey = (
                     (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()/2.) &
                     (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min()/2.)
@@ -75,14 +108,25 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             src_b = self.src_b
 
             # horizontally directed wire
-            surface_wirex = (mesh.gridFx[:, 0] <= src_b[0])
+            surface_wirex = (
+                (
+                    mesh.gridFx[:, 0] <= np.max(
+                        [self.src_a_closest[0], self.src_b_closest[0]]
+                    )
+                ) &
+                (
+                    mesh.gridFx[:, 0] >= np.min(
+                        [self.src_a_closest[0], self.src_b_closest[0]]
+                    )
+                )
+            )
             surface_wirez = (
                 (mesh.gridFx[:, 2] > mesh.hz.min()) &
                 (mesh.gridFx[:, 2] <= 1.75*mesh.hz.min())
             )
             self._surface_wire = surface_wirex & surface_wirez
 
-            if getattr(mesh, 'isSymmetric', None) is not True:
+            if getattr(mesh, 'isSymmetric', False) is False:
                 surface_wirey = (
                     (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.) &
                     (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.)
@@ -104,8 +148,8 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
 
             # return electrode
             surface_electrodex = (
-                (mesh.gridFz[:, 0] > src_b[0]*0.9) &
-                (mesh.gridFz[:, 0] < src_b[0]*1.1)
+                (mesh.gridFz[:, 0] > self.src_b_closest[0] - mesh.hx.min()/2.) &
+                (mesh.gridFz[:, 0] < self.src_b_closest[0] + mesh.hx.min()/2.)
             )
             surface_electrodez = (
                 (mesh.gridFz[:, 2] >= src_b[2] - mesh.hz.min()) &
@@ -113,7 +157,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
-            if getattr(mesh, 'isSymmetric', None) is not True:
+            if getattr(mesh, 'isSymmetric', False) is False:
                 surface_electrodey = (
                     (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min()/2.) &
                     (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min()/2.)
@@ -121,8 +165,12 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
                 self._surface_electrode = (
                     self._surface_electrode & surface_electrodey
                 )
-
         return self._surface_electrode
+
+    @property
+    def surface_wire_direction(self):
+        # todo: extend to the case where the wire is not along the x-axis
+        return [-1. if self.src_a[0] < self.src_b[0] else 1.][0]
 
     @property
     def srcList(self):
@@ -135,8 +183,8 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
             dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
 
-            dg_z[self.wire_in_borehole] = -1.  # part of wire through borehole
-            dg_x[self.surface_wire] = -1.  # horizontal part of wire along surface
+            dg_z[self.wire_in_borehole] = -1.   # part of wire through borehole
+            dg_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
             dg_z[self.surface_electrode] = 1.  # vertical part of return electrode
 
             # assemble the source (downhole grounded primary)
@@ -166,7 +214,9 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
         )
         ax.plot(
             mesh.gridFx[self.surface_wire, 0],
-            mesh.gridFx[self.surface_wire, 2], 'r<'
+            mesh.gridFx[self.surface_wire, 2], 'r{}'.format(
+                ['<' if self.surface_wire_direction == -1. else '>'][0]
+            )
         )
 
     def validate(self):
@@ -241,7 +291,7 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
                 downhole_electrode_indx & downhole_electrode_indz2
             )
 
-            if getattr(mesh, 'isSymmetric', None) is not True:
+            if getattr(mesh, 'isSymmetric', False) is False:
                 dowhhole_electrode_indy = (
                     (mesh.gridFx[:, 1] > src_a[1] - mesh.hy.min()/2.) &
                     (mesh.gridFx[:, 1] < src_a[1] + mesh.hy.min()/2.)
@@ -314,7 +364,7 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
         return True
 
 
-class TopCasingSrc(BaseCasingSrc):
+class TopCasingSrc(DownHoleTerminatingSrc):
     """
     Source that has one electrode coupled to the top of the casing, one return
     electrode and a wire in between. This source is set up to live on faces.
@@ -352,7 +402,7 @@ class TopCasingSrc(BaseCasingSrc):
 
             self._tophole_electrode = tophole_electrodex & tophole_electrodez
 
-            if getattr(mesh, 'isSymmetric', None) is not True:
+            if getattr(mesh, 'isSymmetric', False) is False:
                 tophole_electrodey = (
                     (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()) &
                     (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min())
@@ -375,7 +425,7 @@ class TopCasingSrc(BaseCasingSrc):
 
             # horizontally directed wire
             surface_wirex = (
-                (mesh.gridFx[:, 0] <= src_b[0]) &
+                (mesh.gridFx[:, 0] <= self.src_b_closest[0]) &
                 (mesh.gridFx[:, 0] > self.casing_a)
             )
             surface_wirez = (
@@ -384,7 +434,7 @@ class TopCasingSrc(BaseCasingSrc):
             )
             self._surface_wire = surface_wirex & surface_wirez
 
-            if getattr(mesh, 'isSymmetric', None) is not True:
+            if getattr(mesh, 'isSymmetric', False) is False:
                 surface_wirey = (
                     (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.) &
                     (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.)
@@ -392,36 +442,45 @@ class TopCasingSrc(BaseCasingSrc):
                 self._surface_wire = self._surface_wire & surface_wirey
         return self._surface_wire
 
-    @property
-    def surface_electrode(self):
-        """
-        indices of the return electrode at the surface
-        """
-        if getattr(self, '_surface_electrode', None) is None:
-            mesh = self.mesh
-            src_a = self.src_a
-            src_b = self.src_b
+    # @property
+    # def surface_electrode(self):
+    #     """
+    #     indices of the return electrode at the surface
+    #     """
+    #     if getattr(self, '_surface_electrode', None) is None:
+    #         mesh = self.mesh
+    #         src_a = self.src_a
+    #         src_b = self.src_b
 
-            # return electrode
-            surface_electrodex = (
-                (mesh.gridFz[:, 0] > src_b[0]*0.9) &
-                (mesh.gridFz[:, 0] < src_b[0]*1.1)
-            )
-            surface_electrodez = (
-                (mesh.gridFz[:, 2] > -0.5*mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < 1.5*mesh.hz.min())
-            )
-            self._surface_electrode = surface_electrodex & surface_electrodez
+    #         # return electrode
+    #         closeFace = mesh.gridFz[closestPoints(mesh, src_b, 'Fz')]
 
-            if getattr(mesh, 'isSymmetric', None) is not True:
-                surface_electrodey = (
-                    (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min()) &
-                    (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min())
-                )
-                self._surface_electrode = (
-                    self._surface_electrode & surface_electrodey
-                )
-        return self._surface_electrode
+    #         surface_electrodex = (
+    #             (
+    #                 mesh.gridFz[:, 0] >
+    #                 self.src_b_closest[0] - mesh.hx.min()/2.
+    #             ) & #src_b[0]*0.9) &
+    #             (
+    #                 mesh.gridFz[:, 0] <
+    #                 self.src_b_closest[0] + mesh.hx.min()/2.
+    #             ) #src_b[0]*1.1)
+    #         )
+    #         surface_electrodez = (
+    #             (mesh.gridFz[:, 2] > -0.5*mesh.hz.min()) &
+    #             (mesh.gridFz[:, 2] < 1.5*mesh.hz.min())
+    #         )
+    #         self._surface_electrode = surface_electrodex & surface_electrodez
+
+    #         isSymmetric = getattr(mesh, 'isSymmetric', False)
+    #         if isSymmetric is False or isSymmetric is None:
+    #             surface_electrodey = (
+    #                 (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min()) &
+    #                 (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min())
+    #             )
+    #             self._surface_electrode = (
+    #                 self._surface_electrode & surface_electrodey
+    #             )
+    #     return self._surface_electrode
 
     @property
     def srcList(self):
