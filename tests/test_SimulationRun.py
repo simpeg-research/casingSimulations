@@ -10,7 +10,7 @@ TOL = 1e-4
 ZERO = 1e-7
 
 
-class ForwardSimulationTest(unittest.TestCase):
+class ForwardSimulationTestCyl2D(unittest.TestCase):
 
     dir2D = './sim2D'
 
