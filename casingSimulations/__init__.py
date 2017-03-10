@@ -14,7 +14,6 @@ from .utils import (
     load_properties, edge3DthetaSlice, face3DthetaSlice
 )
 
-__version__   = '0.0.1'
-__author__    = 'Lindsey Heagy'
-__license__   = 'MIT'
-__copyright__ = 'Copyright 2017 Lindsey Heagy'
+from .info import (
+    __version__, __author__, __license__, __copyright__
+)
