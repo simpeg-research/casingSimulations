@@ -11,6 +11,7 @@ from discretize import utils
 from discretize.utils import mkvc
 
 from .model import CasingParameters
+from .info import __version__
 
 # __all__ = [TensorMeshGenerator, CylMeshGenerator]
 
@@ -19,24 +20,11 @@ class BaseMeshGenerator(properties.HasProperties):
     """
     Base Mesh Generator Class
     """
-    # # Z-direction of mesh
-    # csz = properties.Float(
-    #     "cell size in the z-direction", default=0.05
-    # )
-    # nca = properties.Integer(
-    #     "number of fine cells above the air-earth interface", default=10
-    # )
-
-    # # padding factors
-
-
-    # # number of padding cells
-    # npadz = properties.Integer(
-    #     "number of padding cells in z", default=38
-    # )
-    # npadx = properties.Integer(
-    #     "number of padding cells required to get to infinity!", default=23
-    # )
+    # code version
+    version = properties.String(
+        "version of casingSimulations",
+        default=__version__
+    )
 
     # casing parameters
     cp = properties.Instance(
@@ -122,6 +110,9 @@ class TensorMeshGenerator(BaseMeshGenerator):
     )
 
     # domain extent in the y-direction
+    domain_x = properties.Float(
+        "domain extent in the x-direction", default=1000.
+    )
     domain_y = properties.Float(
         "domain extent in the y-direction", default=1000.
     )
@@ -136,8 +127,8 @@ class TensorMeshGenerator(BaseMeshGenerator):
     def x0(self):
         if getattr(self, '_x0', None) is None:
             self._x0 = np.r_[
-                -self.hx[:self.npadx+self.ncx-self.nch].sum(),
-                -self.hy[:self.npady+self.ncy-self.nch].sum(),
+                -self.hx.sum()/2. + (self.cp.src_b[0] + self.cp.src_a[0])/2.,
+                -self.hy.sum()/2.,
                 -self.hz[:self.npadz+self.ncz-self.nca].sum()
             ]
         return self._x0
@@ -149,17 +140,6 @@ class TensorMeshGenerator(BaseMeshGenerator):
         )
 
         self._x0 = value
-
-    # Domain extents in the x, z directions
-    @property
-    def domain_x(self):
-        if getattr(self, '_domain_x', None) is None:
-            self._domain_x = (self.cp.src_a[0] - self.cp.src_b[0])
-        return self._domain_x
-
-    @domain_x.setter
-    def domain_x(self, value):
-        self._domain_x = value
 
     @property
     def domain_z(self):

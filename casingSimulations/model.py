@@ -5,6 +5,7 @@ import os
 from SimPEG import Maps, Utils
 from scipy.constants import mu_0
 
+from .info import __version__
 ##############################################################################
 #                                                                            #
 #                           Simulation Parameters                            #
@@ -17,6 +18,11 @@ class CasingParameters(properties.HasProperties):
     """
     Simulation Parameters
     """
+    version = properties.String(
+        "version of the software",
+        default = __version__
+    )
+
     # Conductivities
     sigma_air = properties.Float(
         "conductivity of the air (S/m)",
