@@ -190,15 +190,6 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             'the surface wire has more than one z-location'
         )
 
-        # check that the down-hole electrode has only one y, one z location
-        downhole_electrode = self.mesh.gridFx[self.downhole_electrode, :]
-        assert len(np.unique(downhole_electrode[:, 1])) == 1, (
-            'the downhole electrode has more than one y-location'
-        )
-        assert len(np.unique(downhole_electrode[:, 2])) == 1, (
-            'the downhole electrode has more than one z-location'
-        )
-
         # check that the wire inside the borehole has only one x, y, location
         wire_in_borehole = self.mesh.gridFz[self.wire_in_borehole, :]
         assert len(np.unique(downhole_electrode[:, 1])) == 1, (
