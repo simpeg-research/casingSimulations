@@ -1,4 +1,6 @@
 import json
+import numpy as np
+from discretize import utils
 import casingSimulations
 
 

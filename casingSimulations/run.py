@@ -57,14 +57,9 @@ class BaseSimulation(properties.HasProperties):
         default='fields.npy'
     )
 
-    def __init__(self, cp, mesh, src, **kwargs):
+    def __init__(self, cp, meshGenerator, src, **kwargs):
         # set keyword arguments
         Utils.setKwargs(self, **kwargs)
-
-        # if self.mesh_type.lower() == 'cyl':
-        #     MeshGenerator = CylMeshGenerator
-        # elif self.mesh_type.lower() == 'tensor':
-        #     MeshGenerator = TensorMeshGenerator
 
         # if cp is a string, it is a filename, load in the json and create the
         # CasingParameters object
@@ -74,14 +69,14 @@ class BaseSimulation(properties.HasProperties):
 
         # if cp is a string, it is a filename, load in the json and create the
         # CasingParameters object
-        if isinstance(mesh, str):
-            mesh = load_properties(mesh)
-        self.mesh = mesh
+        if isinstance(meshGenerator, str):
+            meshGenerator = load_properties(meshGenerator)
+        self.meshGenerator = meshGenerator
 
         # if src is a string, create a source of that type
         if isinstance(src, str):
             src = getattr(sources, src)(
-                self.cp, self.mesh.mesh
+                self.cp, self.meshGenerator.mesh
             )
         self.src = src
 
@@ -97,8 +92,36 @@ class SimulationFDEM(BaseSimulation):
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
-    def __init__(self, cp, mesh, src, **kwargs):
-        super(SimulationFDEM, self).__init__(cp, mesh, src, **kwargs)
+    def __init__(self, cp, meshGenerator, src, **kwargs):
+        super(SimulationFDEM, self).__init__(cp, meshGenerator, src, **kwargs)
+
+        self._prob = getattr(
+                FDEM, 'Problem3D_{}'.format(self.formulation)
+                )(
+                self.meshGenerator.mesh,
+                sigmaMap=self.physprops.wires.sigma,
+                muMap=self.physprops.wires.mu,
+                Solver=Pardiso
+            )
+        self._survey = FDEM.Survey(self.src.srcList)
+
+        self._prob.pair(self._survey)
+
+    @property
+    def physprops(self):
+        if getattr(self, '_physprops', None) is None:
+            self._physprops = PhysicalProperties(
+                self.meshGenerator.mesh, self.cp
+            )
+        return self._physprops
+
+    @property
+    def prob(self):
+        return self._prob
+
+    @property
+    def survey(self):
+        return self._survey
 
     def run(self):
         """
@@ -114,7 +137,9 @@ class SimulationFDEM(BaseSimulation):
         self.cp.save(directory=self.directory, filename=self.cp_filename)
         print('  Saved casing properties: {}')
         print('    skin depths in casing: {}'.format(
-            self.cp.skin_depth(sigma=self.cp.sigma_casing, mu=self.cp.mur_casing*mu_0)
+            self.cp.skin_depth(
+                sigma=self.cp.sigma_casing, mu=self.cp.mur_casing*mu_0
+            )
         ))
         print('    casing thickness: {}'.format(
             self.cp.casing_t
@@ -122,10 +147,12 @@ class SimulationFDEM(BaseSimulation):
         print('    skin depths in background: {}'.format(self.cp.skin_depth()))
 
         # Mesh Parameters
-        self.mesh.validate()
-        self.mesh.save(directory=self.directory, filename=self.cp_filename)
+        self.meshGenerator.validate()
+        self.meshGenerator.save(
+            directory=self.directory, filename=self.cp_filename
+        )
         print('   Saved Mesh Parameters')
-        sim_mesh = self.mesh.mesh # grab the discretize mesh off of the mesh object
+        sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
         print('      max x: {}, min z: {}, max z: {}'.format(
             sim_mesh.vectorNx.max(),
             sim_mesh.vectorNz.min(),
@@ -138,16 +165,10 @@ class SimulationFDEM(BaseSimulation):
         print('... parameters valid\n')
 
         # ----------------- Set up the simulation ----------------- #
-        physprops = PhysicalProperties(sim_mesh, self.cp)
-        prb = getattr(FDEM, 'Problem3D_{}'.format(self.formulation))(
-            sim_mesh,
-            sigmaMap=physprops.wires.sigma,
-            muMap=physprops.wires.mu,
-            Solver=Pardiso
-        )
-
-        survey = FDEM.Survey(self.src.srcList)
-        prb.pair(survey)
+        physprops = self.physprops
+        prb = self.prob
+        # survey = self.survey
+        # prb.pair(survey)
 
         # ----------------- Run the the simulation ----------------- #
         print('Starting Simulation')
