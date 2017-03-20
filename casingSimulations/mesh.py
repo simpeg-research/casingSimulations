@@ -123,7 +123,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
     def __init__(self, **kwargs):
         super(TensorMeshGenerator, self).__init__(**kwargs)
 
-    @property
+    @properties.Vector3('origin of the mesh')
     def x0(self):
         if getattr(self, '_x0', None) is None:
             self._x0 = np.r_[
@@ -144,7 +144,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
     @property
     def domain_z(self):
         if getattr(self, '_domain_z', None) is None:
-            self._domain_z = (self.cp.src_a[0] - self.cp.src_b[0])
+            self._domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
         return self._domain_z
 
     @domain_z.setter
@@ -211,9 +211,136 @@ class TensorMeshGenerator(BaseMeshGenerator):
 
 class CylMeshGenerator(BaseMeshGenerator):
     """
+    Simple 3D cylindrical mesh
+
+    :param casingSimulations.CasingParameters cp: casing parameters object
+    """
+    csx = properties.Float(
+        "cell size in the x-direction", default=25.
+    )
+    csz = properties.Float(
+        "cell size in the z-direction", default=25.
+    )
+
+    # padding factors in each direction
+    pfx = properties.Float(
+        "padding factor to pad to infinity", default=1.5
+    )
+    pfz = properties.Float(
+        "padding factor to pad to infinity", default=1.5
+    )
+
+    # Theta direction of the mesh
+    hy = properties.Array(
+        "cell spacings in the y direction",
+        dtype=float,
+        default=np.r_[2*np.pi] # default is cyl symmetric
+    )
+
+    # number of extra cells horizontally, above the air-earth interface and
+    # below the casing
+    nch = properties.Integer(
+        "number of cells to add on each side of the mesh horizontally",
+        default=10.
+    )
+    nca = properties.Integer(
+        "number of extra cells above the air-earth interface",
+        default=5.
+    )
+    ncb = properties.Integer(
+        "number of cells below the casing",
+        default=5.
+    )
+
+    # number of padding cells in each direction
+    npadx = properties.Integer(
+        "number of x-padding cells", default=10
+    )
+    npadz = properties.Integer(
+        "number of z-padding cells", default=10
+    )
+
+    # domain extent in the y-direction
+    domain_x = properties.Float(
+        "domain extent in the x-direction", default=1000.
+    )
+
+    _discretizePair = discretize.CylMesh
+
+    # Instantiate the class with casing parameters
+    def __init__(self, **kwargs):
+        super(CylMeshGenerator, self).__init__(**kwargs)
+
+    @property
+    def x0(self):
+        if getattr(self, '_x0', None) is None:
+            self._x0 = np.r_[
+                0., 0., -np.sum(self.hz[:self.npadz+self.ncz-self.nca])
+            ]
+        return self._x0
+
+    @property
+    def domain_z(self):
+        if getattr(self, '_domain_z', None) is None:
+            self._domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
+        return self._domain_z
+
+    @domain_z.setter
+    def domain_z(self, value):
+        self._domain_z = value
+
+    # number of cells in each direction
+    @property
+    def ncx(self):
+        if getattr(self, '_ncx', None) is None:
+            self._ncx = int(
+                np.ceil(self.domain_x / self.csx) +
+                self.nch
+            )
+        return self._ncx
+
+    @property
+    def ncy(self):
+        if getattr(self, '_ncy', None) is None:
+            self._ncy = int(
+                np.ceil(self.domain_y / self.csy) + 2*self.nch
+            )
+        return self._ncy
+
+    @property
+    def ncz(self):
+        if getattr(self, '_ncz', None) is None:
+            self._ncz = int(
+                np.ceil(self.domain_z / self.csz) + self.nca + self.ncb
+            )
+        return self._ncz
+
+    # cell spacings in each direction
+    @property
+    def hx(self):
+        if getattr(self, '_hx', None) is None:
+            self._hx = utils.meshTensor([
+                (self.csx, self.ncx),
+                (self.csx, self.npadx, self.pfx)
+            ])
+        return self._hx
+
+    @property
+    def hz(self):
+        if getattr(self, '_hz', None) is None:
+            self._hz = utils.meshTensor([
+                (self.csz, self.npadz, -self.pfz),
+                (self.csz, self.ncz),
+                (self.csz, self.npadz, self.pfz)
+            ])
+        return self._hz
+
+
+class CasingMeshGenerator(BaseMeshGenerator):
+    """
     Mesh that makes sense for casing examples
 
-    :param CasingSimulations.CasingParameters cp: casing parameters object
+    :param casingSimulations.CasingParameters cp: casing parameters object
     """
 
     # X-direction of the mesh
@@ -266,7 +393,7 @@ class CylMeshGenerator(BaseMeshGenerator):
 
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
-        super(CylMeshGenerator, self).__init__(**kwargs)
+        super(CasingMeshGenerator, self).__init__(**kwargs)
 
     @property
     def ncx1(self):
@@ -314,25 +441,6 @@ class CylMeshGenerator(BaseMeshGenerator):
             assert value == np.r_[1.]
         else:
             assert np.absolute(value.sum() - 2*np.pi) < 1e-6
-
-    # @property
-    # def hy(self):
-    #     """
-    #     cell spacings in the y-direction
-    #     """
-    #     if getattr(self, '_hy', None) is None:
-    #         if self.ncy == 1:
-    #             self._hy = 1
-    #         else:
-    #             self._hy = 2*np.pi * np.ones(self.ncy) / self.ncy
-    #     return self._hy
-
-    # @hy.setter
-    # def hy(self, val):
-    #     H = val.sum()
-    #     if H != 2*np.pi:
-    #         val = val*2*np.pi/val.sum()
-    #     self._hy = val
 
     @property
     def ncy(self):

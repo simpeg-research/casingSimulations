@@ -1,6 +1,6 @@
 from .model import CasingParameters, PhysicalProperties
 from .mesh import (
-    CylMeshGenerator, TensorMeshGenerator,
+    CylMeshGenerator, CasingMeshGenerator, TensorMeshGenerator
 )
 from .physics import (
     CasingCurrents, plotCurrentDensity, plot_currents_over_freq,
