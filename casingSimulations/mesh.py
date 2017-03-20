@@ -123,7 +123,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
     def __init__(self, **kwargs):
         super(TensorMeshGenerator, self).__init__(**kwargs)
 
-    @properties.Vector3('origin of the mesh')
+    @property
     def x0(self):
         if getattr(self, '_x0', None) is None:
             self._x0 = np.r_[
