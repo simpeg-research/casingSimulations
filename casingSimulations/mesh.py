@@ -213,7 +213,6 @@ class CylMeshGenerator(BaseMeshGenerator):
     """
     Simple 3D cylindrical mesh
 
-    :param casingSimulations.CasingParameters cp: casing parameters object
     """
     csx = properties.Float(
         "cell size in the x-direction", default=25.
@@ -339,8 +338,6 @@ class CylMeshGenerator(BaseMeshGenerator):
 class CasingMeshGenerator(BaseMeshGenerator):
     """
     Mesh that makes sense for casing examples
-
-    :param casingSimulations.CasingParameters cp: casing parameters object
     """
 
     # X-direction of the mesh

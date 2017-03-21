@@ -10,6 +10,9 @@ from SimPEG.EM import FDEM
 
 
 class BaseCasingSrc(object):
+    """
+    The base class for sources. Inherit this to attach properties.
+    """
     def __init__(self, cp, mesh, **kwargs):
         assert cp.src_a[1] == cp.src_b[1], (
             'non y-axis aligned sources have not been implemented'
@@ -22,6 +25,121 @@ class BaseCasingSrc(object):
         Utils.setKwargs(self, **kwargs)
 
 
+class HorizontalElectricDipole(BaseCasingSrc):
+    """
+    A source that terminates down-hole. It is not coupled to the casing
+
+    :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
+    :param discretize.BaseMesh mesh: a discretize mesh
+    """
+
+    def __init__(self, cp, mesh):
+        super(HorizontalElectricDipole, self).__init__(cp, mesh)
+        assert self.src_a[2] == self.src_b[2], (
+            'z locations must be the same for a HED'
+        )
+
+    @property
+    def surface_wire(self):
+        """
+        Horizontal part of the wire that runs along the surface
+        (one cell above) from the center of the well to the return electrode
+        """
+        if getattr(self, '_surface_wire', None) is None:
+            mesh = self.mesh
+            src_a = self.src_a
+            src_b = self.src_b
+
+            # horizontally directed wire
+            surface_wirex = (
+                (
+                    mesh.gridFx[:, 0] <= np.max(
+                        [self.src_a[0], self.src_b[0]]
+                    )
+                ) &
+                (
+                    mesh.gridFx[:, 0] >= np.min(
+                        [self.src_a[0], self.src_b[0]]
+                    )
+                )
+            )
+            surface_wirez = (
+                (mesh.gridFx[:, 2] > src_b[2] - self.mesh.hz.min()/2.) &
+                (mesh.gridFx[:, 2] < src_b[2] + self.mesh.hz.min()/2.)
+            )
+            self._surface_wire = surface_wirex & surface_wirez
+
+            if getattr(mesh, 'isSymmetric', False) is False:
+                surface_wirey = (
+                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.) &
+                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.)
+                )
+
+                self._surface_wire = (
+                    self._surface_wire & surface_wirey
+                )
+
+        return self._surface_wire
+
+    @property
+    def surface_wire_direction(self):
+        # todo: extend to the case where the wire is not along the x-axis
+        return [-1. if self.src_a[0] < self.src_b[0] else 1.][0]
+
+    @property
+    def srcList(self):
+        """
+        Source List
+        """
+        if getattr(self, '_srcList', None) is None:
+            # downhole source
+            dg_x = np.zeros(self.mesh.vnF[0], dtype=complex)
+            dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
+            dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
+
+            dg_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
+
+            # assemble the source (downhole grounded primary)
+            dg = np.hstack([dg_x, dg_y, dg_z])
+            srcList = [
+                FDEM.Src.RawVec_e([], _, dg/self.mesh.area) for _ in self.freqs
+            ]
+            self._srcList = srcList
+        return self._srcList
+
+    def plot(self, ax=None):
+        """
+        Plot the source.
+        """
+        if ax is None:
+            fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+        mesh = self.mesh
+
+        ax.plot(
+            mesh.gridFx[self.surface_wire, 0],
+            mesh.gridFx[self.surface_wire, 2], 'r{}'.format(
+                ['<' if self.surface_wire_direction == -1. else '>'][0]
+            )
+        )
+
+    def validate(self):
+        """
+        Make sure that each segment of the wire is only going through a
+        single face
+
+        .. todo:: check that
+        """
+        # check the surface wire only has one y and one z location
+        surface_wire = self.mesh.gridFx[self.surface_wire, :]
+        assert len(np.unique(surface_wire[:, 1])) == 1, (
+            'the surface wire has more than one y-location'
+        )
+        assert len(np.unique(surface_wire[:, 2])) == 1, (
+            'the surface wire has more than one z-location'
+        )
+
+
 class DownHoleTerminatingSrc(BaseCasingSrc):
     """
     A source that terminates down-hole. It is not coupled to the casing
@@ -32,7 +150,6 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
 
     def __init__(self, cp, mesh):
         super(DownHoleTerminatingSrc, self).__init__(cp, mesh)
-
 
     @property
     def src_a_closest(self):
