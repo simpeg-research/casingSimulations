@@ -60,5 +60,3 @@ def edge3DthetaSlice(mesh3D, h3D, theta_ind=0):
     return mkvc(h3D_y[:, theta_ind, :])
 
 
-def writeSimulation(cp, mesh, src, directory='.', fields_filename='fields.npy'):
-
