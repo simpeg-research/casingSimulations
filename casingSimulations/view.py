@@ -32,19 +32,19 @@ def plotFace2D(
 
     if logScale is True:
         pcolorOpts = {
-                'norm':LogNorm()
+            'norm':LogNorm()
         }
     else:
         pcolorOpts = {}
 
     plt.colorbar(
         mesh2D.plotImage(
-                getattr(j, real_or_imag),
-                view='vec', vType=vType, ax=ax,
-                range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-                mirror=False,
-                pcolorOpts=pcolorOpts,
-            )[0], ax=ax
+            getattr(j, real_or_imag),
+            view='vec', vType=vType, ax=ax,
+            range_x=range_x, range_y=range_y, sample_grid=sample_grid,
+            mirror=False,
+            pcolorOpts=pcolorOpts,
+        )[0], ax=ax
     )
 
     return ax
@@ -86,10 +86,10 @@ def plotEdge2D(
 
     plt.colorbar(
         mesh2D.plotImage(
-                getattr(h, real_or_imag),
-                view='real', vType=vType, ax=ax,
-                range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-                mirror=False,
-                pcolorOpts=pcolorOpts,
-            )[0], ax=ax
+            getattr(h, real_or_imag),
+            view='real', vType=vType, ax=ax,
+            range_x=range_x, range_y=range_y, sample_grid=sample_grid,
+            mirror=False,
+            pcolorOpts=pcolorOpts,
+        )[0], ax=ax
     )
