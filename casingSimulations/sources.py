@@ -490,11 +490,12 @@ class TopCasingSrc(DownHoleTerminatingSrc):
     :param CasingSimulations cp: Casing parameters object
     """
     def __init__(self, cp, mesh):
-        self.mesh = mesh
-        self.src_a = cp.src_a
-        self.src_b = cp.src_b
-        self.casing_a = cp.casing_a
-        self.freqs = cp.freqs
+        super(TopCasingSrc, self).__init__(cp, mesh)
+        # self.mesh = mesh
+        # self.src_a = cp.src_a
+        # self.src_b = cp.src_b
+        # self.casing_a = cp.casing_a
+        # self.freqs = cp.freqs
 
     @property
     def tophole_electrode(self):
@@ -508,8 +509,8 @@ class TopCasingSrc(DownHoleTerminatingSrc):
             src_b = self.src_b
 
             tophole_electrodex = (
-                (mesh.gridFz[:, 0] <= self.casing_a + mesh.hx.min()/2.) &
-                (mesh.gridFz[:, 0] > self.casing_a - mesh.hx.min()/2.)
+                (mesh.gridFz[:, 0] <= self.casing_a + mesh.hx.min()) &
+                (mesh.gridFz[:, 0] > self.casing_a)
             )
 
             tophole_electrodez = (
@@ -543,7 +544,7 @@ class TopCasingSrc(DownHoleTerminatingSrc):
             # horizontally directed wire
             surface_wirex = (
                 (mesh.gridFx[:, 0] <= self.src_b_closest[0]) &
-                (mesh.gridFx[:, 0] > self.casing_a)
+                (mesh.gridFx[:, 0] > self.casing_a + mesh.hx.min()/2.)
             )
             surface_wirez = (
                 (mesh.gridFx[:, 2] > src_b[2] + mesh.hz.min()) &

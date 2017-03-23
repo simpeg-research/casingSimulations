@@ -5,6 +5,7 @@ import os
 import json
 from scipy.constants import mu_0
 
+import mkl
 import discretize
 import properties
 from discretize import utils
@@ -55,6 +56,11 @@ class BaseSimulation(properties.HasProperties):
     fields_filename = properties.String(
         "filename for the fields",
         default='fields.npy'
+    )
+
+    num_threads = properties.Integer(
+        "number of threads",
+        default=1
     )
 
     def __init__(self, cp, meshGenerator, src, **kwargs):
@@ -163,6 +169,9 @@ class SimulationFDEM(BaseSimulation):
         self.src.validate()
         print('    Using {} sources'.format(len(self.src.srcList)))
         print('... parameters valid\n')
+
+        # --------------- Set the number of threads --------------- #
+        mkl.set_num_threads(self.num_threads)
 
         # ----------------- Set up the simulation ----------------- #
         physprops = self.physprops

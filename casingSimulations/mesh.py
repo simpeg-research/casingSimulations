@@ -2,6 +2,7 @@ import numpy as np
 import properties
 import json
 import os
+import matplotlib.pyplot as plt
 
 import properties
 from SimPEG import Utils

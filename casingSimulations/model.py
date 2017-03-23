@@ -52,7 +52,7 @@ class CasingParameters(properties.HasProperties):
     # Magnetic Permeability
     mur_casing = properties.Float(
         "relative permeability of the casing",
-        default= 100.
+        default=100.
     )
 
     # Casing Geometry
