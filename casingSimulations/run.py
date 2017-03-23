@@ -28,34 +28,33 @@ class BaseSimulation(properties.HasProperties):
 
     formulation = properties.StringChoice(
         "Formulation of the problem to solve [e, b, h, j]",
-        default='h',
-        choices=['e', 'b', 'h', 'j']
+        default="h",
+        choices=["e", "b", "h", "j"]
     )
 
     directory = properties.String(
         "working directory",
-        default='.'
+        default="."
     )
 
     cp_filename = properties.String(
         "filename for the casing properties",
-        default='casingParameters.json'
+        default="casingParameters.json"
     )
 
     mesh_filename = properties.String(
         "filename for the mesh",
-        default='meshParameters.json'
+        default="meshParameters.json"
     )
-
-    # mesh_type = properties.StringChoice(
-    #     "type of mesh cyl or tensor",
-    #     default="cyl",
-    #     choices=["cyl", "tensor", "Cyl", "Tensor"]
-    # )
 
     fields_filename = properties.String(
         "filename for the fields",
-        default='fields.npy'
+        default="fields.npy"
+    )
+
+    simulation_filename = properties.String(
+        "filename for the simulation parameters",
+        default="simulationParameters.json"
     )
 
     num_threads = properties.Integer(
@@ -89,6 +88,22 @@ class BaseSimulation(properties.HasProperties):
         # if the working directory does not exsist, create it
         if not os.path.isdir(self.directory):
             os.mkdir(self.directory)
+
+    def save(self, filename=None, directory=None):
+        """
+        Save the simulation parameters to json
+        :param str file: filename for saving the simulation parameters
+        """
+        if directory is None:
+            directory = self.directory
+        if filename is None:
+            filename = self.simulation_filename
+
+        if not os.path.isdir(directory):  # check if the directory exists
+            os.mkdir(directory)  # if not, create it
+        f = '/'.join([directory, filename])
+        with open(f, 'w') as outfile:
+            cp = json.dump(self.serialize(), outfile)
 
 
 class SimulationFDEM(BaseSimulation):
@@ -170,6 +185,9 @@ class SimulationFDEM(BaseSimulation):
         print('    Using {} sources'.format(len(self.src.srcList)))
         print('... parameters valid\n')
 
+        # save simulation parameters
+        self.save()
+
         # --------------- Set the number of threads --------------- #
         mkl.set_num_threads(self.num_threads)
 
@@ -199,4 +217,5 @@ class SimulationFDEM(BaseSimulation):
         if getattr(self, '_fields', None) is None:
             self._fields = self.run()
         return self._fields
+
 
