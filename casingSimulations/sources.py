@@ -9,6 +9,7 @@ from SimPEG import Utils
 from SimPEG.EM import FDEM
 
 
+# TODO: This should be a serealizable class instead.
 class BaseCasingSrc(object):
     """
     The base class for sources. Inherit this to attach properties.

@@ -13,10 +13,10 @@ def load_properties(filename, targetClass=None):
     with open(filename, 'r') as outfile:
         jsondict = json.load(outfile)
         if targetClass is None:
-            targetClass = jsondict['__class__']
-        data = getattr(
-            casingSimulations, targetClass
-        ).deserialize(jsondict)
+            targetClass = getattr(
+                casingSimulations, jsondict['__class__']
+            )
+        data = targetClass.deserialize(jsondict)
     return data
 
 

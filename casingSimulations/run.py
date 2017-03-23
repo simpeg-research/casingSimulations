@@ -14,9 +14,20 @@ from SimPEG.EM import FDEM
 from SimPEG import Utils, Maps
 
 from .model import PhysicalProperties, CasingParameters
-from .mesh import CylMeshGenerator, TensorMeshGenerator
+from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
 from .utils import load_properties
 from . import sources
+
+
+class LoadableInstance(properties.Instance):
+
+    class_info = "an instance of a class or the name of a file from which the "
+    "instance can be created"
+
+    def validate(self, instance, value):
+        if isinstance(value, str):
+            return value
+        return super(LoadableInstance, self).validate(instance, value)
 
 
 class BaseSimulation(properties.HasProperties):
@@ -37,15 +48,15 @@ class BaseSimulation(properties.HasProperties):
         default="."
     )
 
-    cp_filename = properties.String(
-        "filename for the casing properties",
-        default="casingParameters.json"
-    )
+    # cp_filename = properties.String(
+    #     "filename for the casing properties",
+    #     default="casingParameters.json"
+    # )
 
-    mesh_filename = properties.String(
-        "filename for the mesh",
-        default="meshParameters.json"
-    )
+    # mesh_filename = properties.String(
+    #     "filename for the mesh",
+    #     default="meshParameters.json"
+    # )
 
     fields_filename = properties.String(
         "filename for the fields",
@@ -62,32 +73,54 @@ class BaseSimulation(properties.HasProperties):
         default=1
     )
 
-    def __init__(self, cp, meshGenerator, src, **kwargs):
+    cp = LoadableInstance(
+        "Casing Parameters instance",
+        CasingParameters,
+        required=True
+    )
+
+    meshGenerator = LoadableInstance(
+        "mesh generator instance",
+        BaseMeshGenerator,
+        required=True
+    )
+
+    srcType = properties.String(
+        "source class",
+        required=True
+    )
+
+    def __init__(self, **kwargs):
         # set keyword arguments
         Utils.setKwargs(self, **kwargs)
-
-        # if cp is a string, it is a filename, load in the json and create the
-        # CasingParameters object
-        if isinstance(cp, str):
-            cp = load_properties(cp)
-        self.cp = cp
-
-        # if cp is a string, it is a filename, load in the json and create the
-        # CasingParameters object
-        if isinstance(meshGenerator, str):
-            meshGenerator = load_properties(meshGenerator)
-        self.meshGenerator = meshGenerator
-
-        # if src is a string, create a source of that type
-        if isinstance(src, str):
-            src = getattr(sources, src)(
-                self.cp, self.meshGenerator.mesh
-            )
-        self.src = src
 
         # if the working directory does not exsist, create it
         if not os.path.isdir(self.directory):
             os.mkdir(self.directory)
+
+    @properties.validator('cp')
+    def _cp_load(self, change):
+        # if cp is a string, it is a filename, load in the json and create the
+        # CasingParameters object
+        cp = change['value']
+        if isinstance(cp, str):
+            change['value'] = load_properties(cp)
+
+    @properties.validator('meshGenerator')
+    def _meshGenerator_load(self, change):
+        # if cp is a string, it is a filename, load in the json and create the
+        # CasingParameters object
+        meshGenerator = change['value']
+        if isinstance(meshGenerator, str):
+            change['value'] = load_properties(meshGenerator)
+
+    @property
+    def src(self):
+        if getattr(self, '_src', None) is None:
+            self._src = getattr(sources, self.srcType)(
+                self.cp, self.meshGenerator.mesh
+            )
+        return self._src
 
     def save(self, filename=None, directory=None):
         """
@@ -113,8 +146,8 @@ class SimulationFDEM(BaseSimulation):
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
-    def __init__(self, cp, meshGenerator, src, **kwargs):
-        super(SimulationFDEM, self).__init__(cp, meshGenerator, src, **kwargs)
+    def __init__(self, **kwargs):
+        super(SimulationFDEM, self).__init__(**kwargs)
 
         self._prob = getattr(
                 FDEM, 'Problem3D_{}'.format(self.formulation)
@@ -152,27 +185,28 @@ class SimulationFDEM(BaseSimulation):
         # ----------------- Validate Parameters ----------------- #
 
         print('Validating parameters...')
+        self.validate()
 
-        # Casing Parameters
-        self.cp.validate()
-        self.cp.save(directory=self.directory, filename=self.cp_filename)
-        print('  Saved casing properties: {}')
-        print('    skin depths in casing: {}'.format(
-            self.cp.skin_depth(
-                sigma=self.cp.sigma_casing, mu=self.cp.mur_casing*mu_0
-            )
-        ))
-        print('    casing thickness: {}'.format(
-            self.cp.casing_t
-        ))
-        print('    skin depths in background: {}'.format(self.cp.skin_depth()))
+        # # Casing Parameters
+        # self.cp.validate()
+        # self.cp.save(directory=self.directory, filename=self.cp_filename)
+        # print('  Saved casing properties: {}')
+        # print('    skin depths in casing: {}'.format(
+        #     self.cp.skin_depth(
+        #         sigma=self.cp.sigma_casing, mu=self.cp.mur_casing*mu_0
+        #     )
+        # ))
+        # print('    casing thickness: {}'.format(
+        #     self.cp.casing_t
+        # ))
+        # print('    skin depths in background: {}'.format(self.cp.skin_depth()))
 
-        # Mesh Parameters
-        self.meshGenerator.validate()
-        self.meshGenerator.save(
-            directory=self.directory, filename=self.cp_filename
-        )
-        print('   Saved Mesh Parameters')
+        # # Mesh Parameters
+        # self.meshGenerator.validate()
+        # self.meshGenerator.save(
+        #     directory=self.directory, filename=self.cp_filename
+        # )
+        # print('   Saved Mesh Parameters')
         sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
         print('      max x: {}, min z: {}, max z: {}'.format(
             sim_mesh.vectorNx.max(),
@@ -180,10 +214,10 @@ class SimulationFDEM(BaseSimulation):
             sim_mesh.vectorNz.max()
         ))
 
-        # Source (only validation, no saving, can be re-created from cp)
-        self.src.validate()
-        print('    Using {} sources'.format(len(self.src.srcList)))
-        print('... parameters valid\n')
+        # # Source (only validation, no saving, can be re-created from cp)
+        # self.src.validate()
+        # print('    Using {} sources'.format(len(self.src.srcList)))
+        # print('... parameters valid\n')
 
         # save simulation parameters
         self.save()
