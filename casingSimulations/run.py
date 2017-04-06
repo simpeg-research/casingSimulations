@@ -17,6 +17,7 @@ from .model import PhysicalProperties, CasingParameters
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
 from .utils import load_properties
 from . import sources
+from .info import __version__
 
 
 class LoadableInstance(properties.Instance):
@@ -36,6 +37,11 @@ class BaseSimulation(properties.HasProperties):
     :param CasingSimulations.CasingParameters cp: casing parameters object
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
+
+    version = properties.String(
+        "version of casingSimulations",
+        default=__version__
+    )
 
     formulation = properties.StringChoice(
         "Formulation of the problem to solve [e, b, h, j]",
@@ -187,37 +193,12 @@ class SimulationFDEM(BaseSimulation):
         print('Validating parameters...')
         self.validate()
 
-        # # Casing Parameters
-        # self.cp.validate()
-        # self.cp.save(directory=self.directory, filename=self.cp_filename)
-        # print('  Saved casing properties: {}')
-        # print('    skin depths in casing: {}'.format(
-        #     self.cp.skin_depth(
-        #         sigma=self.cp.sigma_casing, mu=self.cp.mur_casing*mu_0
-        #     )
-        # ))
-        # print('    casing thickness: {}'.format(
-        #     self.cp.casing_t
-        # ))
-        # print('    skin depths in background: {}'.format(self.cp.skin_depth()))
-
-        # # Mesh Parameters
-        # self.meshGenerator.validate()
-        # self.meshGenerator.save(
-        #     directory=self.directory, filename=self.cp_filename
-        # )
-        # print('   Saved Mesh Parameters')
         sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
         print('      max x: {}, min z: {}, max z: {}'.format(
             sim_mesh.vectorNx.max(),
             sim_mesh.vectorNz.min(),
             sim_mesh.vectorNz.max()
         ))
-
-        # # Source (only validation, no saving, can be re-created from cp)
-        # self.src.validate()
-        # print('    Using {} sources'.format(len(self.src.srcList)))
-        # print('... parameters valid\n')
 
         # save simulation parameters
         self.save()

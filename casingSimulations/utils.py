@@ -57,6 +57,24 @@ def edge3DthetaSlice(mesh3D, h3D, theta_ind=0):
         mesh3D.vnEy, order='F'
     )
 
-    return mkvc(h3D_y[:, theta_ind, :])
+    return utils.mkvc(h3D_y[:, theta_ind, :])
 
 
+def ccv3DthetaSlice(mesh3D, v3D, theta_ind=0):
+    """
+    Grab a theta slice through a 3D field defined at cell centers
+
+    :param discretize.CylMesh mesh3D: 3D cyl mesh
+    :param numpy.ndarray v3D: vector of fields on mesh
+    :param int theta_ind: index of the theta slice that you want
+    """
+
+    ccv_x = v3D[:mesh3D.nC].reshape(mesh3D.vnC, order='F')
+    ccv_y = v3D[mesh3D.nC:2*mesh3D.nC].reshape(mesh3D.vnC, order='F')
+    ccv_z = v3D[2*mesh3D.nC:].reshape(mesh3D.vnC, order='F')
+
+    return np.vstack([
+        utils.mkvc(ccv_x[:, theta_ind, :], 2),
+        utils.mkvc(ccv_y[:, theta_ind, :], 2),
+        utils.mkvc(ccv_z[:, theta_ind, :], 2)
+    ])

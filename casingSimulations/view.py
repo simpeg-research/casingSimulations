@@ -32,7 +32,7 @@ def plotFace2D(
 
     if logScale is True:
         pcolorOpts = {
-            'norm':LogNorm()
+            'norm': LogNorm()
         }
     else:
         pcolorOpts = {}
@@ -75,10 +75,12 @@ def plotEdge2D(
     if ax is None:
         fig, ax = plt.subplots(1, 3, figsize=(10, 4))
 
-    if len(j) == mesh2D.nE:
+    if len(h) == mesh2D.nE:
         vType = 'E'
-    elif len(j) == mesh2D.nC:
+    elif len(h) == mesh2D.nC:
         vType = 'CC'
+    elif len(h) == 2*mesh2D.nC:
+        vType = 'CCv'
 
     if logScale is True:
         pcolorOpts = {
