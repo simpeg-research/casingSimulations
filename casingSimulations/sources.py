@@ -153,7 +153,7 @@ class VerticalElectricDipole(BaseCasingSrc):
         assert all(cp.src_a[:2] == cp.src_b[:2]), (
             'src_a and src_b must have the same horizontal location'
         )
-        super(VericalElectricDipole, self).__init__(cp, mesh)
+        super(VerticalElectricDipole, self).__init__(cp, mesh)
 
     @property
     def src_a_closest(self):
