@@ -28,7 +28,7 @@ class BaseCasingSrc(object):
 
 class HorizontalElectricDipole(BaseCasingSrc):
     """
-    A source that terminates down-hole. It is not coupled to the casing
+    A horizontal electric dipole
 
     :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
     :param discretize.BaseMesh mesh: a discretize mesh
@@ -139,6 +139,136 @@ class HorizontalElectricDipole(BaseCasingSrc):
         assert len(np.unique(surface_wire[:, 2])) == 1, (
             'the surface wire has more than one z-location'
         )
+
+
+class VericalElectricDipole(BaseCasingSrc):
+    """
+    A vertical electric dipole. It is not coupled to the casing
+
+    :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
+    :param discretize.BaseMesh mesh: a discretize mesh
+    """
+
+    def __init__(self, cp, mesh):
+        assert all(cp.src_a[:2] == cp.src_b[:2]), (
+            'src_a and src_b must have the same horizontal location'
+        )
+        super(VericalElectricDipole, self).__init__(cp, mesh)
+
+    @property
+    def src_a_closest(self):
+        """
+        closest face to where we want the return current electrode
+        """
+        if getattr(self, '_src_a_closest', None) is None:
+            # find the z location of the closest face to the src
+            src_a_closest = (
+                self.mesh.gridFz[closestPoints(self.mesh, self.src_a, 'Fz'), :]
+            )
+            assert(len(src_a_closest) == 1), 'multiple source locs found'
+            self._src_a_closest = src_a_closest[0]
+        return self._src_a_closest
+
+    @property
+    def src_b_closest(self):
+        """
+        closest face to where we want the return current electrode
+        """
+        if getattr(self, '_src_b_closest', None) is None:
+            # find the z location of the closest face to the src
+            src_b_closest = (
+                self.mesh.gridFz[closestPoints(self.mesh, self.src_b, 'Fz'), :]
+            )
+            assert(len(src_b_closest) == 1), 'multiple source locs found'
+            self._src_b_closest = src_b_closest[0]
+        return self._src_b_closest
+
+    @property
+    def wire_in_borehole(self):
+        """
+        Indices of the verically directed wire inside of the borehole. It goes
+        through the center of the well
+        """
+
+        if getattr(self, '_wire_in_borehole', None) is None:
+            mesh = self.mesh
+            src_a = self.src_a
+            src_b = self.src_b
+
+            wire_in_boreholex = (
+                (mesh.gridFz[:, 0] < self.src_a_closest[0] + mesh.hx.min()/2.) &
+                (mesh.gridFz[:, 0] > self.src_a_closest[0] - mesh.hx.min()/2.)
+            )
+            wire_in_boreholez = (
+                (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min()) &
+                (mesh.gridFz[:, 2] < src_b[2] + 1.5*mesh.hz.min())
+            )
+
+            self._wire_in_borehole = wire_in_boreholex & wire_in_boreholez
+
+            if getattr(mesh, 'isSymmetric', False) is False:
+                wire_in_boreholey = (
+                    (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()/2.) &
+                    (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min()/2.)
+                )
+                self._wire_in_borehole = (
+                    self._wire_in_borehole & wire_in_boreholey
+                )
+
+        return self._wire_in_borehole
+
+    @property
+    def srcList(self):
+        """
+        Source List
+        """
+        if getattr(self, '_srcList', None) is None:
+            # downhole source
+            dg_x = np.zeros(self.mesh.vnF[0], dtype=complex)
+            dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
+            dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
+
+            dg_z[self.wire_in_borehole] = -1.   # part of wire through borehole
+
+            # assemble the source (downhole grounded primary)
+            dg = np.hstack([dg_x, dg_y, dg_z])
+            srcList = [
+                FDEM.Src.RawVec_e([], _, dg/self.mesh.area) for _ in self.freqs
+            ]
+            self._srcList = srcList
+        return self._srcList
+
+    def plot(self, ax=None):
+        """
+        Plot the source.
+        """
+        if ax is None:
+            fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+        mesh = self.mesh
+
+        ax.plot(
+            mesh.gridFz[self.wire_in_borehole, 0],
+            mesh.gridFz[self.wire_in_borehole, 2], 'rv'
+        )
+
+    def validate(self):
+        """
+        Make sure that each segment of the wire is only going through a
+        single face
+
+        .. todo:: check that the wirepath is infact connected.
+        """
+
+        # check that the wire inside the borehole has only one x, y, location
+        wire_in_borehole = self.mesh.gridFz[self.wire_in_borehole, :]
+        assert len(np.unique(wire_in_borehole[:, 0])) == 1, (
+            'the wire in borehole has more than one x-location'
+        )
+        assert len(np.unique(wire_in_borehole[:, 1])) == 1, (
+            'the wire in borehole has more than one y-location'
+        )
+        return True
 
 
 class DownHoleTerminatingSrc(BaseCasingSrc):

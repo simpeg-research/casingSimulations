@@ -5,6 +5,10 @@ import os
 from SimPEG import Maps, Utils
 from scipy.constants import mu_0
 
+import discretize
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+
 from .info import __version__
 ##############################################################################
 #                                                                            #
@@ -230,6 +234,40 @@ class PhysicalProperties(object):
                 ('sigma', self.mesh.nC), ('mu', self.mesh.nC)
             )
         return self._wires
+
+    def plot(self, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+
+        # generate a 2D mesh for plotting slices
+        mesh2D = discretize.CylMesh(
+            [self.mesh.hx, 1., self.mesh.hz], x0 = self.mesh.x0
+        )
+
+        # plot Sigma
+        sigmaplt = self.sigma.reshape(self.mesh.vnC, order='F')
+        ax[0].set_title('$\sigma$')
+        plt.colorbar(
+            mesh2D.plotImage(
+                discretize.utils.mkvc(sigmaplt[:, 0, :]), ax=ax[0],
+                mirror=True, pcolorOpts={'norm': LogNorm()}
+            )[0], ax=ax[0],
+
+        )
+
+        # Plot mu
+        murplt = self.mur.reshape(self.mesh.vnC, order='F')
+        ax[1].set_title('$\mu_r$')
+        plt.colorbar(mesh2D.plotImage(
+            discretize.utils.mkvc(murplt[:, 0, :]), ax=ax[1], mirror=True)[0],
+            ax=ax[1]
+        )
+
+
+        plt.tight_layout()
+        return ax
+
+
 
 
 
