@@ -141,7 +141,7 @@ class HorizontalElectricDipole(BaseCasingSrc):
         )
 
 
-class VericalElectricDipole(BaseCasingSrc):
+class VerticalElectricDipole(BaseCasingSrc):
     """
     A vertical electric dipole. It is not coupled to the casing
 
