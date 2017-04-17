@@ -11,7 +11,7 @@ from .view import plotEdge2D, plotFace2D
 import sources
 import run
 from .utils import (
-    load_properties, edge3DthetaSlice, face3DthetaSlice
+    load_properties, edge3DthetaSlice, face3DthetaSlice, ccv3DthetaSlice
 )
 
 from .info import (

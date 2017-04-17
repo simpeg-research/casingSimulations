@@ -6,9 +6,9 @@ from matplotlib.colors import LogNorm
 
 def plotFace2D(
     mesh2D,
-    j, real_or_imag='real', ax=None, range_x=np.r_[0., 1000.],
-    range_y=np.r_[-2000., 0.], sample_grid=np.r_[5., 5.],
-    logScale=True, clim=None
+    j, real_or_imag='real', ax=None, range_x=None,
+    range_y=None, sample_grid=None,
+    logScale=True, clim=None, mirror=False, pcolorOpts=None
 ):
     """
     Create a streamplot (a slice in the theta direction) of a face vector
@@ -23,17 +23,18 @@ def plotFace2D(
     :param bool logScale: use a log scale for the colorbar?
     """
     if ax is None:
-        fig, ax = plt.subplots(1, 3, figsize=(10, 4))
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 
     if len(j) == mesh2D.nF:
         vType = 'F'
     elif len(j) == mesh2D.nC*2:
         vType = 'CCv'
 
+    if pcolorOpts is None:
+        pcolorOpts = {}
+
     if logScale is True:
-        pcolorOpts = {
-            'norm': LogNorm()
-        }
+        pcolorOpts['norm'] = LogNorm()
     else:
         pcolorOpts = {}
 
@@ -42,7 +43,7 @@ def plotFace2D(
             getattr(j, real_or_imag),
             view='vec', vType=vType, ax=ax,
             range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-            mirror=False,
+            mirror=mirror,
             pcolorOpts=pcolorOpts,
         )[0], ax=ax
     )
@@ -55,9 +56,9 @@ def plotFace2D(
 
 def plotEdge2D(
     mesh2D,
-    h, real_or_imag='real', ax=None, range_x=np.r_[0., 1000.],
-    range_y=np.r_[-2000., 0.], sample_grid=np.r_[5., 5.],
-    logScale=True, clim=None
+    h, real_or_imag='real', ax=None, range_x=None,
+    range_y=None, sample_grid=None,
+    logScale=True, clim=None, mirror=False, pcolorOpts=None
 ):
     """
     Create a pcolor plot (a slice in the theta direction) of an edge vector
@@ -73,7 +74,7 @@ def plotEdge2D(
     """
 
     if ax is None:
-        fig, ax = plt.subplots(1, 3, figsize=(10, 4))
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 
     if len(h) == mesh2D.nE:
         vType = 'E'
@@ -83,9 +84,7 @@ def plotEdge2D(
         vType = 'CCv'
 
     if logScale is True:
-        pcolorOpts = {
-            'norm':LogNorm()
-        }
+        pcolorOpts['norm'] = LogNorm()
     else:
         pcolorOpts = {}
 
@@ -94,7 +93,7 @@ def plotEdge2D(
             getattr(h, real_or_imag),
             view='real', vType=vType, ax=ax,
             range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-            mirror=False,
+            mirror=mirror,
             pcolorOpts=pcolorOpts,
         )[0], ax=ax
     )
