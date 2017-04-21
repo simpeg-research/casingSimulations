@@ -299,7 +299,7 @@ class SimulationDC(BaseSimulation):
         fields = prb.fields(physprops.model)
         np.save(
             '/'.join([self.directory, self.fields_filename]),
-            fields[:, '{}Solution'.format(self.formulation)]
+            fields[:, 'phiSolution']
         )
         print('Elapsed time : {}'.format(time.time()-t))
 
