@@ -253,7 +253,7 @@ class SimulationDC(BaseSimulation):
     def __init__(self, **kwargs):
         super(SimulationDC, self).__init__(**kwargs)
 
-        self._prob = Problem3D_CC(
+        self._prob = DC.Problem3D_CC(
             self.meshGenerator.mesh,
             sigmaMap=self.physprops.wires.sigma,
             bc_type='Dirichlet',
