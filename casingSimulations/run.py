@@ -86,11 +86,6 @@ class BaseSimulation(properties.HasProperties):
         required=True
     )
 
-    srcType = properties.String(
-        "source class",
-        required=True
-    )
-
     def __init__(self, **kwargs):
         # set keyword arguments
         Utils.setKwargs(self, **kwargs)
@@ -175,6 +170,11 @@ class SimulationFDEM(BaseSimulation):
         "Formulation of the problem to solve [e, b, h, j]",
         default="h",
         choices=["e", "b", "h", "j"]
+    )
+
+    srcType = properties.String(
+        "source class",
+        required=True
     )
 
     def __init__(self, **kwargs):
