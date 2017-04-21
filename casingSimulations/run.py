@@ -12,6 +12,7 @@ from discretize import utils
 from pymatsolver import Pardiso
 from SimPEG.EM import FDEM
 from SimPEG import Utils, Maps
+from SimPEG.EM.Static import DC
 
 from .model import PhysicalProperties, CasingParameters
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
@@ -41,12 +42,6 @@ class BaseSimulation(properties.HasProperties):
     version = properties.String(
         "version of casingSimulations",
         default=__version__
-    )
-
-    formulation = properties.StringChoice(
-        "Formulation of the problem to solve [e, b, h, j]",
-        default="h",
-        choices=["e", "b", "h", "j"]
     )
 
     directory = properties.String(
@@ -128,6 +123,22 @@ class BaseSimulation(properties.HasProperties):
             )
         return self._src
 
+    @property
+    def physprops(self):
+        if getattr(self, '_physprops', None) is None:
+            self._physprops = PhysicalProperties(
+                self.meshGenerator.mesh, self.cp
+            )
+        return self._physprops
+
+    @property
+    def prob(self):
+        return self._prob
+
+    @property
+    def survey(self):
+        return self._survey
+
     def save(self, filename=None, directory=None):
         """
         Save the simulation parameters to json
@@ -144,6 +155,14 @@ class BaseSimulation(properties.HasProperties):
         with open(f, 'w') as outfile:
             cp = json.dump(self.serialize(), outfile)
 
+    def fields(self):
+        """
+        fields from the forward simulation
+        """
+        if getattr(self, '_fields', None) is None:
+            self._fields = self.run()
+        return self._fields
+
 
 class SimulationFDEM(BaseSimulation):
     """
@@ -151,6 +170,12 @@ class SimulationFDEM(BaseSimulation):
     :param CasingSimulations.CasingParameters cp: casing parameters object
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
+
+    formulation = properties.StringChoice(
+        "Formulation of the problem to solve [e, b, h, j]",
+        default="h",
+        choices=["e", "b", "h", "j"]
+    )
 
     def __init__(self, **kwargs):
         super(SimulationFDEM, self).__init__(**kwargs)
@@ -166,22 +191,6 @@ class SimulationFDEM(BaseSimulation):
         self._survey = FDEM.Survey(self.src.srcList)
 
         self._prob.pair(self._survey)
-
-    @property
-    def physprops(self):
-        if getattr(self, '_physprops', None) is None:
-            self._physprops = PhysicalProperties(
-                self.meshGenerator.mesh, self.cp
-            )
-        return self._physprops
-
-    @property
-    def prob(self):
-        return self._prob
-
-    @property
-    def survey(self):
-        return self._survey
 
     def run(self):
         """
@@ -225,12 +234,74 @@ class SimulationFDEM(BaseSimulation):
         self._fields = fields
         return fields
 
-    def fields(self):
-        """
-        fields from the forward simulation
-        """
-        if getattr(self, '_fields', None) is None:
-            self._fields = self.run()
-        return self._fields
 
+class SimulationDC(BaseSimulation):
 
+    src_a = properties.Vector3(
+        "a electrode location", required=True
+    )
+
+    src_b = properties.Vector3(
+        "return electrode location", required=True
+    )
+
+    fields_filename = properties.String(
+        "filename for the fields",
+        default="fieldsDC.npy"
+    )
+
+    def __init__(self, **kwargs):
+        super(SimulationDC, self).__init__(**kwargs)
+
+        self._prob = Problem3D_CC(
+            self.meshGenerator.mesh,
+            sigmaMap=self.physprops.wires.sigma,
+            bc_type='Dirichlet',
+            Solver=Pardiso
+        )
+        self._src = DC.Src.Dipole([], self.src_a, self.src_b)
+        self._survey = DC.Survey([self._src])
+
+        self._prob.pair(self._survey)
+
+    def run(self):
+        """
+        Run the forward simulation
+        """
+
+        # ----------------- Validate Parameters ----------------- #
+
+        print('Validating parameters...')
+        self.validate()
+
+        sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
+        print('      max x: {}, min z: {}, max z: {}'.format(
+            sim_mesh.vectorNx.max(),
+            sim_mesh.vectorNz.min(),
+            sim_mesh.vectorNz.max()
+        ))
+
+        # save simulation parameters
+        self.save()
+
+        # --------------- Set the number of threads --------------- #
+        mkl.set_num_threads(self.num_threads)
+
+        # ----------------- Set up the simulation ----------------- #
+        physprops = self.physprops
+        prb = self.prob
+        # survey = self.survey
+        # prb.pair(survey)
+
+        # ----------------- Run the the simulation ----------------- #
+        print('Starting Simulation')
+        t = time.time()
+        fields = prb.fields(physprops.model)
+        np.save(
+            '/'.join([self.directory, self.fields_filename]),
+            fields[:, '{}Solution'.format(self.formulation)]
+        )
+        print('Elapsed time : {}'.format(time.time()-t))
+
+        self._fields = fields
+        return fields

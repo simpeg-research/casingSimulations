@@ -1,7 +1,9 @@
 import numpy as np
-
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+import discretize
+
+from . import utils
 
 
 def plotFace2D(
@@ -102,3 +104,85 @@ def plotEdge2D(
         cb.set_clim(clim)
 
     return ax, cb
+
+
+def plotLinesFx(
+    mesh,
+    srcList,
+    fields3D=None,
+    fieldsDC=None,
+    fieldType='e',
+    pltType='semilogy',
+    ax=None,
+    theta_ind=0,
+    xlim=[0., 2500.],
+    zloc=0.
+):
+
+    mesh2D = discretize.CylMesh([mesh.hx, 1., mesh.hz], x0=mesh.x0)
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 2, figsize=(15, 6))
+        ax = discretize.utils.mkvc(ax)
+
+    for i, src in enumerate(srcList):
+        if fields3D is not None:
+            field = fields3D[src, fieldType]
+            fplt = utils.face3DthetaSlice(
+                mesh, field, theta_ind=theta_ind
+            )
+
+            fx = discretize.utils.mkvc(fplt[:mesh2D.vnF[0]].reshape(
+                [mesh2D.vnFx[0], mesh2D.vnFx[2]], order='F')
+            )
+
+        xind = ((mesh2D.gridFx[:, 0] > 2.) & (mesh2D.gridFx[:, 0] < 2500.))
+        zind = (
+            (mesh2D.gridFx[:, 2] > -mesh2D.hz.min()) & (mesh2D.gridFx[:, 2] < 0.)
+        )
+        pltind = xind & zind
+
+        fx = fx[pltind]
+        x = mesh2D.gridFx[pltind, 0]
+
+        label = '{} Hz'.format(src.freq)
+
+        getattr(ax[0], pltType)(x, -fx.real, '--', color='C{}'.format(i))
+        getattr(ax[1], pltType)(x, -fx.imag, '--', color='C{}'.format(i))
+
+        getattr(ax[0], pltType)(
+            x, fx.real, '-', color='C{}'.format(i),
+            label='{} Hz'.format(src.freq)
+        )
+        getattr(ax[1], pltType)(
+            x, fx.imag, '-', color='C{}'.format(i),
+            label='{} Hz'.format(src.freq)
+        )
+
+    # plot the DC solution
+    fxDC = utils.face3DthetaSlice(
+        mesh, fieldsDC[:, fieldType], theta_ind=theta_ind
+    )
+    fxDC = discretize.utils.mkvc(
+        fxDC[:mesh2D.vnF[0]].reshape(
+            [mesh2D.vnFx[0], mesh2D.vnFx[2]], order='F'
+        )
+    )
+    fxDC = fxDC[pltind]
+
+    getattr(ax[0], pltType)(x, -fxDC, '--', color='k')
+    getattr(ax[0], pltType)(x, fxDC, '-', color='k', label='DC')
+
+    ax[0].legend()
+    ax[1].legend()
+
+    ax[0].set_title('${}_r$ real'.format(fieldType))
+    ax[1].set_title('${}_r$ imag'.format(fieldType))
+    # [a.set_xlim([2., 1000.]) for a in ax]
+    [a.grid('both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8]) for a in ax]
+    [a.set_xlabel('distance from well (m)') for a in ax]
+
+    plt.tight_layout()
+
+    return ax
+

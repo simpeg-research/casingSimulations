@@ -263,7 +263,6 @@ class PhysicalProperties(object):
             ax=ax[1]
         )
 
-
         plt.tight_layout()
         return ax
 

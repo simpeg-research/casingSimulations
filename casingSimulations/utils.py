@@ -88,7 +88,8 @@ def writeSimulationPy(
     physics='FDEM',
     fields_filename='fields.npy',
     directory='.',
-    simulation_filename='simulation.py'
+    simulation_filename='simulation.py',
+    includeDC=True
 ):
 
     sim_file = '/'.join([directory, simulation_filename])
@@ -104,7 +105,7 @@ def writeSimulationPy(
 
         # write the imports
         f.write(
-            "import casingSimulations\n"
+            "import casingSimulations\nimport numpy as np\n"
         )
 
         # write the simulation
@@ -130,5 +131,29 @@ sim = casingSimulations.run.Simulation{physics}(
         f.write(
             "# run the simulation \nfields = sim.run()"
         )
+
+        # if we are including a DC simulation
+        if includeDC:
+            f.write(
+                """
+# Set up DC survey for the same source location
+csz = sim.meshGenerator.csz
+src_a = sim.src.src_a_closest - np.r_[0., 0., csz/2.] # make sure it is in the cell
+src_b = sim.src.src_b_closest - np.r_[0., 0., csz/2.] # make sure it is in the cell
+
+simDC = casingSimulations.run.SimulationDC(
+    cp='{cp}',
+    meshGenerator='{meshGenerator}',
+    src_a=src_a,
+    src_b=src_b
+)\n""".format(
+                    cp=cp,
+                    meshGenerator=meshGenerator
+                )
+            )
+
+            f.write(
+                "# run the DC simulation \nfieldsDC = simDC.run()"
+                )
 
     print('wrote {}'.format(sim_file))
