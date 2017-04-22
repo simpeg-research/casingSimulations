@@ -30,7 +30,7 @@ class CasingParameters(properties.HasProperties):
     # Conductivities
     sigma_air = properties.Float(
         "conductivity of the air (S/m)",
-        default=1e-8
+        default=1e-6
     )
 
     sigma_back = properties.Float(
