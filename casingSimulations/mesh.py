@@ -12,19 +12,18 @@ from discretize import utils
 from discretize.utils import mkvc
 
 from .model import CasingParameters
-from .info import __version__
-
+from .base import BaseCasing
 # __all__ = [TensorMeshGenerator, CylMeshGenerator]
 
 
-class BaseMeshGenerator(properties.HasProperties):
+class BaseMeshGenerator(BaseCasing):
     """
     Base Mesh Generator Class
     """
-    # code version
-    version = properties.String(
-        "version of casingSimulations",
-        default=__version__
+
+    filename = properties.String(
+        "filename to serialize properties to",
+        default="MeshParameters.json"
     )
 
     # casing parameters
@@ -46,16 +45,16 @@ class BaseMeshGenerator(properties.HasProperties):
             )
         return self._mesh
 
-    def save(self, filename='MeshParameters.json', directory='.'):
-        """
-        Save the casing mesh parameters to json
-        :param str file: filename for saving the casing mesh parameters
-        """
-        if not os.path.isdir(directory):  # check if the directory exists
-            os.mkdir(directory)  # if not, create it
-        f = '/'.join([directory, filename])
-        with open(f, 'w') as outfile:
-            cp = json.dump(self.serialize(), outfile)
+    # def save(self, filename='MeshParameters.json', directory='.'):
+    #     """
+    #     Save the casing mesh parameters to json
+    #     :param str file: filename for saving the casing mesh parameters
+    #     """
+    #     if not os.path.isdir(directory):  # check if the directory exists
+    #         os.mkdir(directory)  # if not, create it
+    #     f = '/'.join([directory, filename])
+    #     with open(f, 'w') as outfile:
+    #         cp = json.dump(self.serialize(), outfile)
 
 
 class TensorMeshGenerator(BaseMeshGenerator):

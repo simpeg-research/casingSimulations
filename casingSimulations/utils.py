@@ -84,7 +84,7 @@ def ccv3DthetaSlice(mesh3D, v3D, theta_ind=0):
 def writeSimulationPy(
     cp='CasingParameters.json',
     meshGenerator='MeshParameters.json',
-    srcType='VerticalElectricDipole',
+    srcType='Source.json',
     physics='FDEM',
     fields_filename='fields.npy',
     directory='.',
@@ -115,14 +115,14 @@ def writeSimulationPy(
 sim = casingSimulations.run.Simulation{physics}(
     cp='{cp}',
     meshGenerator='{meshGenerator}',
-    srcType='{srcType}',
+    src='{src}',
     fields_filename='{fields_filename}'
 )
 \n""".format(
                 physics=physics,
                 cp=cp,
                 meshGenerator=meshGenerator,
-                srcType=srcType,
+                src=src,
                 fields_filename=fields_filename
             )
         )

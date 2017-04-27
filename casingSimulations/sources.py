@@ -1,29 +1,103 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 import properties
 import discretize
 from discretize.utils import closestPoints
 
 from SimPEG import Utils
-from SimPEG.EM import FDEM
+from SimPEG.EM import FDEM, TDEM
+
+from .base import LoadableInstance, BaseCasing
+from .model import CasingParameters
+from .mesh import BaseMeshGenerator
+from .info import __version__
 
 
-# TODO: This should be a serealizable class instead.
-class BaseCasingSrc(object):
+class BaseCasingSrc(BaseCasing):
     """
     The base class for sources. Inherit this to attach properties.
     """
-    def __init__(self, cp, mesh, **kwargs):
-        assert cp.src_a[1] == cp.src_b[1], (
+
+    filename = properties.String(
+        "filename to serialize properties to",
+        default="Source.json"
+    )
+
+    cp = LoadableInstance(
+        "casing parameters",
+        CasingParameters
+    )
+
+    meshGenerator = LoadableInstance(
+        "mesh generator instance",
+        BaseMeshGenerator
+    )
+
+    physics = properties.StringChoice(
+        "FDEM or TDEM simulation?",
+        choices=["FDEM", "TDEM"]
+    )
+
+    def __init__(self, **kwargs):
+        Utils.setKwargs(self, **kwargs)
+        assert self.cp.src_a[1] == self.cp.src_b[1], (
             'non y-axis aligned sources have not been implemented'
         )
-        self.mesh = mesh
-        self.src_a = cp.src_a
-        self.src_b = cp.src_b
-        self.casing_a = cp.casing_a
-        self.freqs = cp.freqs
-        Utils.setKwargs(self, **kwargs)
+
+    @property
+    def mesh(self):
+        return self.meshGenerator.mesh
+
+    @property
+    def src_a(self):
+        return self.cp.src_a
+
+    @property
+    def src_b(self):
+        return self.cp.src_b
+
+    @property
+    def casing_a(self):
+        return self.cp.casing_a
+
+    @property
+    def freqs(self):
+        return self.cp.freqs
+
+    @property
+    def srcList(self):
+        """
+        Source List
+        """
+        if getattr(self, '_srcList', None) is None:
+            if self.physics == "FDEM":
+                srcList = [
+                    FDEM.Src.RawVec_e([], _, self.s_e.astype("complex"))
+                    for _ in self.freqs
+                ]
+            elif self.physics == "TDEM":
+                srcList = [TDEM.Src.RawVec_Grounded([], self.s_e)]
+            self._srcList = srcList
+        return self._srcList
+
+    # def save(self, filename='Source.json', directory='.'):
+    #     """
+    #     Save the casing properties to json
+    #     :param str file: filename for saving the source description
+    #     """
+    #     if not os.path.isdir(directory):  # check if the directory exists
+    #         os.mkdir(directory)  # if not, create it
+    #     f = '/'.join([directory, filename])
+    #     with open(f, 'w') as outfile:
+    #         cp = json.dump(self.serialize(), outfile)
+
+    def copy(self):
+        """
+        Make a copy of the current BaseCasingSrc object
+        """
+        return BaseCasingSrc.deserialize(self.serialize())
 
 
 class HorizontalElectricDipole(BaseCasingSrc):
@@ -34,8 +108,8 @@ class HorizontalElectricDipole(BaseCasingSrc):
     :param discretize.BaseMesh mesh: a discretize mesh
     """
 
-    def __init__(self, cp, mesh):
-        super(HorizontalElectricDipole, self).__init__(cp, mesh)
+    def __init__(self, **kwargs):
+        super(HorizontalElectricDipole, self).__init__(**kwargs)
         assert self.src_a[2] == self.src_b[2], (
             'z locations must be the same for a HED'
         )
@@ -88,25 +162,20 @@ class HorizontalElectricDipole(BaseCasingSrc):
         return [-1. if self.src_a[0] < self.src_b[0] else 1.][0]
 
     @property
-    def srcList(self):
-        """
-        Source List
-        """
-        if getattr(self, '_srcList', None) is None:
+    def s_e(self):
+        if getattr(self, '_s_e', None) is None:
             # downhole source
-            dg_x = np.zeros(self.mesh.vnF[0], dtype=complex)
-            dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
-            dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
+            s_x = np.zeros(self.mesh.vnF[0])
+            s_y = np.zeros(self.mesh.vnF[1])
+            s_z = np.zeros(self.mesh.vnF[2])
 
-            dg_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
+            s_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
 
             # assemble the source (downhole grounded primary)
-            dg = np.hstack([dg_x, dg_y, dg_z])
-            srcList = [
-                FDEM.Src.RawVec_e([], _, dg/self.mesh.area) for _ in self.freqs
-            ]
-            self._srcList = srcList
-        return self._srcList
+            s_e = np.hstack([s_x, s_y, s_z])
+            self._s_e = s_e/self.mesh.area
+
+        return self._s_e
 
     def plot(self, ax=None):
         """
@@ -149,11 +218,11 @@ class VerticalElectricDipole(BaseCasingSrc):
     :param discretize.BaseMesh mesh: a discretize mesh
     """
 
-    def __init__(self, cp, mesh):
+    def __init__(self, **kwargs):
         assert all(cp.src_a[:2] == cp.src_b[:2]), (
             'src_a and src_b must have the same horizontal location'
         )
-        super(VerticalElectricDipole, self).__init__(cp, mesh)
+        super(VerticalElectricDipole, self).__init__(**kwargs)
 
     @property
     def src_a_closest(self):
@@ -218,25 +287,22 @@ class VerticalElectricDipole(BaseCasingSrc):
         return self._wire_in_borehole
 
     @property
-    def srcList(self):
+    def s_e(self):
         """
         Source List
         """
-        if getattr(self, '_srcList', None) is None:
+        if getattr(self, '_s_e', None) is None:
             # downhole source
-            dg_x = np.zeros(self.mesh.vnF[0], dtype=complex)
-            dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
-            dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
+            s_x = np.zeros(self.mesh.vnF[0])
+            s_y = np.zeros(self.mesh.vnF[1])
+            s_z = np.zeros(self.mesh.vnF[2])
 
-            dg_z[self.wire_in_borehole] = -1.   # part of wire through borehole
+            s_z[self.wire_in_borehole] = -1.   # part of wire through borehole
 
             # assemble the source (downhole grounded primary)
-            dg = np.hstack([dg_x, dg_y, dg_z])
-            srcList = [
-                FDEM.Src.RawVec_e([], _, dg/self.mesh.area) for _ in self.freqs
-            ]
-            self._srcList = srcList
-        return self._srcList
+            s = np.hstack([s_x, s_y, s_z])
+            self._s_e = s/self.mesh.area
+        return self._s_e
 
     def plot(self, ax=None):
         """
@@ -279,8 +345,8 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
     :param discretize.BaseMesh mesh: a discretize mesh
     """
 
-    def __init__(self, cp, mesh):
-        super(DownHoleTerminatingSrc, self).__init__(cp, mesh)
+    def __init__(self, **kwargs):
+        super(DownHoleTerminatingSrc, self).__init__(**kwargs)
 
     @property
     def src_a_closest(self):
@@ -421,27 +487,24 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
         return [-1. if self.src_a[0] < self.src_b[0] else 1.][0]
 
     @property
-    def srcList(self):
+    def s_e(self):
         """
         Source List
         """
         if getattr(self, '_srcList', None) is None:
             # downhole source
-            dg_x = np.zeros(self.mesh.vnF[0], dtype=complex)
-            dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
-            dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
+            s_x = np.zeros(self.mesh.vnF[0])
+            s_y = np.zeros(self.mesh.vnF[1])
+            s_z = np.zeros(self.mesh.vnF[2])
 
-            dg_z[self.wire_in_borehole] = -1.   # part of wire through borehole
-            dg_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
-            dg_z[self.surface_electrode] = 1.  # vertical part of return electrode
+            s_z[self.wire_in_borehole] = -1.   # part of wire through borehole
+            s_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
+            s_z[self.surface_electrode] = 1.  # vertical part of return electrode
 
             # assemble the source (downhole grounded primary)
-            dg = np.hstack([dg_x, dg_y, dg_z])
-            srcList = [
-                FDEM.Src.RawVec_e([], _, dg/self.mesh.area) for _ in self.freqs
-            ]
-            self._srcList = srcList
-        return self._srcList
+            s_e = np.hstack([s_x, s_y, s_z])
+            self._s_e = s/self.mesh.area
+        return self._s_e
 
     def plot(self, ax=None):
         """
@@ -513,8 +576,8 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
     :param discretize.CylMesh mesh: a cylindrical mesh
     """
 
-    def __init__(self, cp, mesh):
-        super(DownHoleCasingSrc, self).__init__(cp, mesh)
+    def __init__(self, **kwargs):
+        super(DownHoleCasingSrc, self).__init__(**kwargs)
 
     @property
     def downhole_electrode(self):
@@ -551,28 +614,25 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
         return self._downhole_electrode
 
     @property
-    def srcList(self):
+    def s_e(self):
         """
-        Source List
+        Source current density on faces
         """
         if getattr(self, '_srcList', None) is None:
             # downhole source
-            dg_x = np.zeros(self.mesh.vnF[0], dtype=complex)
-            dg_y = np.zeros(self.mesh.vnF[1], dtype=complex)
-            dg_z = np.zeros(self.mesh.vnF[2], dtype=complex)
+            s_x = np.zeros(self.mesh.vnF[0])
+            s_y = np.zeros(self.mesh.vnF[1])
+            s_z = np.zeros(self.mesh.vnF[2])
 
-            dg_z[self.wire_in_borehole] = -1.  # part of wire through borehole
-            dg_x[self.downhole_electrode] = 1.  # downhole hz part of wire
-            dg_x[self.surface_wire] = -1.  # horizontal part of wire along surface
-            dg_z[self.surface_electrode] = 1.  # vertical part of return electrode
+            s_z[self.wire_in_borehole] = -1.  # part of wire through borehole
+            s_x[self.downhole_electrode] = 1.  # downhole hz part of wire
+            s_x[self.surface_wire] = -1.  # horizontal part of wire along surface
+            s_z[self.surface_electrode] = 1.  # vertical part of return electrode
 
             # assemble the source (downhole grounded primary)
-            dg = np.hstack([dg_x, dg_y, dg_z])
-            srcList = [
-                FDEM.Src.RawVec_e([], _, dg/self.mesh.area) for _ in self.freqs
-            ]
-            self._srcList = srcList
-        return self._srcList
+            s_e = np.hstack([s_x, s_y, s_z])
+            self._s_e =  s/self.mesh.area
+        return self._s_e
 
     def plot(self, ax=None):
         """
@@ -620,13 +680,8 @@ class TopCasingSrc(DownHoleTerminatingSrc):
     :param discretize.CylMesh mesh: the cylindrical simulation mesh
     :param CasingSimulations cp: Casing parameters object
     """
-    def __init__(self, cp, mesh):
-        super(TopCasingSrc, self).__init__(cp, mesh)
-        # self.mesh = mesh
-        # self.src_a = cp.src_a
-        # self.src_b = cp.src_b
-        # self.casing_a = cp.casing_a
-        # self.freqs = cp.freqs
+    def __init__(self, **kwargs):
+        super(TopCasingSrc, self).__init__(**kwargs)
 
     @property
     def tophole_electrode(self):
@@ -691,68 +746,25 @@ class TopCasingSrc(DownHoleTerminatingSrc):
                 self._surface_wire = self._surface_wire & surface_wirey
         return self._surface_wire
 
-    # @property
-    # def surface_electrode(self):
-    #     """
-    #     indices of the return electrode at the surface
-    #     """
-    #     if getattr(self, '_surface_electrode', None) is None:
-    #         mesh = self.mesh
-    #         src_a = self.src_a
-    #         src_b = self.src_b
-
-    #         # return electrode
-    #         closeFace = mesh.gridFz[closestPoints(mesh, src_b, 'Fz')]
-
-    #         surface_electrodex = (
-    #             (
-    #                 mesh.gridFz[:, 0] >
-    #                 self.src_b_closest[0] - mesh.hx.min()/2.
-    #             ) & #src_b[0]*0.9) &
-    #             (
-    #                 mesh.gridFz[:, 0] <
-    #                 self.src_b_closest[0] + mesh.hx.min()/2.
-    #             ) #src_b[0]*1.1)
-    #         )
-    #         surface_electrodez = (
-    #             (mesh.gridFz[:, 2] > -0.5*mesh.hz.min()) &
-    #             (mesh.gridFz[:, 2] < 1.5*mesh.hz.min())
-    #         )
-    #         self._surface_electrode = surface_electrodex & surface_electrodez
-
-    #         isSymmetric = getattr(mesh, 'isSymmetric', False)
-    #         if isSymmetric is False or isSymmetric is None:
-    #             surface_electrodey = (
-    #                 (mesh.gridFz[:, 1] < src_b[1] + mesh.hy.min()) &
-    #                 (mesh.gridFz[:, 1] > src_b[1] - mesh.hy.min())
-    #             )
-    #             self._surface_electrode = (
-    #                 self._surface_electrode & surface_electrodey
-    #             )
-    #     return self._surface_electrode
-
     @property
-    def srcList(self):
+    def s_e(self):
         """
         source list
         """
         if getattr(self, '_srcList', None) is None:
             # downhole source
-            th_x = np.zeros(self.mesh.vnF[0], dtype=complex)
-            th_y = np.zeros(self.mesh.vnF[1], dtype=complex)
-            th_z = np.zeros(self.mesh.vnF[2], dtype=complex)
+            s_x = np.zeros(self.mesh.vnF[0])
+            s_y = np.zeros(self.mesh.vnF[1])
+            s_z = np.zeros(self.mesh.vnF[2])
 
-            th_z[self.tophole_electrode] = -1.  # part of wire coupled to casing
-            th_x[self.surface_wire] = -1.  # horizontal part of wire along surface
-            th_z[self.surface_electrode] = 1.  # vertical part of return electrode
+            s_z[self.tophole_electrode] = -1.  # part of wire coupled to casing
+            s_x[self.surface_wire] = -1.  # horizontal part of wire along surface
+            s_z[self.surface_electrode] = 1.  # vertical part of return electrode
 
-            # assemble the source (downhole grounded primary)
-            th = np.hstack([th_x, th_y, th_z])
-            srcList = [
-                FDEM.Src.RawVec_e([], _, th/self.mesh.area) for _ in self.freqs
-            ]
-            self._srcList = srcList
-        return self._srcList
+            # assemble se source (downhole grounded primary)
+            s_e = np.hstack([s_x, s_y, s_z])
+            self._s_e = s_e/self.mesh.area
+        return self._s_e
 
     def plot(self, ax=None):
         """

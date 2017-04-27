@@ -136,7 +136,7 @@ def plotLinesFx(
                 [mesh2D.vnFx[0], mesh2D.vnFx[2]], order='F')
             )
 
-        xind = ((mesh2D.gridFx[:, 0] > 2.) & (mesh2D.gridFx[:, 0] < 2500.))
+        xind = ((mesh2D.gridFx[:, 0] > xlim[0]) & (mesh2D.gridFx[:, 0] < xlim[1]))
         zind = (
             (mesh2D.gridFx[:, 2] > -mesh2D.hz.min()) & (mesh2D.gridFx[:, 2] < 0.)
         )

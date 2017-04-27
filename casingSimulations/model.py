@@ -9,22 +9,33 @@ import discretize
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from .info import __version__
+from .base import BaseCasing
+
+
 ##############################################################################
 #                                                                            #
 #                           Simulation Parameters                            #
 #                                                                            #
 ##############################################################################
 
+class TimeStepArray(properties.Array):
+
+    class_info = 'an array or list of tuples specifying the mesh tensor'
+
+    def validate(self, instance, value):
+        if isinstance(value, list):
+            value = discretize.utils.meshTensor(value)
+        return super(TimeStepArray, self).validate(instance, value)
+
 
 # Parameters to set up the model
-class CasingParameters(properties.HasProperties):
+class CasingParameters(BaseCasing):
     """
     Simulation Parameters
     """
-    version = properties.String(
-        "version of the software",
-        default = __version__
+    filename = properties.String(
+        "Filename to which the properties are serialized and written to",
+        default="CasingParameters.json"
     )
 
     # Conductivities
@@ -86,9 +97,16 @@ class CasingParameters(properties.HasProperties):
         default=np.r_[-1000., -900.]
     )
 
+    # survey parameters
     freqs = properties.Array(
         "source frequencies",
-        default=np.r_[0.5],
+        required=False,
+        dtype=float
+    )
+
+    timeSteps = TimeStepArray(
+        "times-steps at which to solve",
+        required=False,
         dtype=float
     )
 
@@ -122,6 +140,7 @@ class CasingParameters(properties.HasProperties):
     def casing_z(self):
         return np.r_[-self.casing_l, 0.] + self.casing_top
 
+    # handy functions
     def skin_depth(self, sigma=None, mu=None, f=None):
         if sigma is None:
             sigma = self.sigma_back
@@ -131,16 +150,25 @@ class CasingParameters(properties.HasProperties):
             f = self.freqs
         return np.sqrt(2./(2.*np.pi*f*mu*sigma))
 
-    def save(self, filename='CasingParameters.json', directory='.'):
-        """
-        Save the casing properties to json
-        :param str file: filename for saving the casing properties
-        """
-        if not os.path.isdir(directory):  # check if the directory exists
-            os.mkdir(directory)  # if not, create it
-        f = '/'.join([directory, filename])
-        with open(f, 'w') as outfile:
-            cp = json.dump(self.serialize(), outfile)
+    def diffusion_distance(self, t=None, sigma=None, mu=None):
+        if sigma is None:
+            sigma = self.sigma_back
+        if mu is None:
+            mu = mu_0
+        if t is None:
+            t = self.times
+        return np.sqrt(2*t/(mu*sigma))
+
+    # def save(self, filename='CasingParameters.json', directory='.'):
+    #     """
+    #     Save the casing properties to json
+    #     :param str file: filename for saving the casing properties
+    #     """
+    #     if not os.path.isdir(directory):  # check if the directory exists
+    #         os.mkdir(directory)  # if not, create it
+    #     f = '/'.join([directory, filename])
+    #     with open(f, 'w') as outfile:
+    #         cp = json.dump(self.serialize(), outfile)
 
     def copy(self):
         """
