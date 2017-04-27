@@ -45,17 +45,6 @@ class BaseMeshGenerator(BaseCasing):
             )
         return self._mesh
 
-    # def save(self, filename='MeshParameters.json', directory='.'):
-    #     """
-    #     Save the casing mesh parameters to json
-    #     :param str file: filename for saving the casing mesh parameters
-    #     """
-    #     if not os.path.isdir(directory):  # check if the directory exists
-    #         os.mkdir(directory)  # if not, create it
-    #     f = '/'.join([directory, filename])
-    #     with open(f, 'w') as outfile:
-    #         cp = json.dump(self.serialize(), outfile)
-
 
 class TensorMeshGenerator(BaseMeshGenerator):
     """
@@ -208,6 +197,12 @@ class TensorMeshGenerator(BaseMeshGenerator):
             ])
         return self._hz
 
+    def copy(self):
+        """
+        Make a copy of the current TensorMeshGenerator object
+        """
+        return TensorMeshGenerator.deserialize(self.serialize())
+
 
 class CylMeshGenerator(BaseMeshGenerator):
     """
@@ -334,6 +329,12 @@ class CylMeshGenerator(BaseMeshGenerator):
             ])
         return self._hz
 
+    def copy(self):
+        """
+        Make a copy of the current CylMeshGenerator object
+        """
+        return CylMeshGenerator.deserialize(self.serialize())
+
 
 class CasingMeshGenerator(BaseMeshGenerator):
     """
@@ -434,10 +435,7 @@ class CasingMeshGenerator(BaseMeshGenerator):
     @properties.observer('hy')
     def _ensure_2pi(self, change):
         value = change['value']
-        if len(value) == 1:
-            assert value == np.r_[1.]
-        else:
-            assert np.absolute(value.sum() - 2*np.pi) < 1e-6
+        assert np.absolute(value.sum() - 2*np.pi) < 1e-6
 
     @property
     def ncy(self):
@@ -502,4 +500,11 @@ class CasingMeshGenerator(BaseMeshGenerator):
         plt.tight_layout()
 
         return ax
+
+
+    def copy(self):
+        """
+        Make a copy of the current TensorMeshGenerator object
+        """
+        return CasingMeshGenerator.deserialize(self.serialize())
 

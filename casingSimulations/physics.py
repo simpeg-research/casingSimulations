@@ -60,7 +60,6 @@ def CasingCurrents(cp, fields, mesh, survey):
     return IxCasing, IzCasing
 
 
-
 def plotCurrentDensity(
     mesh,
     fields_j, saveFig=False,

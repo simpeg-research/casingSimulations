@@ -174,6 +174,7 @@ class HorizontalElectricDipole(BaseCasingSrc):
             # assemble the source (downhole grounded primary)
             s_e = np.hstack([s_x, s_y, s_z])
             self._s_e = s_e/self.mesh.area
+            # self._s_e = self.mesh.getFaceInnerProduct(invMat=True) * s_e
 
         return self._s_e
 
@@ -764,6 +765,7 @@ class TopCasingSrc(DownHoleTerminatingSrc):
             # assemble se source (downhole grounded primary)
             s_e = np.hstack([s_x, s_y, s_z])
             self._s_e = s_e/self.mesh.area
+            # self._s_e = self.mesh.getFaceInnerProduct(invMat=True) * s_e
         return self._s_e
 
     def plot(self, ax=None):

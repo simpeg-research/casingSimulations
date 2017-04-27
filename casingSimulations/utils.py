@@ -5,7 +5,7 @@ from discretize import utils
 import casingSimulations
 
 
-def load_properties(filename, targetClass=None):
+def load_properties(filename, targetModule=None, targetClass=None):
     """
     Open a json file and load the properties into the target class
     :param str filename: name of file to read in
@@ -13,9 +13,10 @@ def load_properties(filename, targetClass=None):
     """
     with open(filename, 'r') as outfile:
         jsondict = json.load(outfile)
+        module = targetModule if targetModule is not None else casingSimulations
         if targetClass is None:
             targetClass = getattr(
-                casingSimulations, jsondict['__class__']
+                module, jsondict['__class__']
             )
         data = targetClass.deserialize(jsondict)
     return data
@@ -84,12 +85,13 @@ def ccv3DthetaSlice(mesh3D, v3D, theta_ind=0):
 def writeSimulationPy(
     cp='CasingParameters.json',
     meshGenerator='MeshParameters.json',
-    srcType='Source.json',
+    src='Source.json',
     physics='FDEM',
     fields_filename='fields.npy',
     directory='.',
     simulation_filename='simulation.py',
-    includeDC=True
+    includeDC=True,  # cheap, why not
+    include2D=True  # cheap, why not
 ):
 
     sim_file = '/'.join([directory, simulation_filename])
@@ -131,6 +133,35 @@ sim = casingSimulations.run.Simulation{physics}(
         f.write(
             "# run the simulation \nfields = sim.run()"
         )
+
+        # if we are including a 2D simulation
+        if include2D:
+            f.write(
+                """
+# Set up a 2D simulation for the same source location
+mesh2D = sim.meshGenerator.copy()
+mesh2D.hy = np.r_[2*np.pi]
+src2D = getattr(casingSimulations.sources, sim.src.__class__.__name__)(
+    cp='{cp}',
+    meshGenerator=mesh2D,
+)
+sim2D = casingSimulations.run.Simulation{physics}(
+    cp='{cp}',
+    meshGenerator=mesh2D,
+    src=src2D,
+    fields_filename='fields2D.npy',
+    filename='simulation2D.json'
+)
+\n""".format(
+                    physics=physics,
+                    cp=cp,
+                )
+            )
+
+        # run the 2D simulation
+            f.write(
+                "# run the 2D simulation \nfields2D = sim2D.run()"
+            )
 
         # if we are including a DC simulation
         if includeDC:

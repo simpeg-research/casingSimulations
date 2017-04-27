@@ -18,7 +18,7 @@ from .base import LoadableInstance, BaseCasing
 from .model import PhysicalProperties, CasingParameters
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
 from .sources import BaseCasingSrc
-from .utils import load_properties
+from .utils import load_properties, writeSimulationPy
 from . import sources
 from .info import __version__
 
@@ -91,6 +91,11 @@ class BaseSimulation(BaseCasing):
         if not os.path.isdir(self.directory):
             os.mkdir(self.directory)
 
+        # hook up the properties classes
+        self.meshGenerator.cp = self.cp
+        self.src.cp = self.cp
+        self.src.meshGenerator = self.meshGenerator
+
     @properties.validator('cp')
     def _cp_load(self, change):
         # if cp is a string, it is a filename, load in the json and create the
@@ -113,7 +118,7 @@ class BaseSimulation(BaseCasing):
         # CasingParameters object
         src = change['value']
         if isinstance(src, str):
-            change['value'] = load_properties(src)
+            change['value'] = load_properties(src, targetModule=sources)
 
     @property
     def physprops(self):
@@ -131,21 +136,24 @@ class BaseSimulation(BaseCasing):
     def survey(self):
         return self._survey
 
-    # def save(self, filename=None, directory=None):
-    #     """
-    #     Save the simulation parameters to json
-    #     :param str file: filename for saving the simulation parameters
-    #     """
-    #     if directory is None:
-    #         directory = self.directory
-    #     if filename is None:
-    #         filename = self.simulation_filename
+    def write_py(self, physics=None, includeDC=True, include2D=True):
 
-    #     if not os.path.isdir(directory):  # check if the directory exists
-    #         os.mkdir(directory)  # if not, create it
-    #     f = '/'.join([directory, filename])
-    #     with open(f, 'w') as outfile:
-    #         cp = json.dump(self.serialize(), outfile)
+        # save the properties
+        self.cp.save()
+        self.meshGenerator.save()
+        self.src.save()
+
+        if physics is None:
+            physics = self.src.physics
+
+        # write the simulation.py
+        writeSimulationPy(
+            cp=self.cp.filename,
+            meshGenerator=self.meshGenerator.filename,
+            src=self.src.filename,
+            directory=self.directory,
+            physics=physics
+        )
 
     def fields(self):
         """
