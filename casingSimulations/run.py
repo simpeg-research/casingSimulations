@@ -80,7 +80,7 @@ class BaseSimulation(BaseCasing):
     src = LoadableInstance(
         "Source Parameters instance",
         BaseCasingSrc,
-        required=True
+        required=False
     )
 
     def __init__(self, **kwargs):
@@ -93,8 +93,10 @@ class BaseSimulation(BaseCasing):
 
         # hook up the properties classes
         self.meshGenerator.cp = self.cp
-        self.src.cp = self.cp
-        self.src.meshGenerator = self.meshGenerator
+
+        if getattr(self, 'src', None) is not None:
+            self.src.cp = self.cp
+            self.src.meshGenerator = self.meshGenerator
 
     @properties.validator('cp')
     def _cp_load(self, change):
@@ -200,7 +202,7 @@ class BaseSimulation(BaseCasing):
             '/'.join([self.directory, self.fields_filename]),
             fields[:, '{}Solution'.format(self.formulation)]
         )
-        print('Elapsed time : {}'.format(time.time()-t))
+        print('   ... Done. Elapsed time : {}'.format(time.time()-t))
 
         self._fields = fields
         return fields
@@ -238,48 +240,6 @@ class SimulationFDEM(BaseSimulation):
 
         self._prob.pair(self._survey)
 
-    # def run(self):
-    #     """
-    #     Run the forward simulation
-    #     """
-
-    #     # ----------------- Validate Parameters ----------------- #
-
-    #     print('Validating parameters...')
-    #     self.validate()
-
-    #     sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
-    #     print('      max x: {}, min z: {}, max z: {}'.format(
-    #         sim_mesh.vectorNx.max(),
-    #         sim_mesh.vectorNz.min(),
-    #         sim_mesh.vectorNz.max()
-    #     ))
-
-    #     # save simulation parameters
-    #     self.save()
-
-    #     # --------------- Set the number of threads --------------- #
-    #     mkl.set_num_threads(self.num_threads)
-
-    #     # ----------------- Set up the simulation ----------------- #
-    #     physprops = self.physprops
-    #     prb = self.prob
-    #     # survey = self.survey
-    #     # prb.pair(survey)
-
-    #     # ----------------- Run the the simulation ----------------- #
-    #     print('Starting Simulation')
-    #     t = time.time()
-    #     fields = prb.fields(physprops.model)
-    #     np.save(
-    #         '/'.join([self.directory, self.fields_filename]),
-    #         fields[:, '{}Solution'.format(self.formulation)]
-    #     )
-    #     print('Elapsed time : {}'.format(time.time()-t))
-
-    #     self._fields = fields
-    #     return fields
-
 
 class SimulationTDEM(BaseSimulation):
     """
@@ -313,48 +273,6 @@ class SimulationTDEM(BaseSimulation):
         self._survey = TDEM.Survey(self.src.srcList)
 
         self._prob.pair(self._survey)
-
-    # def run(self):
-    #     """
-    #     Run the forward simulation
-    #     """
-
-    #     # ----------------- Validate Parameters ----------------- #
-
-    #     print('Validating parameters...')
-    #     self.validate()
-
-    #     sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
-    #     print('      max x: {}, min z: {}, max z: {}'.format(
-    #         sim_mesh.vectorNx.max(),
-    #         sim_mesh.vectorNz.min(),
-    #         sim_mesh.vectorNz.max()
-    #     ))
-
-    #     # save simulation parameters
-    #     self.save()
-
-    #     # --------------- Set the number of threads --------------- #
-    #     mkl.set_num_threads(self.num_threads)
-
-    #     # ----------------- Set up the simulation ----------------- #
-    #     physprops = self.physprops
-    #     prb = self.prob
-    #     # survey = self.survey
-    #     # prb.pair(survey)
-
-    #     # ----------------- Run the the simulation ----------------- #
-    #     print('Starting Simulation')
-    #     t = time.time()
-    #     fields = prb.fields(physprops.model)
-    #     np.save(
-    #         '/'.join([self.directory, self.fields_filename]),
-    #         fields[:, '{}Solution'.format(self.formulation)]
-    #     )
-    #     print('Elapsed time : {}'.format(time.time()-t))
-
-    #     self._fields = fields
-    #     return fields
 
 
 class SimulationDC(BaseSimulation):
@@ -390,45 +308,3 @@ class SimulationDC(BaseSimulation):
         self._survey = DC.Survey([self._src])
 
         self._prob.pair(self._survey)
-
-    # def run(self):
-    #     """
-    #     Run the forward simulation
-    #     """
-
-    #     # ----------------- Validate Parameters ----------------- #
-
-    #     print('Validating parameters...')
-    #     self.validate()
-
-    #     sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
-    #     print('      max x: {}, min z: {}, max z: {}'.format(
-    #         sim_mesh.vectorNx.max(),
-    #         sim_mesh.vectorNz.min(),
-    #         sim_mesh.vectorNz.max()
-    #     ))
-
-    #     # save simulation parameters
-    #     self.save()
-
-    #     # --------------- Set the number of threads --------------- #
-    #     mkl.set_num_threads(self.num_threads)
-
-    #     # ----------------- Set up the simulation ----------------- #
-    #     physprops = self.physprops
-    #     prb = self.prob
-    #     # survey = self.survey
-    #     # prb.pair(survey)
-
-    #     # ----------------- Run the the simulation ----------------- #
-    #     print('Starting Simulation')
-    #     t = time.time()
-    #     fields = prb.fields(physprops.model)
-    #     np.save(
-    #         '/'.join([self.directory, self.fields_filename]),
-    #         fields[:, 'phiSolution']
-    #     )
-    #     print('Elapsed time : {}'.format(time.time()-t))
-
-    #     self._fields = fields
-    #     return fields

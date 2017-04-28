@@ -501,7 +501,6 @@ class CasingMeshGenerator(BaseMeshGenerator):
 
         return ax
 
-
     def copy(self):
         """
         Make a copy of the current TensorMeshGenerator object

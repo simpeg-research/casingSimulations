@@ -13,7 +13,9 @@ def load_properties(filename, targetModule=None, targetClass=None):
     """
     with open(filename, 'r') as outfile:
         jsondict = json.load(outfile)
-        module = targetModule if targetModule is not None else casingSimulations
+        module = (
+            targetModule if targetModule is not None else casingSimulations
+        )
         if targetClass is None:
             targetClass = getattr(
                 module, jsondict['__class__']
@@ -131,7 +133,7 @@ sim = casingSimulations.run.Simulation{physics}(
 
         # write the run
         f.write(
-            "# run the simulation \nfields = sim.run()"
+            "# run the simulation \nfields = sim.run()\n"
         )
 
         # if we are including a 2D simulation
@@ -142,11 +144,11 @@ sim = casingSimulations.run.Simulation{physics}(
 mesh2D = sim.meshGenerator.copy()
 mesh2D.hy = np.r_[2*np.pi]
 src2D = getattr(casingSimulations.sources, sim.src.__class__.__name__)(
-    cp='{cp}',
+    cp=sim.cp,
     meshGenerator=mesh2D,
 )
 sim2D = casingSimulations.run.Simulation{physics}(
-    cp='{cp}',
+    cp=sim.cp,
     meshGenerator=mesh2D,
     src=src2D,
     fields_filename='fields2D.npy',
@@ -154,13 +156,12 @@ sim2D = casingSimulations.run.Simulation{physics}(
 )
 \n""".format(
                     physics=physics,
-                    cp=cp,
                 )
             )
 
         # run the 2D simulation
             f.write(
-                "# run the 2D simulation \nfields2D = sim2D.run()"
+                "# run the 2D simulation \nfields2D = sim2D.run()\n"
             )
 
         # if we are including a DC simulation
@@ -169,22 +170,21 @@ sim2D = casingSimulations.run.Simulation{physics}(
                 """
 # Set up DC survey for the same source location
 csz = sim.meshGenerator.csz
-src_a = sim.src.src_a_closest - np.r_[0., 0., csz/2.] # make sure it is in the cell
-src_b = sim.src.src_b_closest - np.r_[0., 0., csz/2.] # make sure it is in the cell
+# make sure it is in the cell
+src_a = sim.src.src_a_closest - np.r_[0., 0., csz/2.]
+src_b = sim.src.src_b_closest - np.r_[0., 0., csz/2.]
 
 simDC = casingSimulations.run.SimulationDC(
-    cp='{cp}',
-    meshGenerator='{meshGenerator}',
+    filename='simulationDC.py',
+    cp=sim.cp,
+    meshGenerator=sim.meshGenerator,
     src_a=src_a,
     src_b=src_b
-)\n""".format(
-                    cp=cp,
-                    meshGenerator=meshGenerator
-                )
+)\n"""
             )
 
             f.write(
-                "# run the DC simulation \nfieldsDC = simDC.run()"
+                "# run the DC simulation \nfieldsDC = simDC.run()\n"
                 )
 
     print('wrote {}'.format(sim_file))
