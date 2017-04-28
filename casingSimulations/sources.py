@@ -82,17 +82,6 @@ class BaseCasingSrc(BaseCasing):
             self._srcList = srcList
         return self._srcList
 
-    # def save(self, filename='Source.json', directory='.'):
-    #     """
-    #     Save the casing properties to json
-    #     :param str file: filename for saving the source description
-    #     """
-    #     if not os.path.isdir(directory):  # check if the directory exists
-    #         os.mkdir(directory)  # if not, create it
-    #     f = '/'.join([directory, filename])
-    #     with open(f, 'w') as outfile:
-    #         cp = json.dump(self.serialize(), outfile)
-
     def copy(self):
         """
         Make a copy of the current BaseCasingSrc object
@@ -301,8 +290,8 @@ class VerticalElectricDipole(BaseCasingSrc):
             s_z[self.wire_in_borehole] = -1.   # part of wire through borehole
 
             # assemble the source (downhole grounded primary)
-            s = np.hstack([s_x, s_y, s_z])
-            self._s_e = s/self.mesh.area
+            s_e = np.hstack([s_x, s_y, s_z])
+            self._s_e = s_e/self.mesh.area
         return self._s_e
 
     def plot(self, ax=None):
@@ -504,7 +493,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
 
             # assemble the source (downhole grounded primary)
             s_e = np.hstack([s_x, s_y, s_z])
-            self._s_e = s/self.mesh.area
+            self._s_e = s_e/self.mesh.area
         return self._s_e
 
     def plot(self, ax=None):
@@ -632,7 +621,7 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
 
             # assemble the source (downhole grounded primary)
             s_e = np.hstack([s_x, s_y, s_z])
-            self._s_e =  s/self.mesh.area
+            self._s_e =  s_e/self.mesh.area
         return self._s_e
 
     def plot(self, ax=None):
