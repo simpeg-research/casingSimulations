@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import time
 import datetime
 from discretize import utils
 import casingSimulations
@@ -188,3 +189,96 @@ simDC = casingSimulations.run.SimulationDC(
                 )
 
     print('wrote {}'.format(sim_file))
+
+
+def loadSimulationResults(
+    directory='.',
+    meshParameters='MeshParameters.json',
+    casingParameters='CasingParameters.json',
+    source='Source.json',
+    fields='fields.npy',
+    fieldsDC='fieldsDC.npy',
+    fields2D='fields2D.npy'
+):
+    print('Loading simulation in {}'.format(directory))
+    # load up the properties
+    meshGenerator = load_properties('/'.join([directory, meshParameters]))
+    cp = load_properties('/'.join([directory, casingParameters]))
+    src = load_properties(
+        '/'.join([directory, source]), targetModule=casingSimulations.sources
+    )
+
+    # load up the numpy array of the soln
+    field = np.load('/'.join([directory, fields]))
+
+    # reconstruct the 3D simulation
+    print('   repopulating 3D fields')
+    t = time.time()
+    sim = getattr(casingSimulations.run, 'Simulation{}'.format(src.physics))(
+        cp=cp, meshGenerator=meshGenerator, src=src
+    )
+    sim.prob.model = sim.physprops.model
+    sim._fields = sim.prob.fieldsPair(meshGenerator.mesh, sim.survey)[
+        :, '{}Solution'.format(sim.formulation)
+    ]
+    print('   ... Done. Elapsed time : {}\n'.format(time.time()-t))
+
+    simulations = (sim, )
+
+    # reconstruct the 2D simulation
+    if fields2D is not None:
+        mesh2D = sim.meshGenerator.copy()
+        mesh2D.hy = np.r_[2*np.pi]
+        src2D = getattr(casingSimulations.sources, sim.src.__class__.__name__)(
+            cp=sim.cp,
+            meshGenerator=mesh2D,
+        )
+        sim2D = casingSimulations.run.SimulationTDEM(
+            cp=sim.cp,
+            meshGenerator=mesh2D,
+            src=src2D,
+            fields_filename=fields2D,
+            filename='simulation2D.json'
+        )
+        sim2D.prob.model = sim2D.physprops.model
+
+        print('    repopulating 2D fields')
+        t = time.time()
+        field2D = np.load('/'.join([directory, fields2D]))
+        sim2D._fields = sim2D.prob.fieldsPair(
+            sim2D.meshGenerator.mesh, sim2D.survey
+        )
+        sim2D._fields[:, '{}Solution'.format(sim2D.formulation)] = field2D
+        print('   ... Done. Elapsed time : {}\n'.format(time.time()-t))
+
+        simulations += (sim2D, )
+
+    if fieldsDC is not None:
+        # reconstruct the DC solution
+        csz = sim.meshGenerator.csz
+        # make sure it is in the cell
+        src_a = sim.src.src_a_closest - np.r_[0., 0., csz/2.]
+        src_b = sim.src.src_b_closest - np.r_[0., 0., csz/2.]
+
+        simDC = casingSimulations.run.SimulationDC(
+            filename='simulationDC.py',
+            cp=sim.cp,
+            meshGenerator=sim.meshGenerator,
+            src_a=src_a,
+            src_b=src_b
+        )
+        simDC.prob.model = simDC.physprops.model
+
+        print('    repopulating DC fields')
+        t = time.time()
+        fieldDC = np.load('/'.join([simDir, fieldDC]))
+        simDC._fields = simDC.prob.fieldsPair(
+            simDC.meshGenerator.mesh, simDC.survey
+        )
+
+        simDC._fields[:, '{}Solution'.format(simDC.formulation)]
+        print('   ... Done. Elapsed time : {}\n'.format(time.time()-t))
+
+        simulations += (simDC, )
+
+    return simulations
