@@ -106,7 +106,7 @@ class BaseSimulation(BaseCasing):
         # CasingParameters object
         cp = change['value']
         if isinstance(cp, str):
-            change['value'] = load_properties(cp)
+            change['value'] = load_properties(cp, targetModule=model)
 
     @properties.validator('meshGenerator')
     def _meshGenerator_load(self, change):
