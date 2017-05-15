@@ -15,7 +15,9 @@ from SimPEG import Utils, Maps
 from SimPEG.EM.Static import DC
 
 from .base import LoadableInstance, BaseCasing
-from .model import PhysicalProperties, CasingParameters
+# from .model import PhysicalProperties, CasingParameters
+from . import model
+from .model import PhysicalProperties
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
 from .sources import BaseCasingSrc
 from .utils import load_properties, writeSimulationPy
@@ -67,7 +69,7 @@ class BaseSimulation(BaseCasing):
 
     cp = LoadableInstance(
         "Casing Parameters instance",
-        CasingParameters,
+        model.Wholespace,
         required=True
     )
 
@@ -126,7 +128,7 @@ class BaseSimulation(BaseCasing):
     def physprops(self):
         if getattr(self, '_physprops', None) is None:
             self._physprops = PhysicalProperties(
-                self.meshGenerator.mesh, self.cp
+                self.meshGenerator, self.cp
             )
         return self._physprops
 

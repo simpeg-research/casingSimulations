@@ -1,4 +1,4 @@
-from .model import CasingParameters, PhysicalProperties
+from . import model
 from .mesh import (
     CylMeshGenerator, CasingMeshGenerator, TensorMeshGenerator
 )

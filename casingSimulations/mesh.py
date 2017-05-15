@@ -3,6 +3,7 @@ import properties
 import json
 import os
 import matplotlib.pyplot as plt
+import inspect
 
 import properties
 from SimPEG import Utils
@@ -11,9 +12,22 @@ import discretize
 from discretize import utils
 from discretize.utils import mkvc
 
-from .model import CasingParameters
+from . import model
 from .base import BaseCasing
 # __all__ = [TensorMeshGenerator, CylMeshGenerator]
+
+
+# class DiscretizeClass(properties.Instance):
+
+#     class_info = "a class type (for example when checking that a mesh is a "
+#     "reasonable type)"
+
+#     def validate(self, instance, value):
+#         assert inspect.isclass(value), "value must be a class"
+#         assert issubclass(CylMesh, discretize.BaseMesh), (
+#             "value must be a subclass of discretize.BaseMesh"
+#         )
+#         return value
 
 
 class BaseMeshGenerator(BaseCasing):
@@ -29,7 +43,7 @@ class BaseMeshGenerator(BaseCasing):
     # casing parameters
     cp = properties.Instance(
         "casing parameters instance",
-        CasingParameters,
+        model.Wholespace,
         required=True
     )
 
@@ -106,11 +120,10 @@ class TensorMeshGenerator(BaseMeshGenerator):
         "domain extent in the y-direction", default=1000.
     )
 
-    _discretizePair = discretize.TensorMesh
-
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
         super(TensorMeshGenerator, self).__init__(**kwargs)
+        self._discretize_pair = discretize.TensorMesh
 
     @property
     def x0(self):
@@ -259,11 +272,10 @@ class CylMeshGenerator(BaseMeshGenerator):
         "domain extent in the x-direction", default=1000.
     )
 
-    _discretizePair = discretize.CylMesh
-
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
         super(CylMeshGenerator, self).__init__(**kwargs)
+        self._discretizePair = discretize.CylMesh
 
     @property
     def x0(self):
@@ -387,11 +399,10 @@ class CasingMeshGenerator(BaseMeshGenerator):
         "number of padding cells in z", default=38
     )
 
-    _discretizePair = discretize.CylMesh
-
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
         super(CasingMeshGenerator, self).__init__(**kwargs)
+        self._discretizePair = discretize.CylMesh
 
     @property
     def ncx1(self):

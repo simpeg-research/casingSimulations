@@ -10,7 +10,7 @@ from SimPEG import Utils
 from SimPEG.EM import FDEM, TDEM
 
 from .base import LoadableInstance, BaseCasing
-from .model import CasingParameters
+from . import model
 from .mesh import BaseMeshGenerator
 from .info import __version__
 
@@ -27,7 +27,7 @@ class BaseCasingSrc(BaseCasing):
 
     cp = LoadableInstance(
         "casing parameters",
-        CasingParameters
+        model.Wholespace
     )
 
     meshGenerator = LoadableInstance(
