@@ -20,7 +20,7 @@ from . import model
 from .model import PhysicalProperties
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
 from .sources import BaseCasingSrc
-from .utils import load_properties, writeSimulationPy
+from .utils import writeSimulationPy
 from . import sources
 from .info import __version__
 
@@ -99,30 +99,6 @@ class BaseSimulation(BaseCasing):
         if getattr(self, 'src', None) is not None:
             self.src.cp = self.cp
             self.src.meshGenerator = self.meshGenerator
-
-    @properties.validator('cp')
-    def _cp_load(self, change):
-        # if cp is a string, it is a filename, load in the json and create the
-        # CasingParameters object
-        cp = change['value']
-        if isinstance(cp, str):
-            change['value'] = load_properties(cp, targetModule=model)
-
-    @properties.validator('meshGenerator')
-    def _meshGenerator_load(self, change):
-        # if cp is a string, it is a filename, load in the json and create the
-        # CasingParameters object
-        meshGenerator = change['value']
-        if isinstance(meshGenerator, str):
-            change['value'] = load_properties(meshGenerator)
-
-    @properties.validator('src')
-    def _src_load(self, change):
-        # if src is a string, it is a filename, load in the json and create the
-        # CasingParameters object
-        src = change['value']
-        if isinstance(src, str):
-            change['value'] = load_properties(src, targetModule=sources)
 
     @property
     def physprops(self):

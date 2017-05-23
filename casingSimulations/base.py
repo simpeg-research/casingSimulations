@@ -3,6 +3,7 @@ import os
 import json
 
 from .info import __version__
+from .utils import load_properties
 
 
 class LoadableInstance(properties.Instance):
@@ -12,7 +13,7 @@ class LoadableInstance(properties.Instance):
 
     def validate(self, instance, value):
         if isinstance(value, str):
-            return value
+            value = load_properties(value)
         return super(LoadableInstance, self).validate(instance, value)
 
 
@@ -58,4 +59,8 @@ class BaseCasing(properties.HasProperties):
             cp = json.dump(self.serialize(), outfile)
 
         print('Saved {}'.format(f))
+
+    def copy(self):
+        """Make a copy of the current casing object"""
+        return properties.copy(self)
 
