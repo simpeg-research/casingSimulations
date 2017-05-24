@@ -82,12 +82,6 @@ class BaseCasingSrc(BaseCasing):
             self._srcList = srcList
         return self._srcList
 
-    def copy(self):
-        """
-        Make a copy of the current BaseCasingSrc object
-        """
-        return BaseCasingSrc.deserialize(self.serialize())
-
 
 class HorizontalElectricDipole(BaseCasingSrc):
     """
@@ -183,7 +177,8 @@ class HorizontalElectricDipole(BaseCasingSrc):
             )
         )
 
-    def validate(self):
+    @properties.validator
+    def _check_wire(self):
         """
         Make sure that each segment of the wire is only going through a
         single face
@@ -308,7 +303,8 @@ class VerticalElectricDipole(BaseCasingSrc):
             mesh.gridFz[self.wire_in_borehole, 2], 'rv'
         )
 
-    def validate(self):
+    @properties.validator
+    def _check_wire(self):
         """
         Make sure that each segment of the wire is only going through a
         single face
@@ -520,7 +516,8 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
         )
 
-    def validate(self):
+    @properties.validator
+    def _check_wire(self):
         """
         Make sure that each segment of the wire is only going through a
         single face
@@ -641,15 +638,14 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
 
         return ax
 
-    def validate(self):
+    @properties.validator
+    def _check_wire_more(self):
         """
         Make sure that each segment of the wire is only going through a
         single face
 
         .. todo:: check that
         """
-
-        super(DownHoleCasingSrc, self).validate()
 
         # check that the down-hole electrode has only one y, one z location
         downhole_electrode = self.mesh.gridFx[self.downhole_electrode, :]
@@ -781,7 +777,8 @@ class TopCasingSrc(DownHoleTerminatingSrc):
 
         return ax
 
-    def validate(self):
+    @properties.validator
+    def _check_wire(self):
         """
         Make sure that each segment of the wire is only going through a
         single face

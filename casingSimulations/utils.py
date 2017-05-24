@@ -3,25 +3,23 @@ import numpy as np
 import time
 import datetime
 from discretize import utils
+import properties
 import casingSimulations
 
 
-def load_properties(filename, targetModule=None, targetClass=None):
+def load_properties(filename):
     """
     Open a json file and load the properties into the target class
+
+    As long as there are no namespace conflicts, the target __class__
+    will be stored on the properties.HasProperties registry and may be
+    fetched from there.
+
     :param str filename: name of file to read in
-    :param str targetClass: name of the target class to recreate
     """
     with open(filename, 'r') as outfile:
         jsondict = json.load(outfile)
-        module = (
-            targetModule if targetModule is not None else casingSimulations
-        )
-        if targetClass is None:
-            targetClass = getattr(
-                module, jsondict['__class__']
-            )
-        data = targetClass.deserialize(jsondict)
+        data = properties.HasProperties.deserialize(jsondict, trusted=True)
     return data
 
 
@@ -204,9 +202,7 @@ def loadSimulationResults(
     # load up the properties
     meshGenerator = load_properties('/'.join([directory, meshParameters]))
     cp = load_properties('/'.join([directory, casingParameters]))
-    src = load_properties(
-        '/'.join([directory, source]), targetModule=casingSimulations.sources
-    )
+    src = load_properties('/'.join([directory, source]))
 
     # load up the numpy array of the soln
     field = np.load('/'.join([directory, fields]))

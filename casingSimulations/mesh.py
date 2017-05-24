@@ -210,12 +210,6 @@ class TensorMeshGenerator(BaseMeshGenerator):
             ])
         return self._hz
 
-    def copy(self):
-        """
-        Make a copy of the current TensorMeshGenerator object
-        """
-        return TensorMeshGenerator.deserialize(self.serialize())
-
 
 class CylMeshGenerator(BaseMeshGenerator):
     """
@@ -340,12 +334,6 @@ class CylMeshGenerator(BaseMeshGenerator):
                 (self.csz, self.npadz, self.pfz)
             ])
         return self._hz
-
-    def copy(self):
-        """
-        Make a copy of the current CylMeshGenerator object
-        """
-        return CylMeshGenerator.deserialize(self.serialize())
 
 
 class CasingMeshGenerator(BaseMeshGenerator):
@@ -511,10 +499,4 @@ class CasingMeshGenerator(BaseMeshGenerator):
         plt.tight_layout()
 
         return ax
-
-    def copy(self):
-        """
-        Make a copy of the current TensorMeshGenerator object
-        """
-        return CasingMeshGenerator.deserialize(self.serialize())
 

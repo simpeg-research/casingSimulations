@@ -8,8 +8,8 @@ from .physics import (
     plot_j_over_mu_x
 )
 from .view import plotEdge2D, plotFace2D
-import sources
-import run
+from . import sources
+from . import run
 from .utils import (
     load_properties, edge3DthetaSlice, face3DthetaSlice, ccv3DthetaSlice
 )

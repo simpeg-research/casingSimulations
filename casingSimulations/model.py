@@ -142,12 +142,6 @@ class Wholespace(SurveyParametersMixin, BaseCasing):
         """
         return mu_0 * self.mur(mesh)
 
-    def copy(self):
-        """
-        Make a copy of the current model object
-        """
-        return self.__class__.deserialize(self.serialize())
-
 
 class Halfspace(Wholespace):
     """
