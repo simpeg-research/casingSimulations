@@ -533,33 +533,68 @@ class PhysicalProperties(object):
             )
         return self._wires
 
-    def plot(self, ax=None):
+    def plot_sigma(self, ax=None, clim=None, pcolorOpts=None):
         if ax is None:
-            fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+            fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 
         # generate a 2D mesh for plotting slices
         mesh2D = discretize.CylMesh(
             [self.mesh.hx, 1., self.mesh.hz], x0=self.mesh.x0
         )
 
+        if pcolorOpts is None:
+            pcolorOpts = {}
+
         # plot Sigma
         sigmaplt = self.sigma.reshape(self.mesh.vnC, order='F')
-        ax[0].set_title('$\sigma$')
-        plt.colorbar(
+        ax.set_title('$\sigma$')
+        cb = plt.colorbar(
             mesh2D.plotImage(
-                discretize.utils.mkvc(sigmaplt[:, 0, :]), ax=ax[0],
-                mirror=True, pcolorOpts={'norm': LogNorm()}
-            )[0], ax=ax[0],
+                discretize.utils.mkvc(sigmaplt[:, 0, :]), ax=ax,
+                mirror=True, pcolorOpts=pcolorOpts
+            )[0], ax=ax,
 
         )
 
-        # Plot mu
-        murplt = self.mur.reshape(self.mesh.vnC, order='F')
-        ax[1].set_title('$\mu_r$')
-        plt.colorbar(mesh2D.plotImage(
-            discretize.utils.mkvc(murplt[:, 0, :]), ax=ax[1], mirror=True)[0],
-            ax=ax[1]
-        )
+        if clim is not None:
+            cb.set_clim(clim)
+            cb.update_ticks()
+
+        plt.tight_layout()
+        return ax
+
+    def plot(self, ax=None, pcolorOpts=None, clim=None):
+        if ax is None:
+            fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+
+        # generate a 2D mesh for plotting slices
+        # mesh2D = discretize.CylMesh(
+        #     [self.mesh.hx, 1., self.mesh.hz], x0=self.mesh.x0
+        # )
+        self.plot_sigma(ax=ax[0], pcolorOpts=pcolorOpts)
+        # self.plot_mu(ax=ax[1], pcolorOpts=pcolorOpts)
+
+
+        # if pcolorOpts is None:
+        #     pcolorOpts = {}
+        # # plot Sigma
+        # sigmaplt = self.sigma.reshape(self.mesh.vnC, order='F')
+        # ax[0].set_title('$\sigma$')
+        # plt.colorbar(
+        #     mesh2D.plotImage(
+        #         discretize.utils.mkvc(sigmaplt[:, 0, :]), ax=ax[0],
+        #         mirror=True, pcolorOpts={'norm': LogNorm()}+pcolorOpts
+        #     )[0], ax=ax[0],
+
+        # )
+
+        # # Plot mu
+        # murplt = self.mur.reshape(self.mesh.vnC, order='F')
+        # ax[1].set_title('$\mu_r$')
+        # plt.colorbar(mesh2D.plotImage(
+        #     discretize.utils.mkvc(murplt[:, 0, :]), ax=ax[1], mirror=True)[0],
+        #     ax=ax[1]
+        # )
 
         plt.tight_layout()
         return ax

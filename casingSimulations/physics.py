@@ -1,11 +1,13 @@
 from SimPEG import Utils
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 
 # Calculate Casing Currents from fields object
-def CasingCurrents(cp, fields, mesh, survey):
+def CasingCurrents(j, mesh, survey, casing_a, casing_b, casing_z):
     IxCasing = {}
     IzCasing = {}
 
@@ -21,43 +23,36 @@ def CasingCurrents(cp, fields, mesh, survey):
     # casing_faces[casing_faces < 0.25] = 0
 
     casing_faces_x = (
-        (mesh.gridFx[:, 0] >= cp.casing_a) &
-        (mesh.gridFx[:, 0] <= cp.casing_b) &
-        (mesh.gridFx[:, 2] <= cp.casing_z[1]) &
-        (mesh.gridFx[:, 2] >= cp.casing_z[0])
+        (mesh.gridFx[:, 0] >= casing_a) &
+        (mesh.gridFx[:, 0] <= casing_b) &
+        (mesh.gridFx[:, 2] <= casing_z[1]) &
+        (mesh.gridFx[:, 2] >= casing_z[0])
     )
+    casing_faces_y = np.zeros(mesh.nFy, dtype=bool)
     casing_faces_z = (
-        (mesh.gridFz[:, 0] >= cp.casing_a) &
-        (mesh.gridFz[:, 0] <= cp.casing_b) &
-        (mesh.gridFz[:, 2] <= cp.casing_z[1]) &
-        (mesh.gridFz[:, 2] >= cp.casing_z[0])
+        (mesh.gridFz[:, 0] >= casing_a) &
+        (mesh.gridFz[:, 0] <= casing_b) &
+        (mesh.gridFz[:, 2] <= casing_z[1]) &
+        (mesh.gridFz[:, 2] >= casing_z[0])
     )
 
-    for mur in cp.muModels:
-        j = fields[mur][:, 'j']
-        jA = Utils.sdiag(mesh.area) * j
+    jA = Utils.sdiag(mesh.area) * j
 
-        jACasing = Utils.sdiag(
-            np.hstack([casing_faces_x, casing_faces_z])
-        ) * jA
+    jACasing = Utils.sdiag(
+        np.hstack([casing_faces_x, casing_faces_y, casing_faces_z])
+    ) * jA
 
-        ixCasing = []
-        izCasing = []
+    jxCasing = jACasing[:mesh.nFx, :].reshape(
+        mesh.vnFx[0], mesh.vnFx[1], mesh.vnFx[2], order='F'
+    )
+    jzCasing = jACasing[mesh.nFx + mesh.nFy:, :].reshape(
+        mesh.vnFz[0], mesh.vnFz[1], mesh.vnFz[2], order='F'
+    )
 
-        for ind in range(len(survey.srcList)):
-            jxCasing = jACasing[:mesh.nFx, ind].reshape(
-                mesh.vnFx[0], mesh.vnFx[2], order='F'
-            )
-            jzCasing = jACasing[mesh.nFx:, ind].reshape(
-                mesh.vnFz[0], mesh.vnFz[2], order='F'
-            )
+    ixCasing = jxCasing.sum(0).sum(0)
+    izCasing = jzCasing.sum(0).sum(0)
 
-            ixCasing.append(jxCasing.sum(0))
-            izCasing.append(jzCasing.sum(0))
-
-        IxCasing[mur] = ixCasing
-        IzCasing[mur] = izCasing
-    return IxCasing, IzCasing
+    return ixCasing, izCasing
 
 
 def plotCurrentDensity(
