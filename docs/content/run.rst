@@ -1,7 +1,9 @@
-Tests
-=====
+.. _run:
 
-.. automodule:: tests.test_cyl2D3D
+Run
+---
+
+.. automodule:: casingSimulations.run
     :show-inheritance:
     :members:
     :undoc-members:
