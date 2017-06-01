@@ -34,7 +34,7 @@ install:
   - cd discretize; git checkout feat/3Dcylmesh; python setup.py install; cd ..;
 
 script:
-  - nosetests $TEST_DIR
+  - nosetests $TEST_DIR --with-cov --cov casingSimulations --cov-config .coveragerc -v -s;
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
