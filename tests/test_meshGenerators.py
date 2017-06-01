@@ -38,7 +38,7 @@ def compareTensorMeshes(mesh_a, mesh_b, testname):
     return True
 
 
-class TestMeshConstruction(unittest.TestCase):
+class TestTensorMeshConstruction(unittest.TestCase):
 
     def setUp(self):
         sigma_back = 0.1
@@ -128,7 +128,6 @@ class TestMeshConstruction(unittest.TestCase):
             os.path.sep.join([self.meshGen.directory, self.meshGen.filename])
         )
         compareTensorMeshes(self.meshGen.mesh, meshGen2.mesh, 'TensorSaveLoad')
-
 
 
 if __name__ == '__main__':

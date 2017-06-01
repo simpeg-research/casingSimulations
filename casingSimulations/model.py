@@ -73,12 +73,14 @@ class Wholespace(SurveyParametersMixin, BaseCasing):
 
     sigma_back = properties.Float(
         "conductivity of the background (S/m)",
-        default=1e-2
+        default=1e-2,
+        min=0.
     )
 
     mur_back = properties.Float(
         "relative permittivity of the background",
-        default=1.
+        default=1.,
+        min=0.
     )
 
     def __init__(self, filename=None, **kwargs):
@@ -365,129 +367,6 @@ class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
     def mur(self, mesh):
         mur = super(CasingInSingleLayer, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
-
-
-# class CasingInLayers(BaseCasing):
-#     pass
-
-# Parameters to set up the model
-# class CasingParameters(BaseCasing):
-    """
-    Simulation Parameters
-    """
-    # filename = properties.String(
-    #     "Filename to which the properties are serialized and written to",
-    #     default="CasingParameters.json"
-    # )
-
-    # Conductivities
-    # sigma_air = properties.Float(
-    #     "conductivity of the air (S/m)",
-    #     default=1e-6
-    # )
-
-    # sigma_back = properties.Float(
-    #     "conductivity of the background (S/m)",
-    #     default=1e-2
-    # )
-
-    # sigma_layer = properties.Float(
-    #     "conductivity of the layer (S/m)",
-    #     default=1e-2
-    # )
-
-    # sigma_casing = properties.Float(
-    #     "conductivity of the casing (S/m)",
-    #     default=5.5e6
-    # )
-
-    # sigma_inside = properties.Float(
-    #     "conductivity of the fluid inside the casing (S/m)",
-    #     default=1.
-    # )
-
-    # # Magnetic Permeability
-    # mur_casing = properties.Float(
-    #     "relative permeability of the casing",
-    #     default=100.
-    # )
-
-    # # Casing Geometry
-    # casing_top = properties.Float(
-    #     "top of the casing (m)",
-    #     default=0.
-    # )
-    # casing_l = properties.Float(
-    #     "length of the casing (m)",
-    #     default=1000
-    # )
-
-    # casing_d = properties.Float(
-    #     "diameter of the casing (m)",
-    #     default=10e-2
-    # ) # 10cm diameter
-
-    # casing_t = properties.Float(
-    #     "thickness of the casing (m)",
-    #     default=1e-2
-    # ) # 1cm thickness
-
-    # Layer Geometry
-    # layer_z = properties.Array(
-    #     "z-limits of the layer",
-    #     shape=(2,),
-    #     default=np.r_[-1000., -900.]
-    # )
-
-    # # survey parameters
-    # freqs = properties.Array(
-    #     "source frequencies",
-    #     required=False,
-    #     dtype=float
-    # )
-
-    # timeSteps = TimeStepArray(
-    #     "times-steps at which to solve",
-    #     required=False,
-    #     dtype=float
-    # )
-
-    # src_a = properties.Array(
-    #     "down-hole z-location for the source",
-    #     default=np.r_[0., 0., -975.]
-    # )
-
-    # src_b = properties.Array(
-    #     "B electrode location",
-    #     default=np.r_[1e3, 0., 0.]
-    # )
-
-    # def __init__(self, filename=None, **kwargs):
-    #     Utils.setKwargs(self, **kwargs)
-
-    # # useful quantities to work in
-    # @property
-    # def casing_r(self):
-    #     return self.casing_d/2.
-
-    # @property
-    # def casing_a(self):
-    #     return self.casing_r - self.casing_t/2.  # inner radius
-
-    # @property
-    # def casing_b(self):
-    #     return self.casing_r + self.casing_t/2.  # outer radius
-
-    # @property
-    # def casing_z(self):
-    #     return np.r_[-self.casing_l, 0.] + self.casing_top
-
-
-    # def copy(self):
-    #     """
-    #     Make a copy of the current CasingParameters object
-    #     """
-    #     return CasingParameters.deserialize(self.serialize())
 
 
 class PhysicalProperties(object):
