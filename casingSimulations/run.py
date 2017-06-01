@@ -95,6 +95,12 @@ class BaseSimulation(BaseCasing):
         return self._survey
 
     def write_py(self, physics=None, includeDC=True, include2D=True):
+        """
+        Write a python script for running the simulation
+        :param str physics: 'TDEM', 'FDEM'
+        :param bool includeDC: include a DC simulation with the EM one (default is True)
+        :param bool include2D: include a 2D simulation? (default is True)
+        """
 
         # save the properties
         self.cp.save()

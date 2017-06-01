@@ -8,5 +8,6 @@ sphinx_rtd_theme
 nose
 nose-cov
 pymatsolver
+pymkl
 git+https://github.com/simpeg/simpeg.git@em/feat/3Dcyl
 git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh
