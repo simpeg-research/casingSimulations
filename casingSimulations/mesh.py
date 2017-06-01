@@ -59,11 +59,17 @@ class BaseMeshGenerator(BaseCasing):
             )
         return self._mesh
 
+    def copy(self):
+        cpy = super(BaseMeshGenerator, self).copy()
+        cpy.cp = self.cp  # see https://github.com/3ptscience/properties/issues/175
+        return cpy
+
 
 class TensorMeshGenerator(BaseMeshGenerator):
     """
     Tensor mesh designed based on the source and formulation
     """
+
     # cell sizes in each of the dimensions
     csx = properties.Float(
         "cell size in the x-direction", default=25.
@@ -90,15 +96,15 @@ class TensorMeshGenerator(BaseMeshGenerator):
     # below the casing
     nch = properties.Integer(
         "number of cells to add on each side of the mesh horizontally",
-        default=10.
+        default=10
     )
     nca = properties.Integer(
         "number of extra cells above the air-earth interface",
-        default=5.
+        default=5
     )
     ncb = properties.Integer(
         "number of cells below the casing",
-        default=5.
+        default=5
     )
 
     # number of padding cells in each direction
@@ -123,7 +129,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
         super(TensorMeshGenerator, self).__init__(**kwargs)
-        self._discretize_pair = discretize.TensorMesh
+        self._discretizePair = discretize.TensorMesh
 
     @property
     def x0(self):
@@ -146,7 +152,14 @@ class TensorMeshGenerator(BaseMeshGenerator):
     @property
     def domain_z(self):
         if getattr(self, '_domain_z', None) is None:
-            self._domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
+            if getattr(self.cp, 'casing_z', None) is not None:
+                domain_z = max([
+                    (self.cp.casing_z[1] - self.cp.casing_z[0]),
+                    (self.cp.src_b[2] - self.cp.src_a[2])
+                ])
+            else:
+                domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
+            self._domain_z = domain_z
         return self._domain_z
 
     @domain_z.setter
@@ -282,7 +295,14 @@ class CylMeshGenerator(BaseMeshGenerator):
     @property
     def domain_z(self):
         if getattr(self, '_domain_z', None) is None:
-            self._domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
+            if getattr(self.cp, 'casing_z', None) is not None:
+                domain_z = max([
+                    (self.cp.casing_z[1] - self.cp.casing_z[0]),
+                    (self.cp.src_b[2] - self.cp.src_a[2])
+                ])
+            else:
+                domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
+        self._domain_z = domain_z
         return self._domain_z
 
     @domain_z.setter
@@ -334,6 +354,12 @@ class CylMeshGenerator(BaseMeshGenerator):
                 (self.csz, self.npadz, self.pfz)
             ])
         return self._hz
+
+    def create_2D_mesh(self):
+        mesh2D = self.copy()
+        mesh2D.cp = self.cp  # see https://github.com/3ptscience/properties/issues/175
+        mesh2D.hy = np.r_[2*np.pi]
+        return mesh2D
 
 
 class CasingMeshGenerator(BaseMeshGenerator):
@@ -478,6 +504,12 @@ class CasingMeshGenerator(BaseMeshGenerator):
     @x0.setter
     def x0(self, value):
         assert len(value) == 3, 'x0 must be length 3, not {}'.format(len(x0))
+
+    def create_2D_mesh(self):
+        mesh2D = self.copy()
+        mesh2D.cp = self.cp  # see https://github.com/3ptscience/properties/issues/175
+        mesh2D.hy = np.r_[2*np.pi]
+        return mesh2D
 
     # Plot the physical Property Models
     def plotModels(self, sigma, mu, xlim=[0., 1.], zlim=[-1200., 100.], ax=None):

@@ -28,29 +28,7 @@ from .info import __version__
 class BaseSimulation(BaseCasing):
     """
     Base class wrapper to run an EM Forward Simulation
-    :param CasingSimulations.CasingParameters cp: casing parameters object
-    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
-
-    # version = properties.String(
-    #     "version of casingSimulations",
-    #     default=__version__
-    # )
-
-    # directory = properties.String(
-    #     "working directory",
-    #     default="."
-    # )
-
-    # cp_filename = properties.String(
-    #     "filename for the casing properties",
-    #     default="casingParameters.json"
-    # )
-
-    # mesh_filename = properties.String(
-    #     "filename for the mesh",
-    #     default="meshParameters.json"
-    # )
 
     fields_filename = properties.String(
         "filename for the fields",

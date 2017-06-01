@@ -1,19 +1,50 @@
 import unittest
 import numpy as np
 import discretize
+import os
 from discretize import utils
 
 import casingSimulations
+
+
+def compareTensorMeshes(mesh_a, mesh_b, testname):
+    print("\nTesting {} ... ".format(testname))
+
+    # check the x0's
+    passed = np.all(mesh_a.x0 == mesh_b.x0)
+    print("   x0: {} == {} ? {}".format(
+        mesh_a.x0, mesh_b.x0, 'ok' if passed else 'FAIL'
+    ))
+
+    assert passed, ("{}: x0 are different {}, {}".format(
+        testname, mesh_a.x0, mesh_b.x0
+    ))
+
+    # check the h's
+    for orientation in ['x', 'y', 'z']:
+        ha = getattr(mesh_a, 'h{}'.format(orientation))
+        hb = getattr(mesh_b, 'h{}'.format(orientation))
+        passed = np.all(ha == hb)
+
+        print("   h{}: |a|={}, |b|={} ? {}".format(
+            orientation, np.linalg.norm(ha), np.linalg.norm(hb), passed
+        ))
+
+        assert passed, ("{}: h{} are different {}, {}".format(
+            testname, np.linalg.norm(ha), np.linalg.norm(hb), orientation,
+            'ok' if passed else 'FAIL'
+        ))
+
+    return True
 
 
 class TestMeshConstruction(unittest.TestCase):
 
     def setUp(self):
         sigma_back = 0.1
-        cart_cp = casingSimulations.CasingParameters(
+        cart_cp = casingSimulations.model.CasingInWholespace(
             sigma_casing = sigma_back,
             sigma_inside = sigma_back,
-            sigma_layer = sigma_back,
             sigma_back = sigma_back,
             mur_casing = 1.,
             src_a = np.r_[0., 0., -950.],
@@ -45,8 +76,7 @@ class TestMeshConstruction(unittest.TestCase):
             np.ceil(domain_y / csy) + 2*nch
         )
         ncz = int(
-            np.ceil((cart_cp.casing_z[1] - cart_cp.casing_z[0]) / csz) +
-            nca + ncb
+            np.ceil((cart_cp.casing_z[1] - cart_cp.casing_z[0]) / csz) + nca + ncb
         )
 
         hx = utils.meshTensor(
@@ -85,15 +115,21 @@ class TestMeshConstruction(unittest.TestCase):
         self.mesh_c = self.meshGen.mesh
 
     def test_TensorCreation(self):
-        print(
-            'x0 discretize: {}, x0 meshGen: {}'.format(
-                self.mesh_d.x0, self.mesh_c.x0
-            )
+        compareTensorMeshes(self.mesh_c, self.mesh_d, 'TensorCreation')
+
+    def test_TensorCopy(self):
+        mesh_a = self.meshGen.mesh
+        mesh_b = self.meshGen.copy().mesh
+        compareTensorMeshes(mesh_a, mesh_b, 'TensorCopy')
+
+    def test_TensorSaveLoad(self):
+        self.meshGen.save()
+        meshGen2 = casingSimulations.load_properties(
+            os.path.sep.join([self.meshGen.directory, self.meshGen.filename])
         )
-        self.assertTrue(np.all(self.mesh_d.x0 == self.mesh_c.x0))
-        self.assertTrue(np.all(self.mesh_d.hx == self.mesh_c.hx))
-        self.assertTrue(np.all(self.mesh_d.hy == self.mesh_c.hy))
-        self.assertTrue(np.all(self.mesh_d.hz == self.mesh_c.hz))
+        compareTensorMeshes(self.meshGen.mesh, meshGen2.mesh, 'TensorSaveLoad')
+
+
 
 if __name__ == '__main__':
     unittest.main()
