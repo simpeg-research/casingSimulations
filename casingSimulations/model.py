@@ -116,7 +116,7 @@ class Wholespace(SurveyParametersMixin, BaseCasing):
         if mu is None:
             mu = mu_0
         if t is None:
-            t = self.times
+            t = self.timeSteps.sum()
         return np.sqrt(2*t/(mu*sigma))
 
     def sigma(self, mesh):
@@ -408,24 +408,32 @@ class PhysicalProperties(object):
             )
         return self._wires
 
-    def plot_sigma(self, ax=None, clim=None, pcolorOpts=None):
+    def plot_prop(self, prop, ax=None, clim=None, pcolorOpts=None):
+        """
+        Plot a cell centered property
+
+        :param numpy.array prop: cell centered property to plot
+        :param matplotlib.axes ax: axis
+        :param numpy.array clim: colorbar limits
+        :param dict pcolorOpts: dictionary of pcolor options
+        """
+
         if ax is None:
             fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+        if pcolorOpts is None:
+            pcolorOpts = {}
 
         # generate a 2D mesh for plotting slices
         mesh2D = discretize.CylMesh(
             [self.mesh.hx, 1., self.mesh.hz], x0=self.mesh.x0
         )
 
-        if pcolorOpts is None:
-            pcolorOpts = {}
+        propplt = prop.reshape(self.mesh.vnC, order='F')
 
-        # plot Sigma
-        sigmaplt = self.sigma.reshape(self.mesh.vnC, order='F')
-        ax.set_title('$\sigma$')
         cb = plt.colorbar(
             mesh2D.plotImage(
-                discretize.utils.mkvc(sigmaplt[:, 0, :]), ax=ax,
+                discretize.utils.mkvc(propplt[:, 0, :]), ax=ax,
                 mirror=True, pcolorOpts=pcolorOpts
             )[0], ax=ax,
 
@@ -435,41 +443,47 @@ class PhysicalProperties(object):
             cb.set_clim(clim)
             cb.update_ticks()
 
-        plt.tight_layout()
         return ax
 
-    def plot(self, ax=None, pcolorOpts=None, clim=None):
+    def plot_sigma(self, ax=None, clim=None, pcolorOpts=None):
+        """
+        plot the electrical conductivity
+
+        :param matplotlib.axes ax: axis
+        :param numpy.array clim: colorbar limits
+        :param dict pcolorOpts: dictionary of pcolor options
+        """
+        self.plot_prop(self.sigma, ax=ax, clim=clim, pcolorOpts=pcolorOpts)
+        ax.set_title('$\sigma$')
+        return ax
+
+    def plot_mur(self, ax=None, clim=None, pcolorOpts=None):
+        """
+        plot the relative permeability
+
+        :param matplotlib.axes ax: axis
+        :param numpy.array clim: colorbar limits
+        :param dict pcolorOpts: dictionary of pcolor options
+        """
+
+        self.plot_prop(self.mur, ax=ax, clim=clim, pcolorOpts=pcolorOpts)
+        ax.set_title('$\mu_r$')
+        return ax
+
+    def plot(self, ax=None, clim=[None, None], pcolorOpts=None):
+        """
+        plot the electrical conductivity and relative permeability
+
+        :param matplotlib.axes ax: axis
+        :param list clim: list of numpy arrays: colorbar limits
+        :param dict pcolorOpts: dictionary of pcolor options
+        """
+
         if ax is None:
             fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 
-        # generate a 2D mesh for plotting slices
-        # mesh2D = discretize.CylMesh(
-        #     [self.mesh.hx, 1., self.mesh.hz], x0=self.mesh.x0
-        # )
-        self.plot_sigma(ax=ax[0], pcolorOpts=pcolorOpts)
-        # self.plot_mu(ax=ax[1], pcolorOpts=pcolorOpts)
-
-
-        # if pcolorOpts is None:
-        #     pcolorOpts = {}
-        # # plot Sigma
-        # sigmaplt = self.sigma.reshape(self.mesh.vnC, order='F')
-        # ax[0].set_title('$\sigma$')
-        # plt.colorbar(
-        #     mesh2D.plotImage(
-        #         discretize.utils.mkvc(sigmaplt[:, 0, :]), ax=ax[0],
-        #         mirror=True, pcolorOpts={'norm': LogNorm()}+pcolorOpts
-        #     )[0], ax=ax[0],
-
-        # )
-
-        # # Plot mu
-        # murplt = self.mur.reshape(self.mesh.vnC, order='F')
-        # ax[1].set_title('$\mu_r$')
-        # plt.colorbar(mesh2D.plotImage(
-        #     discretize.utils.mkvc(murplt[:, 0, :]), ax=ax[1], mirror=True)[0],
-        #     ax=ax[1]
-        # )
+        self.plot_sigma(ax=ax[0], clim=clim[0], pcolorOpts=pcolorOpts)
+        self.plot_mur(ax=ax[1], clim=clim[1], pcolorOpts=pcolorOpts)
 
         plt.tight_layout()
         return ax
