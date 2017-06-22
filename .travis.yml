@@ -30,11 +30,12 @@ install:
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython;
     fi
   - pip install -r requirements_dev.txt
+  - echo $PWD
   - cd ..; git clone https://github.com/simpeg/simpeg.git
   - cd SimPEG; git checkout em/feat/3Dcyl; python setup.py install; cd ..;
   - git clone https://github.com/simpeg/discretize.git
   - cd discretize; git checkout feat/3Dcylmesh; python setup.py install; cd ..;
-  - cd casingSimulations;
+  - cd $TRAVIS_BUILD_DIR;
 
 script:
   - nosetests $TEST_DIR --with-cov --cov casingSimulations --cov-config .coveragerc -v -s;
