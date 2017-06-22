@@ -25,12 +25,11 @@ before_install:
 
 install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pillow cython ipython;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pillow cython ipython;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython;
     fi
-  - python setup.py install
-  - pip install nose-cov python-coveralls pymatsolver
+  - pip install -r requirements_dev.txt
   - git clone https://github.com/simpeg/simpeg.git
   - cd SimPEG; git checkout em/feat/3Dcyl; python setup.py install; cd ..;
   - git clone https://github.com/simpeg/discretize.git
