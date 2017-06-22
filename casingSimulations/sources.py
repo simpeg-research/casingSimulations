@@ -86,9 +86,6 @@ class BaseCasingSrc(BaseCasing):
 class HorizontalElectricDipole(BaseCasingSrc):
     """
     A horizontal electric dipole
-
-    :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
-    :param discretize.BaseMesh mesh: a discretize mesh
     """
 
     def __init__(self, **kwargs):
@@ -152,7 +149,8 @@ class HorizontalElectricDipole(BaseCasingSrc):
             s_y = np.zeros(self.mesh.vnF[1])
             s_z = np.zeros(self.mesh.vnF[2])
 
-            s_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
+            # horizontal part of wire along surface
+            s_x[self.surface_wire] = self.surface_wire_direction
 
             # assemble the source (downhole grounded primary)
             s_e = np.hstack([s_x, s_y, s_z])

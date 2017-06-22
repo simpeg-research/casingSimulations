@@ -40,5 +40,8 @@ class ModelTests(unittest.TestCase):
             np.all(sigma[self.mesh.gridCC[:, 2] > halfspace.surface_z] == 1e-6)
         )
 
+    def test_layer(self):
+        layer = casingSim.model.Layer(surface_z=0.1, layer_z=[-np.inf, -0.2])
+
 if __name__ == '__main__':
     unittest.main()

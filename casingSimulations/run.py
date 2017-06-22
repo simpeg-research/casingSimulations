@@ -46,7 +46,7 @@ class BaseSimulation(BaseCasing):
     )
 
     cp = LoadableInstance(
-        "Casing Parameters instance",
+        "Model Parameters instance",
         model.Wholespace,
         required=True
     )

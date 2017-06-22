@@ -88,17 +88,16 @@ class Test2Dv3DCyl(unittest.TestCase):
         Set up a cyl symmetric EM problem on 2D and 3D meshes.
         """
 
-        sigma_back = 1e-1 # wholespace
+        sigma_back = 1e-1  # wholespace
 
         cp = casingSimulations.CasingParameters(
-            casing_l = 10.,
-            src_a = np.r_[0., 0., -9.],
-            src_b = np.r_[0., 0., -1.],
-            freqs = np.r_[0.1, 1., 2.],
-            sigma_back = sigma_back, # wholespace
-            sigma_layer = sigma_back,
-            sigma_air = sigma_back,
-
+            casing_l=10.,
+            src_a=np.r_[0., 0., -9.],
+            src_b=np.r_[0., 0., -1.],
+            freqs=np.r_[0.1, 1., 2.],
+            sigma_back=sigma_back,  # wholespace
+            sigma_layer=sigma_back,
+            sigma_air=sigma_back,
         )
 
         # Set up the meshes
