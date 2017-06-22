@@ -60,7 +60,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'EM Casing Research'
-copyright = u'2016, Lindsey Heagy'
+copyright = u'2017, Lindsey Heagy'
 author = u'Lindsey Heagy'
 
 # The version info for the project you're documenting, acts as replacement for

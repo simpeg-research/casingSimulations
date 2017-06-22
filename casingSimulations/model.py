@@ -92,7 +92,9 @@ class Wholespace(SurveyParametersMixin, BaseCasing):
         Skin depth
 
         .. math::
-            \delta = \sqrt(\frac{2}{\omega \mu \sigma})
+
+            \delta = \sqrt(\\frac{2}{\omega \mu \sigma})
+
         """
         if sigma is None:
             sigma = self.sigma_back
