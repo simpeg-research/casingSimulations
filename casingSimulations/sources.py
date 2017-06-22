@@ -95,6 +95,34 @@ class HorizontalElectricDipole(BaseCasingSrc):
         )
 
     @property
+    def src_a_closest(self):
+        """
+        closest face to where we want the return current electrode
+        """
+        if getattr(self, '_src_a_closest', None) is None:
+            # find the z location of the closest face to the src
+            src_a_closest = (
+                self.mesh.gridFx[closestPoints(self.mesh, self.src_a, 'Fz'), :]
+            )
+            assert(len(src_a_closest) == 1), 'multiple source locs found'
+            self._src_a_closest = src_a_closest[0]
+        return self._src_a_closest
+
+    @property
+    def src_b_closest(self):
+        """
+        closest face to where we want the return current electrode
+        """
+        if getattr(self, '_src_b_closest', None) is None:
+            # find the z location of the closest face to the src
+            src_b_closest = (
+                self.mesh.gridFx[closestPoints(self.mesh, self.src_b, 'Fz'), :]
+            )
+            assert(len(src_b_closest) == 1), 'multiple source locs found'
+            self._src_b_closest = src_b_closest[0]
+        return self._src_b_closest
+
+    @property
     def surface_wire(self):
         """
         Horizontal part of the wire that runs along the surface
