@@ -127,7 +127,7 @@ def plotCurrentDensity(
 
 
 def plot_currents_over_freq(
-    IxCasing, IzCasing, cp, mesh,
+    IxCasing, IzCasing, modelParameters, mesh,
     mur=1, subtract=None, real_or_imag='real', ax=None, xlim=[-1100., 0.],
     logScale=True, srcinds=[0], ylim_0=None, ylim_1=None
 
@@ -146,7 +146,7 @@ def plot_currents_over_freq(
             alpha=0.5
         )
         # getattr(a, 'semilogy' if logScale is True else 'plot')(
-        #     [cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
+        #     [modelParameters.src_a[2], modelParameters.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
         # )
         a.set_xlim(xlim)
         a.invert_xaxis()
@@ -156,12 +156,12 @@ def plot_currents_over_freq(
     neg_linestyle = ['--', '--']
     leg = []
 
-    for i, f in enumerate(cp.freqs):
+    for i, f in enumerate(modelParameters.freqs):
         for srcind in srcinds:
             # src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
             # j = Utils.mkvc(fields[mur][src, 'j'].copy())
 
-            Iind = i + srcind*len(cp.freqs)
+            Iind = i + srcind*len(modelParameters.freqs)
 
             Ix, Iz = ixCasing[Iind].copy(), izCasing[Iind].copy()
 
@@ -230,13 +230,13 @@ def plot_currents_over_freq(
 
 # plot current density over mu
 def plot_currents_over_mu(
-    IxCasing, IzCasing, cp, mesh,
+    IxCasing, IzCasing, modelParameters, mesh,
     freqind=0, real_or_imag='real',
     subtract=None, ax=None, fig=None, logScale=True,
     srcinds=[0],
     ylim_0=None, ylim_1=None
 ):
-    print("{} Hz".format(cp.freqs[freqind]))
+    print("{} Hz".format(modelParameters.freqs[freqind]))
 
     if ax is None:
         fig, ax = plt.subplots(2, 1, figsize=(10, 8))
@@ -247,7 +247,7 @@ def plot_currents_over_mu(
             alpha=0.5
         )
         # getattr(a, 'semilogy' if logScale is True else 'plot')(
-        #     [cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
+        #     [modelParameters.src_a[2], modelParameters.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
         # )
         a.set_xlim([-1100., 0.])
     #     a.set_ylim([1e-3, 1.])
@@ -258,10 +258,10 @@ def plot_currents_over_mu(
     neg_linestyle = ['--', '--']
     leg = []
 
-    for i, mur in enumerate(cp.muModels):
+    for i, mur in enumerate(modelParameters.muModels):
         for srcind in srcinds:
 
-            Iind = i + srcind*len(cp.freqs)
+            Iind = i + srcind*len(modelParameters.freqs)
 
             ixCasing = IxCasing[mur]
             izCasing = IzCasing[mur]
@@ -323,11 +323,11 @@ def plot_currents_over_mu(
 
 # plot over mu
 def plot_j_over_mu_z(
-    cp, fields, mesh, survey, freqind=0, r=1., xlim=[-1100., 0.],
+    modelParameters, fields, mesh, survey, freqind=0, r=1., xlim=[-1100., 0.],
     real_or_imag='real', subtract=None, ax=None, logScale=True, srcinds=[0],
     ylim_0=None, ylim_1=None, fig=None
 ):
-    print("{} Hz".format(cp.freqs[freqind]))
+    print("{} Hz".format(modelParameters.freqs[freqind]))
 
     x_plt = np.r_[r]
     z_plt = np.linspace(xlim[0], xlim[1], int(xlim[1]-xlim[0]))
@@ -350,7 +350,7 @@ def plot_j_over_mu_z(
             color=[0.8, 0.8, 0.8], alpha=0.5
         )
         # getattr(a, 'semilogy' if logScale is True else 'plot')(
-        #     [cp.src_a[2], cp.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
+        #     [modelParameters.src_a[2], modelParameters.src_a[2]], [1e-14, 1], color=[0.3, 0.3, 0.3]
         # )
         a.set_xlim(xlim)
         a.invert_xaxis()
@@ -360,7 +360,7 @@ def plot_j_over_mu_z(
     neg_linestyle = ['--', '--']
     leg = []
 
-    for i, mur in enumerate(cp.muModels):
+    for i, mur in enumerate(modelParameters.muModels):
         for srcind in srcinds:
             src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
             j = Utils.mkvc(fields[mur][src, 'j'].copy())
@@ -432,7 +432,7 @@ def plot_j_over_mu_z(
 
 # plot over mu
 def plot_j_over_freq_z(
-    cp, fields, mesh, survey, mur=1., r=1., xlim=[-1100., 0.],
+    modelParameters, fields, mesh, survey, mur=1., r=1., xlim=[-1100., 0.],
     real_or_imag='real', subtract=None, ax=None, logScale=True, srcinds=[0],
     ylim_0=None, ylim_1=None, fig=None
 ):
@@ -467,7 +467,7 @@ def plot_j_over_freq_z(
     neg_linestyle = ['--', '--']
     leg = []
 
-    for i, freq in enumerate(cp.freqs):
+    for i, freq in enumerate(modelParameters.freqs):
         for srcind in srcinds:
             src = survey.getSrcByFreq(freq)[srcind]
             j = Utils.mkvc(fields[mur][src, 'j'].copy())
@@ -539,7 +539,7 @@ def plot_j_over_freq_z(
 
 # plot over mu
 def plot_j_over_mu_x(
-    cp, fields, mesh, survey, srcind=0, mur=1, z=-950., real_or_imag='real',
+    modelParameters, fields, mesh, survey, srcind=0, mur=1, z=-950., real_or_imag='real',
     subtract=None, xlim=[0., 2000.], logScale=True, srcinds=[0],
     ylim_0=None, ylim_1=None, ax=None, fig=None
 ):
@@ -574,7 +574,7 @@ def plot_j_over_mu_x(
     neg_linestyle = ['--', '--']
     leg = []
 
-    for i, f in enumerate(cp.freqs):
+    for i, f in enumerate(modelParameters.freqs):
         for srcind in srcinds:
             src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
             j = Utils.mkvc(fields[mur][src, 'j'].copy())

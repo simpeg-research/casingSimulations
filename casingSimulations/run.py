@@ -44,7 +44,7 @@ class BaseSimulation(BaseCasing):
         default=1
     )
 
-    cp = LoadableInstance(
+    modelParameters = LoadableInstance(
         "Model Parameters instance",
         model.Wholespace,
         required=True
@@ -71,17 +71,17 @@ class BaseSimulation(BaseCasing):
             os.mkdir(self.directory)
 
         # hook up the properties classes
-        self.meshGenerator.cp = self.cp
+        self.meshGenerator.modelParameters = self.modelParameters
 
         if getattr(self, 'src', None) is not None:
-            self.src.cp = self.cp
+            self.src.modelParameters = self.modelParameters
             self.src.meshGenerator = self.meshGenerator
 
     @property
     def physprops(self):
         if getattr(self, '_physprops', None) is None:
             self._physprops = PhysicalProperties(
-                self.meshGenerator, self.cp
+                self.meshGenerator, self.modelParameters
             )
         return self._physprops
 
@@ -102,7 +102,7 @@ class BaseSimulation(BaseCasing):
         """
 
         # save the properties
-        self.cp.save()
+        self.modelParameters.save()
         self.meshGenerator.save()
         self.src.save()
 
@@ -111,7 +111,7 @@ class BaseSimulation(BaseCasing):
 
         # write the simulation.py
         writeSimulationPy(
-            cp=self.cp.filename,
+            modelParameters=self.modelParameters.filename,
             meshGenerator=self.meshGenerator.filename,
             src=self.src.filename,
             directory=self.directory,
@@ -172,7 +172,7 @@ class BaseSimulation(BaseCasing):
 class SimulationFDEM(BaseSimulation):
     """
     A wrapper to run an FDEM Forward Simulation
-    :param CasingSimulations.CasingParameters cp: casing parameters object
+    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
@@ -205,7 +205,7 @@ class SimulationFDEM(BaseSimulation):
 class SimulationTDEM(BaseSimulation):
     """
     A wrapper to run a TDEM Forward Simulation
-    :param CasingSimulations.CasingParameters cp: casing parameters object
+    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
@@ -222,7 +222,7 @@ class SimulationTDEM(BaseSimulation):
                 TDEM, 'Problem3D_{}'.format(self.formulation)
                 )(
                 self.meshGenerator.mesh,
-                timeSteps=self.cp.timeSteps,
+                timeSteps=self.modelParameters.timeSteps,
                 sigmaMap=self.physprops.wires.sigma,
                 mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
                 Solver=Pardiso

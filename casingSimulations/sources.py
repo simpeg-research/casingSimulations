@@ -25,7 +25,7 @@ class BaseCasingSrc(BaseCasing):
         default="Source.json"
     )
 
-    cp = LoadableInstance(
+    modelParameters = LoadableInstance(
         "casing parameters",
         model.Wholespace
     )
@@ -42,7 +42,7 @@ class BaseCasingSrc(BaseCasing):
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert self.cp.src_a[1] == self.cp.src_b[1], (
+        assert self.modelParameters.src_a[1] == self.modelParameters.src_b[1], (
             'non y-axis aligned sources have not been implemented'
         )
 
@@ -52,19 +52,19 @@ class BaseCasingSrc(BaseCasing):
 
     @property
     def src_a(self):
-        return self.cp.src_a
+        return self.modelParameters.src_a
 
     @property
     def src_b(self):
-        return self.cp.src_b
+        return self.modelParameters.src_b
 
     @property
     def casing_a(self):
-        return self.cp.casing_a
+        return self.modelParameters.casing_a
 
     @property
     def freqs(self):
-        return self.cp.freqs
+        return self.modelParameters.freqs
 
     @property
     def srcList(self):
@@ -225,12 +225,12 @@ class VerticalElectricDipole(BaseCasingSrc):
     """
     A vertical electric dipole. It is not coupled to the casing
 
-    :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
+    :param CasingSimulations.Model.CasingProperties modelParameters: a casing properties instance
     :param discretize.BaseMesh mesh: a discretize mesh
     """
 
     def __init__(self, **kwargs):
-        assert all(cp.src_a[:2] == cp.src_b[:2]), (
+        assert all(modelParameters.src_a[:2] == modelParameters.src_b[:2]), (
             'src_a and src_b must have the same horizontal location'
         )
         super(VerticalElectricDipole, self).__init__(**kwargs)
@@ -353,7 +353,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
     """
     A source that terminates down-hole. It is not coupled to the casing
 
-    :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
+    :param CasingSimulations.Model.CasingProperties modelParameters: a casing properties instance
     :param discretize.BaseMesh mesh: a discretize mesh
     """
 
@@ -585,7 +585,7 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
     Source that is coupled to the casing down-hole and has a return electrode
     at the surface.
 
-    :param CasingSimulations.Model.CasingProperties cp: a casing properties instance
+    :param CasingSimulations.Model.CasingProperties modelParameters: a casing properties instance
     :param discretize.CylMesh mesh: a cylindrical mesh
     """
 
@@ -690,7 +690,7 @@ class TopCasingSrc(DownHoleTerminatingSrc):
     electrode and a wire in between. This source is set up to live on faces.
 
     :param discretize.CylMesh mesh: the cylindrical simulation mesh
-    :param CasingSimulations cp: Casing parameters object
+    :param CasingSimulations modelParameters: Casing parameters object
     """
     def __init__(self, **kwargs):
         super(TopCasingSrc, self).__init__(**kwargs)

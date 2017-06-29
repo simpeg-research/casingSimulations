@@ -84,7 +84,7 @@ def ccv3DthetaSlice(mesh3D, v3D, theta_ind=0):
 
 
 def writeSimulationPy(
-    cp='CasingParameters.json',
+    modelParameters='ModelParameters.json',
     meshGenerator='MeshParameters.json',
     src='Source.json',
     physics='FDEM',
@@ -116,14 +116,14 @@ def writeSimulationPy(
             """
 # Set up the simulation
 sim = casingSimulations.run.Simulation{physics}(
-    cp='{cp}',
+    modelParameters='{modelParameters}',
     meshGenerator='{meshGenerator}',
     src='{src}',
     fields_filename='{fields_filename}'
 )
 \n""".format(
                 physics=physics,
-                cp=cp,
+                modelParameters=modelParameters,
                 meshGenerator=meshGenerator,
                 src=src,
                 fields_filename=fields_filename
@@ -143,11 +143,11 @@ sim = casingSimulations.run.Simulation{physics}(
 mesh2D = sim.meshGenerator.copy()
 mesh2D.hy = np.r_[2*np.pi]
 src2D = getattr(casingSimulations.sources, sim.src.__class__.__name__)(
-    cp=sim.cp,
+    modelParameters=sim.modelParameters,
     meshGenerator=mesh2D,
 )
 sim2D = casingSimulations.run.Simulation{physics}(
-    cp=sim.cp,
+    modelParameters=sim.modelParameters,
     meshGenerator=mesh2D,
     src=src2D,
     fields_filename='fields2D.npy',
@@ -175,7 +175,7 @@ src_b = sim.src.src_b_closest - np.r_[0., 0., csz/2.]
 
 simDC = casingSimulations.run.SimulationDC(
     filename='simulationDC.py',
-    cp=sim.cp,
+    modelParameters=sim.modelParameters,
     meshGenerator=sim.meshGenerator,
     src_a=src_a,
     src_b=src_b
@@ -201,7 +201,7 @@ def loadSimulationResults(
     print('Loading simulation in {}'.format(directory))
     # load up the properties
     meshGenerator = load_properties('/'.join([directory, meshParameters]))
-    cp = load_properties('/'.join([directory, casingParameters]))
+    modelParameters = load_properties('/'.join([directory, casingParameters]))
     src = load_properties('/'.join([directory, source]))
 
     # load up the numpy array of the soln
@@ -211,7 +211,7 @@ def loadSimulationResults(
     print('   repopulating 3D fields')
     t = time.time()
     sim = getattr(casingSimulations.run, 'Simulation{}'.format(src.physics))(
-        cp=cp, meshGenerator=meshGenerator, src=src
+        modelParameters=modelParameters, meshGenerator=meshGenerator, src=src
     )
     sim.prob.model = sim.physprops.model
 
@@ -239,11 +239,11 @@ def loadSimulationResults(
         mesh2D = sim.meshGenerator.copy()
         mesh2D.hy = np.r_[2*np.pi]
         src2D = getattr(casingSimulations.sources, sim.src.__class__.__name__)(
-            cp=sim.cp,
+            modelParameters=sim.modelParameters,
             meshGenerator=mesh2D,
         )
         sim2D = casingSimulations.run.SimulationTDEM(
-            cp=sim.cp,
+            modelParameters=sim.modelParameters,
             meshGenerator=mesh2D,
             src=src2D,
             fields_filename=fields2D,
@@ -271,7 +271,7 @@ def loadSimulationResults(
 
         simDC = casingSimulations.run.SimulationDC(
             filename='simulationDC.py',
-            cp=sim.cp,
+            modelParameters=sim.modelParameters,
             meshGenerator=sim.meshGenerator,
             src_a=src_a,
             src_b=src_b
