@@ -15,7 +15,6 @@ from SimPEG import Utils, Maps
 from SimPEG.EM.Static import DC
 
 from .base import LoadableInstance, BaseCasing
-# from .model import PhysicalProperties, CasingParameters
 from . import model
 from .model import PhysicalProperties
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator

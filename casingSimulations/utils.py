@@ -192,11 +192,11 @@ simDC = casingSimulations.run.SimulationDC(
 def loadSimulationResults(
     directory='.',
     meshParameters='MeshParameters.json',
-    casingParameters='CasingParameters.json',
+    casingParameters='ModelParameters.json',
     source='Source.json',
     fields='fields.npy',
-    fieldsDC='fieldsDC.npy',
-    fields2D='fields2D.npy'
+    fieldsDC=None,
+    fields2D=None
 ):
     print('Loading simulation in {}'.format(directory))
     # load up the properties
@@ -214,9 +214,22 @@ def loadSimulationResults(
         cp=cp, meshGenerator=meshGenerator, src=src
     )
     sim.prob.model = sim.physprops.model
-    sim._fields = sim.prob.fieldsPair(meshGenerator.mesh, sim.survey)[
-        :, '{}Solution'.format(sim.formulation)
-    ]
+
+    if isinstance(
+        sim,
+        (
+            casingSimulations.run.SimulationFDEM,
+            casingSimulations.run.SimulationDC
+        )
+    ):
+        sim._fields = sim.prob.fieldsPair(meshGenerator.mesh, sim.survey)[
+            :, '{}Solution'.format(sim.formulation)
+        ]
+    elif isinstance(sim, casingSimulations.run.SimulationTDEM):
+        sim._fields = sim.prob.fieldsPair(meshGenerator.mesh, sim.survey)[
+            :, :, '{}Solution'.format(sim.formulation)
+        ]
+
     print('   ... Done. Elapsed time : {}\n'.format(time.time()-t))
 
     simulations = (sim, )
