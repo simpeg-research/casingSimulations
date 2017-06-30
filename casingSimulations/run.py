@@ -4,7 +4,6 @@ import scipy.sparse as sp
 import os
 import json
 from scipy.constants import mu_0
-import mkl
 
 import discretize
 import properties
@@ -136,7 +135,8 @@ class BaseSimulation(BaseCasing):
         print('Validating parameters...')
         self.validate()
 
-        sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
+        # grab the discretize mesh off of the mesh object
+        sim_mesh = self.meshGenerator.mesh
         print('      max x: {}, min z: {}, max z: {}'.format(
             sim_mesh.vectorNx.max(),
             sim_mesh.vectorNz.min(),
@@ -145,9 +145,6 @@ class BaseSimulation(BaseCasing):
 
         # save simulation parameters
         self.save()
-
-        # --------------- Set the number of threads --------------- #
-        mkl.set_num_threads(self.num_threads)
 
         # ----------------- Set up the simulation ----------------- #
         physprops = self.physprops
