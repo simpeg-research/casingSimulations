@@ -1,6 +1,4 @@
 import matplotlib
-matplotlib.use('Agg')
-
 import unittest
 import discretize
 from discretize import utils
@@ -18,18 +16,19 @@ from pymatsolver import Pardiso
 
 import casingSimulations
 
+matplotlib.use('Agg')
 
 plotIt = False
 TOL = 1e-4
 ZERO = 1e-7
 
 
-def getSrcWire(mesh, cp):
+def getSrcWire(mesh, modelParameters):
     """
     Define a wirepath on the mesh
 
     :param discretize.BaseMesh mesh: mesh on which to define the source
-    :param casingSimulations cp: casing parameters
+    :param casingSimulations modelParameters: casing parameters
     :rtype: numpy.ndarray
     :return: source current density on the mesh
     """
@@ -37,40 +36,41 @@ def getSrcWire(mesh, cp):
 
     xfaces = mesh.gridFz[:, 0] < mesh.hx.min()
     zfaces = (
-        (mesh.gridFz[:, 2] > cp.src_a[2]) &
-        (mesh.gridFz[:, 2] < cp.src_b[2])
+        (mesh.gridFz[:, 2] > modelParameters.src_a[2]) &
+        (mesh.gridFz[:, 2] < modelParameters.src_b[2])
     )
     wire[xfaces & zfaces] = 1
 
     return np.hstack([np.zeros(mesh.nFx), np.zeros(mesh.nFy), wire])
 
 
-def getPhysProps(mesh, cp):
+def getPhysProps(mesh, modelParameters):
     """
     Put the phys prop models on the mesh
 
     :param discretize.BaseMesh mesh: simulation mesh
-    :param casingSimulations cp: casing parameters
+    :param casingSimulations modelParameters: casing parameters
     :rtype: tuple
     :return: (sigma, mu) on mesh
     """
 
     casing_x = (
-        (mesh.gridCC[:, 0] > cp.casing_a) & (mesh.gridCC[:, 0] < cp.casing_b)
+        (mesh.gridCC[:, 0] > modelParameters.casing_a) &
+        (mesh.gridCC[:, 0] < modelParameters.casing_b)
     )
     casing_z = (
-        (mesh.gridCC[:, 2] > cp.casing_z[0]) &
-        (mesh.gridCC[:, 2] < cp.casing_z[1])
+        (mesh.gridCC[:, 2] > modelParameters.casing_z[0]) &
+        (mesh.gridCC[:, 2] < modelParameters.casing_z[1])
     )
 
-    inside_x = (mesh.gridCC[:, 0] < cp.casing_a)
+    inside_x = (mesh.gridCC[:, 0] < modelParameters.casing_a)
 
-    sigma = cp.sigma_back * np.ones(mesh.nC)
-    sigma[casing_x & casing_z] = cp.sigma_casing
-    sigma[inside_x & casing_z] = cp.sigma_inside
+    sigma = modelParameters.sigma_back * np.ones(mesh.nC)
+    sigma[casing_x & casing_z] = modelParameters.sigma_casing
+    sigma[inside_x & casing_z] = modelParameters.sigma_inside
 
     mu = np.ones(mesh.nC)
-    mu[casing_x & casing_z] = cp.mu_casing
+    mu[casing_x & casing_z] = modelParameters.mu_casing
     mu = mu * mu_0
 
     return sigma, mu
@@ -90,49 +90,50 @@ class Test2Dv3DCyl(unittest.TestCase):
 
         sigma_back = 1e-1  # wholespace
 
-        cp = casingSimulations.CasingParameters(
-            casing_l=10.,
+        modelParameters = casingSimulations.model.Wholespace(
             src_a=np.r_[0., 0., -9.],
             src_b=np.r_[0., 0., -1.],
             freqs=np.r_[0.1, 1., 2.],
             sigma_back=sigma_back,  # wholespace
-            sigma_layer=sigma_back,
-            sigma_air=sigma_back,
         )
 
         # Set up the meshes
         npadx, npadz = 11, 26
-        dx2 = 500.
 
         mesh2D = casingSimulations.CylMeshGenerator(
-            cp=cp, npadx=npadx, npadz=npadz, domain_x2=dx2
-        ).mesh
+            modelParameters=modelParameters, npadx=npadx, npadz=npadz, csz=2.
+        )
         mesh3D = casingSimulations.CylMeshGenerator(
-            cp=cp, ncy=4, npadx=npadx, npadz=npadz, domain_x2=dx2
-        ).mesh
+            modelParameters=modelParameters, hy=np.ones(4)*2*np.pi/4., csz=2.,
+            npadx=npadx, npadz=npadz
+        )
 
         # get wirepath on mesh
-        wire2D = getSrcWire(mesh2D, cp)
-        wire3D = getSrcWire(mesh3D, cp)
+        wire2D = getSrcWire(mesh2D.mesh, modelParameters)
+        wire3D = getSrcWire(mesh3D.mesh, modelParameters)
 
         # create sources
         srcList2D = [
             FDEM.Src.RawVec_e(s_e=wire2D, freq=freq, rxList=[]) for freq in
-            cp.freqs
+            modelParameters.freqs
         ]
         srcList3D = [
             FDEM.Src.RawVec_e(s_e=wire3D, freq=freq, rxList=[]) for freq in
-            cp.freqs
+            modelParameters.freqs
         ]
 
         # get phys prop models
-        physprops2D = casingSimulations.PhysicalProperties(mesh2D, cp)
-        physprops3D = casingSimulations.PhysicalProperties(mesh3D, cp)
+        physprops2D = casingSimulations.model.PhysicalProperties(
+            mesh2D, modelParameters
+        )
+        physprops3D = casingSimulations.model.PhysicalProperties(
+            mesh3D, modelParameters
+        )
 
         # plot the phys prop models
         fig, ax = plt.subplots(1, 1)
         plt.colorbar(
-            mesh2D.plotImage(
+            mesh2D.mesh.plotImage(
                 np.log10(physprops2D.sigma),
                 ax=ax, mirror=True)[0], ax=ax
         )
@@ -144,13 +145,13 @@ class Test2Dv3DCyl(unittest.TestCase):
 
         # create the problems and surveys
         prb2D = FDEM.Problem3D_h(
-            mesh2D,
+            mesh2D.mesh,
             sigmaMap=physprops2D.wires.sigma,
             muMap=physprops2D.wires.mu,
             Solver=Pardiso
         )
         prb3D = FDEM.Problem3D_h(
-            mesh3D,
+            mesh3D.mesh,
             sigmaMap=physprops3D.wires.sigma,
             muMap=physprops3D.wires.mu,
             Solver=Pardiso
@@ -189,9 +190,11 @@ class Test2Dv3DCyl(unittest.TestCase):
         """
         grab theta slice through j
         """
-        j3D_x = j3D[:self.mesh3D.nFx].reshape(self.mesh3D.vnFx, order='F')
-        j3D_z = j3D[self.mesh3D.vnF[:2].sum():].reshape(
-            self.mesh3D.vnFz, order='F'
+        j3D_x = j3D[:self.mesh3D.mesh.nFx].reshape(
+            self.mesh3D.mesh.vnFx, order='F'
+        )
+        j3D_z = j3D[self.mesh3D.mesh.vnF[:2].sum():].reshape(
+            self.mesh3D.mesh.vnFz, order='F'
         )
 
         j3Dslice = np.vstack([
@@ -205,8 +208,10 @@ class Test2Dv3DCyl(unittest.TestCase):
         """
         grab theta slice through h
         """
-        h3D_y = h3D[self.mesh3D.vnE[0]:self.mesh3D.vnE[:2].sum()].reshape(
-            self.mesh3D.vnEy, order='F'
+        h3D_y = h3D[
+            self.mesh3D.mesh.vnE[0]:self.mesh3D.mesh.vnE[:2].sum()
+        ].reshape(
+            self.mesh3D.mesh.vnEy, order='F'
         )
 
         return utils.mkvc(h3D_y[:, theta_ind, :], 2)
@@ -226,7 +231,7 @@ class Test2Dv3DCyl(unittest.TestCase):
 
             norm_j0 = np.linalg.norm(j0)
 
-            for ind in np.arange(1, self.mesh3D.vnC[1]):
+            for ind in np.arange(1, self.mesh3D.mesh.vnC[1]):
                 diff = np.linalg.norm(
                         j0-self.getj3Dthetaslice(j3D, theta_ind=ind)
                     )
@@ -256,7 +261,7 @@ class Test2Dv3DCyl(unittest.TestCase):
             )
 
             j3D = self.fields3D[src, 'j']
-            jtheta = j3D[self.mesh3D.nFx:self.mesh3D.nFz]
+            jtheta = j3D[self.mesh3D.mesh.nFx:self.mesh3D.mesh.nFz]
 
             self.assertTrue(np.all(jtheta < ZERO))
 
@@ -276,8 +281,8 @@ class Test2Dv3DCyl(unittest.TestCase):
             )
 
             h3D = self.fields3D[src, 'h']
-            hr = h3D[:self.mesh3D.nEx]
-            hz = h3D[self.mesh3D.vnE[:2].sum():]
+            hr = h3D[:self.mesh3D.mesh.nEx]
+            hz = h3D[self.mesh3D.mesh.vnE[:2].sum():]
 
             self.assertTrue(np.all(hr < ZERO))
             self.assertTrue(np.all(hz < ZERO))
@@ -297,7 +302,7 @@ class Test2Dv3DCyl(unittest.TestCase):
 
             norm_h0 = np.linalg.norm(h0)
 
-            for ind in np.arange(1, self.mesh3D.vnC[1]):
+            for ind in np.arange(1, self.mesh3D.mesh.vnC[1]):
                 diff = np.linalg.norm(
                         h0-self.geth3Dthetaslice(h3D, theta_ind=ind)
                     )

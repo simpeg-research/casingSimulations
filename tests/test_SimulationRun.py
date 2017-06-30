@@ -17,31 +17,30 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
     def setUp(self):
         sigma_back = 1e-1 # wholespace
 
-        cp = casingSimulations.CasingParameters(
-            casing_l = 1000.,
+        modelParameters = casingSimulations.model.CasingInWholespace(
             src_a = np.r_[0., np.pi, 0.], # the source fcts will take care of coupling it to the casing
             src_b = np.r_[1e3, np.pi, 0.], # return electrode
             freqs = np.r_[0.5],
             sigma_back = sigma_back, # wholespace
-            sigma_layer = sigma_back,
-            sigma_air = sigma_back,
-
         )
 
         npadx, npadz = 8, 19
         dx2 = 200.
         csz = 0.25
 
-        meshGenerator = casingSimulations.CylMeshGenerator(
-            cp=cp, npadx=npadx, npadz=npadz, domain_x2=dx2, csz=csz
+        meshGenerator = casingSimulations.CasingMeshGenerator(
+            modelParameters=modelParameters, npadx=npadx, npadz=npadz, csz=csz
         )
 
-        self.cp = cp
+        self.modelParameters = modelParameters
         self.meshGenerator = meshGenerator
 
     def runSimulation(self, src):
         simulation = casingSimulations.run.SimulationFDEM(
-            self.cp, self.meshGenerator, src, directory=self.dir2D
+            modelParameters=self.modelParameters,
+            meshGenerator=self.meshGenerator,
+            src=src,
+            directory=self.dir2D
         )
 
         fields2D = simulation.run()
@@ -53,7 +52,9 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
     def test_simulation2DTopCasing(self):
 
         src = casingSimulations.sources.TopCasingSrc(
-            self.cp, self.meshGenerator.mesh
+            modelParameters=self.modelParameters,
+            meshGenerator=self.meshGenerator,
+            physics="FDEM"
         )
         src.validate()
 
@@ -62,7 +63,9 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
     def test_simulation2DDownHoleCasingSrc(self):
 
         src = casingSimulations.sources.DownHoleCasingSrc(
-            self.cp, self.meshGenerator.mesh
+            modelParameters=self.modelParameters,
+            meshGenerator=self.meshGenerator,
+            physics="FDEM"
         )
         src.validate()
 
@@ -71,7 +74,9 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
     def test_simulation2DDownHoleTerminatingSrc(self):
 
         src = casingSimulations.sources.DownHoleTerminatingSrc(
-            self.cp, self.meshGenerator.mesh
+            modelParameters=self.modelParameters,
+            meshGenerator=self.meshGenerator,
+            physics="FDEM"
         )
         src.validate()
 

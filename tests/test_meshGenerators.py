@@ -42,7 +42,7 @@ class TestTensorMeshConstruction(unittest.TestCase):
 
     def setUp(self):
         sigma_back = 0.1
-        cart_cp = casingSimulations.model.CasingInWholespace(
+        cart_modelParameters = casingSimulations.model.CasingInWholespace(
             sigma_casing = sigma_back,
             sigma_inside = sigma_back,
             sigma_back = sigma_back,
@@ -70,13 +70,13 @@ class TestTensorMeshConstruction(unittest.TestCase):
         domain_y = 300.
 
         ncx = int(
-            np.ceil((cart_cp.src_a[0] - cart_cp.src_b[0]) / csx) + 2*nch
+            np.ceil((cart_modelParameters.src_a[0] - cart_modelParameters.src_b[0]) / csx) + 2*nch
         )
         ncy = int(
             np.ceil(domain_y / csy) + 2*nch
         )
         ncz = int(
-            np.ceil((cart_cp.casing_z[1] - cart_cp.casing_z[0]) / csz) + nca + ncb
+            np.ceil((cart_modelParameters.casing_z[1] - cart_modelParameters.casing_z[0]) / csz) + nca + ncb
         )
 
         hx = utils.meshTensor(
@@ -89,7 +89,7 @@ class TestTensorMeshConstruction(unittest.TestCase):
             [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)]
         )
 
-        x0x = -hx.sum()/2. + (cart_cp.src_b[0] + cart_cp.src_a[0])/2.
+        x0x = -hx.sum()/2. + (cart_modelParameters.src_b[0] + cart_modelParameters.src_a[0])/2.
         x0y = -hy.sum()/2.
         x0z = -hz[:npadz+ncz-nca].sum()
 
@@ -97,7 +97,7 @@ class TestTensorMeshConstruction(unittest.TestCase):
 
         self.mesh_d = discretize.TensorMesh([hx, hy, hz], x0=x0)
         self.meshGen = casingSimulations.TensorMeshGenerator(
-            cp = cart_cp,
+            modelParameters = cart_modelParameters,
             csx = csx,
             csy = csy,
             csz = csz,
