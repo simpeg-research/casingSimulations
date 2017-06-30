@@ -1,4 +1,6 @@
 import matplotlib
+matplotlib.use('Agg')
+
 import unittest
 import discretize
 from discretize import utils
@@ -16,7 +18,7 @@ from pymatsolver import Pardiso
 
 import casingSimulations
 
-matplotlib.use('Agg')
+
 
 plotIt = False
 TOL = 1e-4
