@@ -1,6 +1,3 @@
-import matplotlib
-matplotlib.use('Agg')
-
 import unittest
 import discretize
 from discretize import utils
@@ -8,7 +5,6 @@ import numpy as np
 import scipy.sparse as sp
 import sympy
 
-import matplotlib.pyplot as plt
 from scipy.constants import mu_0
 
 from SimPEG.EM import FDEM
@@ -17,8 +13,6 @@ from SimPEG import Utils, Maps
 from pymatsolver import Pardiso
 
 import casingSimulations
-
-
 
 plotIt = False
 TOL = 1e-4
@@ -131,19 +125,6 @@ class Test2Dv3DCyl(unittest.TestCase):
         physprops3D = casingSimulations.model.PhysicalProperties(
             mesh3D, modelParameters
         )
-
-        # plot the phys prop models
-        fig, ax = plt.subplots(1, 1)
-        plt.colorbar(
-            mesh2D.mesh.plotImage(
-                np.log10(physprops2D.sigma),
-                ax=ax, mirror=True)[0], ax=ax
-        )
-        ax.set_xlim([-1., 1.])
-        ax.set_ylim([-20., 10.])
-
-        if plotIt:
-            plt.show()
 
         # create the problems and surveys
         prb2D = FDEM.Problem3D_h(
