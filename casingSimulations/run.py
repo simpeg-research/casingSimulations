@@ -4,7 +4,6 @@ import scipy.sparse as sp
 import os
 import json
 from scipy.constants import mu_0
-import mkl
 
 import discretize
 import properties
@@ -15,7 +14,6 @@ from SimPEG import Utils, Maps
 from SimPEG.EM.Static import DC
 
 from .base import LoadableInstance, BaseCasing
-# from .model import PhysicalProperties, CasingParameters
 from . import model
 from .model import PhysicalProperties
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
@@ -45,7 +43,7 @@ class BaseSimulation(BaseCasing):
         default=1
     )
 
-    cp = LoadableInstance(
+    modelParameters = LoadableInstance(
         "Model Parameters instance",
         model.Wholespace,
         required=True
@@ -72,17 +70,17 @@ class BaseSimulation(BaseCasing):
             os.mkdir(self.directory)
 
         # hook up the properties classes
-        self.meshGenerator.cp = self.cp
+        self.meshGenerator.modelParameters = self.modelParameters
 
         if getattr(self, 'src', None) is not None:
-            self.src.cp = self.cp
+            self.src.modelParameters = self.modelParameters
             self.src.meshGenerator = self.meshGenerator
 
     @property
     def physprops(self):
         if getattr(self, '_physprops', None) is None:
             self._physprops = PhysicalProperties(
-                self.meshGenerator, self.cp
+                self.meshGenerator, self.modelParameters
             )
         return self._physprops
 
@@ -103,7 +101,7 @@ class BaseSimulation(BaseCasing):
         """
 
         # save the properties
-        self.cp.save()
+        self.modelParameters.save()
         self.meshGenerator.save()
         self.src.save()
 
@@ -112,7 +110,7 @@ class BaseSimulation(BaseCasing):
 
         # write the simulation.py
         writeSimulationPy(
-            cp=self.cp.filename,
+            modelParameters=self.modelParameters.filename,
             meshGenerator=self.meshGenerator.filename,
             src=self.src.filename,
             directory=self.directory,
@@ -137,7 +135,8 @@ class BaseSimulation(BaseCasing):
         print('Validating parameters...')
         self.validate()
 
-        sim_mesh = self.meshGenerator.mesh # grab the discretize mesh off of the mesh object
+        # grab the discretize mesh off of the mesh object
+        sim_mesh = self.meshGenerator.mesh
         print('      max x: {}, min z: {}, max z: {}'.format(
             sim_mesh.vectorNx.max(),
             sim_mesh.vectorNz.min(),
@@ -146,9 +145,6 @@ class BaseSimulation(BaseCasing):
 
         # save simulation parameters
         self.save()
-
-        # --------------- Set the number of threads --------------- #
-        mkl.set_num_threads(self.num_threads)
 
         # ----------------- Set up the simulation ----------------- #
         physprops = self.physprops
@@ -173,7 +169,7 @@ class BaseSimulation(BaseCasing):
 class SimulationFDEM(BaseSimulation):
     """
     A wrapper to run an FDEM Forward Simulation
-    :param CasingSimulations.CasingParameters cp: casing parameters object
+    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
@@ -206,7 +202,7 @@ class SimulationFDEM(BaseSimulation):
 class SimulationTDEM(BaseSimulation):
     """
     A wrapper to run a TDEM Forward Simulation
-    :param CasingSimulations.CasingParameters cp: casing parameters object
+    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
     :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
@@ -223,7 +219,7 @@ class SimulationTDEM(BaseSimulation):
                 TDEM, 'Problem3D_{}'.format(self.formulation)
                 )(
                 self.meshGenerator.mesh,
-                timeSteps=self.cp.timeSteps,
+                timeSteps=self.modelParameters.timeSteps,
                 sigmaMap=self.physprops.wires.sigma,
                 mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
                 Solver=Pardiso

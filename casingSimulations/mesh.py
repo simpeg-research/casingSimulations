@@ -41,7 +41,7 @@ class BaseMeshGenerator(BaseCasing):
     )
 
     # casing parameters
-    cp = properties.Instance(
+    modelParameters = properties.Instance(
         "casing parameters instance",
         model.Wholespace,
         required=True
@@ -61,7 +61,7 @@ class BaseMeshGenerator(BaseCasing):
 
     def copy(self):
         cpy = super(BaseMeshGenerator, self).copy()
-        cpy.cp = self.cp  # see https://github.com/3ptscience/properties/issues/175
+        cpy.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
         return cpy
 
 
@@ -135,7 +135,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
     def x0(self):
         if getattr(self, '_x0', None) is None:
             self._x0 = np.r_[
-                -self.hx.sum()/2. + (self.cp.src_b[0] + self.cp.src_a[0])/2.,
+                -self.hx.sum()/2. + (self.modelParameters.src_b[0] + self.modelParameters.src_a[0])/2.,
                 -self.hy.sum()/2.,
                 -self.hz[:self.npadz+self.ncz-self.nca].sum()
             ]
@@ -152,13 +152,13 @@ class TensorMeshGenerator(BaseMeshGenerator):
     @property
     def domain_z(self):
         if getattr(self, '_domain_z', None) is None:
-            if getattr(self.cp, 'casing_z', None) is not None:
+            if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
-                    (self.cp.casing_z[1] - self.cp.casing_z[0]),
-                    (self.cp.src_b[2] - self.cp.src_a[2])
+                    (self.modelParameters.casing_z[1] - self.modelParameters.casing_z[0]),
+                    (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
                 ])
             else:
-                domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
+                domain_z = (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
             self._domain_z = domain_z
         return self._domain_z
 
@@ -295,13 +295,13 @@ class CylMeshGenerator(BaseMeshGenerator):
     @property
     def domain_z(self):
         if getattr(self, '_domain_z', None) is None:
-            if getattr(self.cp, 'casing_z', None) is not None:
+            if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
-                    (self.cp.casing_z[1] - self.cp.casing_z[0]),
-                    (self.cp.src_b[2] - self.cp.src_a[2])
+                    (self.modelParameters.casing_z[1] - self.modelParameters.casing_z[0]),
+                    (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
                 ])
             else:
-                domain_z = (self.cp.src_b[2] - self.cp.src_a[2])
+                domain_z = (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
         self._domain_z = domain_z
         return self._domain_z
 
@@ -357,7 +357,7 @@ class CylMeshGenerator(BaseMeshGenerator):
 
     def create_2D_mesh(self):
         mesh2D = self.copy()
-        mesh2D.cp = self.cp  # see https://github.com/3ptscience/properties/issues/175
+        mesh2D.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
         mesh2D.hy = np.r_[2*np.pi]
         return mesh2D
 
@@ -421,7 +421,7 @@ class CasingMeshGenerator(BaseMeshGenerator):
     @property
     def ncx1(self):
         """number of cells with size csx1"""
-        return np.ceil(self.cp.casing_b/self.csx1+2)
+        return np.ceil(self.modelParameters.casing_b/self.csx1+2)
 
     @property
     def npadx1(self):
@@ -477,7 +477,7 @@ class CasingMeshGenerator(BaseMeshGenerator):
         if getattr(self, '_ncz', None) is None:
             # number of core z-cells (add 10 below the end of the casing)
             self._ncz = (
-                np.int(np.ceil(-self.cp.casing_z[0]/self.csz)) +
+                np.int(np.ceil(-self.modelParameters.casing_z[0]/self.csz)) +
                 self.nca + self.ncb
             )
         return self._ncz
@@ -507,7 +507,7 @@ class CasingMeshGenerator(BaseMeshGenerator):
 
     def create_2D_mesh(self):
         mesh2D = self.copy()
-        mesh2D.cp = self.cp  # see https://github.com/3ptscience/properties/issues/175
+        mesh2D.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
         mesh2D.hy = np.r_[2*np.pi]
         return mesh2D
 

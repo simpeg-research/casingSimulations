@@ -10,7 +10,8 @@ def plotFace2D(
     mesh2D,
     j, real_or_imag='real', ax=None, range_x=None,
     range_y=None, sample_grid=None,
-    logScale=True, clim=None, mirror=False, pcolorOpts=None
+    logScale=True, clim=None, mirror=False, pcolorOpts=None,
+    cbar=True
 ):
     """
     Create a streamplot (a slice in the theta direction) of a face vector
@@ -40,21 +41,25 @@ def plotFace2D(
     else:
         pcolorOpts = {}
 
-    cb = plt.colorbar(
-        mesh2D.plotImage(
-            getattr(j, real_or_imag),
-            view='vec', vType=vType, ax=ax,
-            range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-            mirror=mirror,
-            pcolorOpts=pcolorOpts,
-        )[0], ax=ax
+    f = mesh2D.plotImage(
+        getattr(j, real_or_imag),
+        view='vec', vType=vType, ax=ax,
+        range_x=range_x, range_y=range_y, sample_grid=sample_grid,
+        mirror=mirror,
+        pcolorOpts=pcolorOpts,
     )
 
-    if clim is not None:
-        cb.set_clim(clim)
-        cb.update_ticks()
+    out = (ax,)
 
-    return ax, cb
+    if cbar is True:
+        cb = plt.colorbar(f[0], ax=ax)
+        out += (cbar,)
+
+        if clim is not None:
+            cb.set_clim(clim)
+            cb.update_ticks()
+
+    return out
 
 
 def plotEdge2D(
