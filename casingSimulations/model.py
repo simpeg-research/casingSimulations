@@ -162,9 +162,21 @@ class Halfspace(Wholespace):
     )
 
     def ind_air(self, mesh):
+        """
+        indices where the air is
+
+        :param discretize.BaseMesh mesh: mesh to find the air cells of
+        :rtype: bool
+        """
         return mesh.gridCC[:, 2] > self.surface_z
 
     def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to find air cells of
+        :rtype: numpy.array
+        """
         sigma = super(Halfspace, self).sigma(mesh)
         sigma[self.ind_air(mesh)] = self.sigma_air
         return sigma
@@ -186,12 +198,21 @@ class SingleLayer(Halfspace):
     )
 
     def ind_layer(self, mesh):
+        """
+        indices where the layer is
+
+        :param discretize.BaseMesh mesh: mesh to find layer indices on
+        :rtype: numpy.array
+        """
         return (
             (mesh.gridCC[:, 2] < self.layer_z[1]) &
             (mesh.gridCC[:, 2] > self.layer_z[0])
         )
 
     def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+        """
         sigma = super(self, sigma)(mesh)
         sigma[self.ind_layer(mesh)] = self.sigma_layer
         return sigma
@@ -248,6 +269,8 @@ class BaseCasingParametersMixin(BaseCasing):
     def casing_r(self):
         """
         Casing radius
+
+        :rtype: float
         """
         return self.casing_d/2.
 
@@ -255,6 +278,8 @@ class BaseCasingParametersMixin(BaseCasing):
     def casing_a(self):
         """
         Inner casing radius
+
+        :rtype: float
         """
         return self.casing_r - self.casing_t/2.  # inner radius
 
@@ -262,6 +287,8 @@ class BaseCasingParametersMixin(BaseCasing):
     def casing_b(self):
         """
         Outer casing radius
+
+        :rtype: float
         """
         return self.casing_r + self.casing_t/2.  # outer radius
 
@@ -269,12 +296,17 @@ class BaseCasingParametersMixin(BaseCasing):
     def casing_z(self):
         """
         z-extent of the casing
+
+        :rtype: numpy.array
         """
         return np.r_[-self.casing_l, 0.] + self.casing_top
 
     def indx_casing(self, mesh):
         """
         x-indices of the casing
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
         """
         return (
             (mesh.gridCC[:, 0] > self.casing_a) &
@@ -284,6 +316,9 @@ class BaseCasingParametersMixin(BaseCasing):
     def indz_casing(self, mesh):
         """
         z-indices of the casing
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
         """
         return (
             (mesh.gridCC[:, 2] > self.casing_z[0]) &
@@ -293,18 +328,27 @@ class BaseCasingParametersMixin(BaseCasing):
     def indx_inside(self, mesh):
         """
         x indicies of the inside of the casing
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
         """
         return mesh.gridCC[:, 0] < self.casing_a
 
     def ind_casing(self, mesh):
         """
         indices of the cell centers of the casing
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
         """
         return self.indx_casing(mesh) & self.indz_casing(mesh)
 
     def ind_inside(self, mesh):
         """
         indices of the cell centers of the inside portion of the casing
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
         """
         return self.indx_inside(mesh) & self.indz_casing(mesh)
 
@@ -337,10 +381,22 @@ class CasingInWholespace(Wholespace, BaseCasingParametersMixin):
     A model of casing in a wholespace
     """
     def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
         sigma = super(CasingInWholespace, self).sigma(mesh)
         return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
+        """
+        put the permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
         mur = super(CasingInWholespace, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
 
@@ -350,10 +406,22 @@ class CasingInHalfspace(Halfspace, BaseCasingParametersMixin):
     A model of casing in a halfspace
     """
     def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
         sigma = super(CasingInHalfspace, self).sigma(mesh)
         return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
+        """
+        put the permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
         mur = super(CasingInHalfspace, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
 
@@ -363,10 +431,22 @@ class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
     A model of casing in an earth that has a single layer
     """
     def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
         sigma = super(CasingInSingleLayer, self).sigma(mesh)
         return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
+        """
+        put the permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
         mur = super(CasingInSingleLayer, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
 
@@ -382,26 +462,51 @@ class PhysicalProperties(object):
 
     @property
     def mur(self):
+        """
+        relative permeability
+
+        :rtype: numpy.array
+        """
         if getattr(self, '_mur', None) is None:
             self._mur = self.modelParameters.mur(self.mesh)
         return self._mur
 
     @property
     def mu(self):
+        """
+        permeability
+
+        :rtype: numpy.array
+        """
         return mu_0 * self.mur
 
     @property
     def sigma(self):
+        """
+        electrical conductivity
+
+        :rtype: numpy.array
+        """
         if getattr(self, '_sigma', None) is None:
             self._sigma = self.modelParameters.sigma(self.mesh)
         return self._sigma
 
     @property
     def model(self):
+        """
+        model vector [sigma, mu]
+
+        :rtype: numpy.array
+        """
         return np.hstack([self.sigma, self.mu])
 
     @property
     def wires(self):
+        """
+        wires to hook up maps to sigma, mu
+
+        :rtype: SimPEG.Maps.Wires
+        """
         if getattr(self, '_wires', None) is None:
             self._wires = Maps.Wires(
                 ('sigma', self.mesh.nC), ('mu', self.mesh.nC)
