@@ -196,7 +196,7 @@ class SimulationFDEM(BaseSimulation):
                 self.meshGenerator.mesh,
                 sigmaMap=self.physprops.wires.sigma,
                 muMap=self.physprops.wires.mu,
-                Solver=Pardiso
+                Solver=Solver
             )
 
         if getattr(self.src, "physics", None) is None:
@@ -230,7 +230,7 @@ class SimulationTDEM(BaseSimulation):
                 timeSteps=self.modelParameters.timeSteps,
                 sigmaMap=self.physprops.wires.sigma,
                 mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
-                Solver=Pardiso
+                Solver=Solver
             )
 
         if getattr(self.src, "physics", None) is None:
@@ -268,7 +268,7 @@ class SimulationDC(BaseSimulation):
             self.meshGenerator.mesh,
             sigmaMap=self.physprops.wires.sigma,
             bc_type='Dirichlet',
-            Solver=Pardiso
+            Solver=Solver
         )
         self._src = DC.Src.Dipole([], self.src_a, self.src_b)
         self._survey = DC.Survey([self._src])
