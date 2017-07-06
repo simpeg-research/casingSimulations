@@ -29,7 +29,7 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython mkl;
     fi
-  - cd casingSimulations; python setup.py install; cd ..
+  - cd casingSimulations; export PATH=$PWD:$PATH; export PYTHONPATH=$PWD:$PYTHONPATH; cd ..
   - pip install -r requirements_dev.txt
 
 
