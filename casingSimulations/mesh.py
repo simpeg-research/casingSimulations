@@ -150,7 +150,13 @@ class TensorMeshGenerator(BaseMeshGenerator):
         """
         if getattr(self, '_x0', None) is None:
             self._x0 = np.r_[
-                -self.hx.sum()/2. + (self.modelParameters.src_b[0] + self.modelParameters.src_a[0])/2.,
+                (
+                    -self.hx.sum()/2. +
+                    (
+                        self.modelParameters.src_b[0] +
+                        self.modelParameters.src_a[0]
+                    )/2.
+                ),
                 -self.hy.sum()/2.,
                 -self.hz[:self.npadz+self.ncz-self.nca].sum()
             ]
@@ -174,11 +180,20 @@ class TensorMeshGenerator(BaseMeshGenerator):
         if getattr(self, '_domain_z', None) is None:
             if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
-                    (self.modelParameters.casing_z[1] - self.modelParameters.casing_z[0]),
-                    (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
+                    (
+                        self.modelParameters.casing_z[1] -
+                        self.modelParameters.casing_z[0]
+                    ),
+                    (
+                        self.modelParameters.src_b[2] -
+                        self.modelParameters.src_a[2]
+                    )
                 ])
             else:
-                domain_z = (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
+                domain_z = (
+                    self.modelParameters.src_b[2] -
+                    self.modelParameters.src_a[2]
+                )
             self._domain_z = domain_z
         return self._domain_z
 
@@ -279,6 +294,8 @@ class BaseCylMixin(properties.HasProperties):
     Mixin class that contains properties and methods common to a Cyl Mesh
     Generator
     """
+
+    # cell sizes in the vertical direction
     csz = properties.Float(
         "cell size in the z-direction", default=25.
     )
@@ -287,7 +304,7 @@ class BaseCylMixin(properties.HasProperties):
     hy = properties.Array(
         "cell spacings in the y direction",
         dtype=float,
-        default=np.r_[2*np.pi] # default is cyl symmetric
+        default=np.r_[2*np.pi]  # default is cyl symmetric
     )
 
     # z-direction of the mesh
@@ -309,6 +326,11 @@ class BaseCylMixin(properties.HasProperties):
         "number of padding cells in z", default=38
     )
 
+    # domain extent in the x-direction
+    domain_x = properties.Float(
+        "domain extent in the x-direction", default=1000.
+    )
+
     @property
     def x0(self):
         """
@@ -328,12 +350,21 @@ class BaseCylMixin(properties.HasProperties):
         if getattr(self, '_domain_z', None) is None:
             if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
-                    (self.modelParameters.casing_z[1] - self.modelParameters.casing_z[0]),
-                    (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
+                    (
+                        self.modelParameters.casing_z[1] -
+                        self.modelParameters.casing_z[0]
+                    ),
+                    (
+                        self.modelParameters.src_b[2] -
+                        self.modelParameters.src_a[2]
+                    )
                 ])
             else:
-                domain_z = (self.modelParameters.src_b[2] - self.modelParameters.src_a[2])
-        self._domain_z = domain_z
+                domain_z = (
+                    self.modelParameters.src_b[2] -
+                    self.modelParameters.src_a[2]
+                )
+            self._domain_z = domain_z
         return self._domain_z
 
     @domain_z.setter
@@ -347,6 +378,11 @@ class BaseCylMixin(properties.HasProperties):
 
     @property
     def ncy(self):
+        """
+        number of core y-cells
+
+        :rtype: float
+        """
         if getattr(self, '_ncz', None) is None:
             self._ncy = len(self.hy)
         return self.ncy
@@ -355,6 +391,8 @@ class BaseCylMixin(properties.HasProperties):
     def ncz(self):
         """
         number of core z-cells
+
+        :rtype: float
         """
         if getattr(self, '_ncz', None) is None:
             # number of core z-cells (add 10 below the end of the casing)
@@ -368,6 +406,8 @@ class BaseCylMixin(properties.HasProperties):
     def hz(self):
         """
         cell spacings in the z-direction
+
+        :rtype: numpy.array
         """
         if getattr(self, '_hz', None) is None:
 
@@ -388,12 +428,21 @@ class BaseCylMixin(properties.HasProperties):
         return mesh2D
 
     # Plot the physical Property Models
-    def plotModels(self, sigma, mu, xlim=[0., 1.], zlim=[-1200., 100.], ax=None):
+    def plotModels(
+        self, sigma, mu, xlim=[0., 1.], zlim=[-1200., 100.], ax=None
+    ):
+        """
+        Plot conductivity and permeability models
+        """
         if ax is None:
             fig, ax = plt.subplots(1, 2, figsize=(10, 4))
 
-        plt.colorbar(self.mesh.plotImage(np.log10(sigma), ax=ax[0])[0], ax=ax[0])
-        plt.colorbar(self.mesh.plotImage(mu/mu_0, ax=ax[1])[0], ax=ax[1])
+        plt.colorbar(
+            self.mesh.plotImage(np.log10(sigma), ax=ax[0])[0], ax=ax[0]
+        )
+        plt.colorbar(
+            self.mesh.plotImage(mu/mu_0, ax=ax[1])[0], ax=ax[1]
+        )
 
         ax[0].set_xlim(xlim)
         ax[1].set_xlim(xlim)
@@ -427,11 +476,6 @@ class CylMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     nch = properties.Integer(
         "number of cells to add on each side of the mesh horizontally",
         default=10.
-    )
-
-    # domain extent in the x-direction
-    domain_x = properties.Float(
-        "domain extent in the x-direction", default=1000.
     )
 
     # Instantiate the class with casing parameters
@@ -478,9 +522,6 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     pfx2 = properties.Float(
         "padding factor to pad to infinity", default=1.5
     )
-    domain_x2 = properties.Float(
-        "domain extent for uniform cell region", default=1000.
-    )
 
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
@@ -516,7 +557,7 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
             hx1b *= (dx1*self.csx2 - sum(hx1a))/sum(hx1b)
 
             # second uniform chunk of mesh
-            ncx2 = np.ceil((self.domain_x2 - dx1)/self.csx2)
+            ncx2 = np.ceil((self.domain_x - dx1)/self.csx2)
             hx2a = Utils.meshTensor([(self.csx2, ncx2)])
 
             # pad to infinity
