@@ -6,12 +6,20 @@ import json
 from scipy.constants import mu_0
 
 import discretize
-import properties
 from discretize import utils
-from pymatsolver import Pardiso
+import properties
 from SimPEG.EM import FDEM, TDEM
 from SimPEG import Utils, Maps
 from SimPEG.EM.Static import DC
+
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    import warnings
+    warnings.warn(
+        "Could not import Pardiso, falling back to LU. Will be slow."
+    )
+    from SimPEG import SolverLU as Solver
 
 from .base import LoadableInstance, BaseCasing
 from . import model
@@ -169,8 +177,8 @@ class BaseSimulation(BaseCasing):
 class SimulationFDEM(BaseSimulation):
     """
     A wrapper to run an FDEM Forward Simulation
-    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
-    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     formulation = properties.StringChoice(
@@ -188,7 +196,7 @@ class SimulationFDEM(BaseSimulation):
                 self.meshGenerator.mesh,
                 sigmaMap=self.physprops.wires.sigma,
                 muMap=self.physprops.wires.mu,
-                Solver=Pardiso
+                Solver=Solver
             )
 
         if getattr(self.src, "physics", None) is None:
@@ -202,8 +210,8 @@ class SimulationFDEM(BaseSimulation):
 class SimulationTDEM(BaseSimulation):
     """
     A wrapper to run a TDEM Forward Simulation
-    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
-    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     formulation = properties.StringChoice(
@@ -222,7 +230,7 @@ class SimulationTDEM(BaseSimulation):
                 timeSteps=self.modelParameters.timeSteps,
                 sigmaMap=self.physprops.wires.sigma,
                 mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
-                Solver=Pardiso
+                Solver=Solver
             )
 
         if getattr(self.src, "physics", None) is None:
@@ -234,7 +242,11 @@ class SimulationTDEM(BaseSimulation):
 
 
 class SimulationDC(BaseSimulation):
-
+    """
+    A wrapper to run a DC Forward Simulation
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
+    """
     src_a = properties.Vector3(
         "a electrode location", required=True
     )
@@ -260,7 +272,7 @@ class SimulationDC(BaseSimulation):
             self.meshGenerator.mesh,
             sigmaMap=self.physprops.wires.sigma,
             bc_type='Dirichlet',
-            Solver=Pardiso
+            Solver=Solver
         )
         self._src = DC.Src.Dipole([], self.src_a, self.src_b)
         self._survey = DC.Survey([self._src])
