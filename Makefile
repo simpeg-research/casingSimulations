@@ -11,7 +11,7 @@ lint:
 	pylint --output-format=html CasingSimulations > pylint.html
 
 graphs:
-	pyreverse -my -A -o pdf -p CasingSimulations CasingSimulations/**.py CasingSimulations/**/**.py
+	pyreverse -my -A -o pdf -p casingSimulations casingSimulations/**.py
 
 tests:
 	nosetests --logging-level=INFO

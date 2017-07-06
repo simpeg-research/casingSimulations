@@ -1,6 +1,7 @@
 import properties
 import os
 import json
+import warnings
 
 from .info import __version__
 from .utils import load_properties
@@ -18,7 +19,11 @@ class LoadableInstance(properties.Instance):
 
 
 class BaseCasing(properties.HasProperties):
+    """
+    Base class that contains working directories, code version and can be saved
+    """
 
+    # Properties
     filename = properties.String(
         "Filename to which the properties are serialized and written to",
     )
@@ -33,10 +38,23 @@ class BaseCasing(properties.HasProperties):
         default = __version__
     )
 
+    # Observers and validators
+    @properties.validator('version')
+    def validate_version(self, change):
+        if change['value'] != __version__:
+            warnings.warn(
+                "Instance was created on version {}, but the current version "
+                "is {}".format(
+                    change['value'], __version__
+                )
+            )
+
+    # methods
     def save(self, filename=None, directory=None):
         """
         Save the casing properties to json
         :param str file: filename for saving the casing properties
+        :param str directory: working directory for saving the file
         """
 
         # make sure properties are all valid prior to saving
@@ -61,6 +79,8 @@ class BaseCasing(properties.HasProperties):
         print('Saved {}'.format(f))
 
     def copy(self):
-        """Make a copy of the current casing object"""
+        """
+        Make a copy of the current casing object
+        """
         return properties.copy(self)
 
