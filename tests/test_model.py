@@ -41,7 +41,7 @@ class ModelTests(unittest.TestCase):
         )
 
     def test_layer(self):
-        layer = casingSim.model.Layer(surface_z=0.1, layer_z=[-np.inf, -0.2])
+        layer = casingSim.model.SingleLayer(surface_z=0.1, layer_z=[-np.inf, -0.2])
 
 if __name__ == '__main__':
     unittest.main()

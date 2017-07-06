@@ -3,5 +3,5 @@ scipy
 matplotlib
 sympy
 pymatsolver
-git+https://github.com/simpeg/simpeg.git@em/feat/galvanic-hj
+git+https://github.com/simpeg/simpeg.git@em/feat/3Dcyl
 git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh

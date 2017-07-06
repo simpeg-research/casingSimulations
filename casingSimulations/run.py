@@ -6,8 +6,8 @@ import json
 from scipy.constants import mu_0
 
 import discretize
-import properties
 from discretize import utils
+import properties
 from SimPEG.EM import FDEM, TDEM
 from SimPEG import Utils, Maps
 from SimPEG.EM.Static import DC
@@ -15,13 +15,11 @@ from SimPEG.EM.Static import DC
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
     import warnings
     warnings.warn(
-        "Using LU Solver, will be slow. `pip install pymatsolver` for better "
-        "solvers"
+        "Could not import Pardiso, falling back to LU. Will be slow."
     )
-
+    from SimPEG import SolverLU as Solver
 
 from .base import LoadableInstance, BaseCasing
 from . import model
@@ -179,8 +177,8 @@ class BaseSimulation(BaseCasing):
 class SimulationFDEM(BaseSimulation):
     """
     A wrapper to run an FDEM Forward Simulation
-    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
-    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     formulation = properties.StringChoice(
@@ -212,8 +210,8 @@ class SimulationFDEM(BaseSimulation):
 class SimulationTDEM(BaseSimulation):
     """
     A wrapper to run a TDEM Forward Simulation
-    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
-    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     formulation = properties.StringChoice(
@@ -244,7 +242,11 @@ class SimulationTDEM(BaseSimulation):
 
 
 class SimulationDC(BaseSimulation):
-
+    """
+    A wrapper to run a DC Forward Simulation
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
+    """
     src_a = properties.Vector3(
         "a electrode location", required=True
     )

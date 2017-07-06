@@ -24,7 +24,7 @@ SIMULATION_PARAMETERS_FILENAME = "ModelParameters.json"
 
 class TimeStepArray(properties.Array):
 
-    class_info = 'an array or list of tuples specifying the mesh tensor'
+    class_info = "an array or list of tuples specifying the mesh tensor"
 
     def validate(self, instance, value):
         if isinstance(value, list):
@@ -199,10 +199,7 @@ class SingleLayer(Halfspace):
 
     def ind_layer(self, mesh):
         """
-        indices where the layer is
-
-        :param discretize.BaseMesh mesh: mesh to find layer indices on
-        :rtype: numpy.array
+        Indices where the layer is
         """
         return (
             (mesh.gridCC[:, 2] < self.layer_z[1]) &
@@ -211,7 +208,9 @@ class SingleLayer(Halfspace):
 
     def sigma(self, mesh):
         """
-        put the conductivity model on a mesh
+        Construct the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put conductivity model on
         """
         sigma = super(self, sigma)(mesh)
         sigma[self.ind_layer(mesh)] = self.sigma_layer
@@ -257,12 +256,12 @@ class BaseCasingParametersMixin(BaseCasing):
     casing_d = properties.Float(
         "diameter of the casing (m)",
         default=10e-2
-    ) # 10cm diameter
+    )  # 10cm diameter
 
     casing_t = properties.Float(
         "thickness of the casing (m)",
         default=1e-2
-    ) # 1cm thickness
+    )  # 1cm thickness
 
     # useful quantities to work in
     @property
@@ -587,11 +586,11 @@ class PhysicalProperties(object):
         if ax is None:
             fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 
-        self.plot_sigma(ax=ax[0], clim=clim[0], pcolorOpts=pcolorOpts)
-        self.plot_mur(ax=ax[1], clim=clim[1], pcolorOpts=pcolorOpts)
+        if not isinstance(pcolorOpts, list):
+            pcolorOpts = [pcolorOpts]*2
+
+        self.plot_sigma(ax=ax[0], clim=clim[0], pcolorOpts=pcolorOpts[0])
+        self.plot_mur(ax=ax[1], clim=clim[1], pcolorOpts=pcolorOpts[1])
 
         plt.tight_layout()
         return ax
-
-
-
