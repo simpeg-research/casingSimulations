@@ -52,6 +52,11 @@ class BaseMeshGenerator(BaseCasing):
 
     @property
     def mesh(self):
+        """
+        discretize mesh
+
+        :rtype: discretize.BaseMesh
+        """
         if getattr(self, '_mesh', None) is None:
             self._mesh = self._discretizePair(
                 [self.hx, self.hy, self.hz],
@@ -60,6 +65,11 @@ class BaseMeshGenerator(BaseCasing):
         return self._mesh
 
     def copy(self):
+        """
+        Make a copy of the object
+
+        :rtype: BaseMeshGenerator
+        """
         cpy = super(BaseMeshGenerator, self).copy()
         cpy.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
         return cpy
@@ -133,6 +143,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
 
     @property
     def x0(self):
+        """
+        Origin of the mesh
+
+        :rtype: numpy.array
+        """
         if getattr(self, '_x0', None) is None:
             self._x0 = np.r_[
                 -self.hx.sum()/2. + (self.modelParameters.src_b[0] + self.modelParameters.src_a[0])/2.,
@@ -151,6 +166,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
 
     @property
     def domain_z(self):
+        """
+        vertical extent of the mesh
+
+        :rtype: float
+        """
         if getattr(self, '_domain_z', None) is None:
             if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
@@ -169,6 +189,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
     # number of cells in each direction
     @property
     def ncx(self):
+        """
+        number of x-cells
+
+        :rtype: int
+        """
         if getattr(self, '_ncx', None) is None:
             self._ncx = int(
                 np.ceil(self.domain_x / self.csx) +
@@ -178,6 +203,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
 
     @property
     def ncy(self):
+        """
+        number of y-cells
+
+        :rtype: int
+        """
         if getattr(self, '_ncy', None) is None:
             self._ncy = int(
                 np.ceil(self.domain_y / self.csy) + 2*self.nch
@@ -186,6 +216,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
 
     @property
     def ncz(self):
+        """
+        number of z-cells
+
+        :rtype: int
+        """
         if getattr(self, '_ncz', None) is None:
             self._ncz = int(
                 np.ceil(self.domain_z / self.csz) + self.nca + self.ncb
@@ -195,6 +230,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
     # cell spacings in each direction
     @property
     def hx(self):
+        """
+        vector of cell spacings in the x-direction
+
+        :rtype: numpy.array
+        """
         if getattr(self, '_hx', None) is None:
             self._hx = utils.meshTensor([
                 (self.csx, self.npadx, -self.pfx),
@@ -205,6 +245,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
 
     @property
     def hy(self):
+        """
+        vector of cell spacings in the y-direction
+
+        :rtype: numpy.array
+        """
         if getattr(self, '_hy', None) is None:
             self._hy = utils.meshTensor([
                 (self.csy, self.npady, -self.pfy),
@@ -215,6 +260,11 @@ class TensorMeshGenerator(BaseMeshGenerator):
 
     @property
     def hz(self):
+        """
+        vector of cell spacings in the z-direction
+
+        :rtype: numpy.array
+        """
         if getattr(self, '_hz', None) is None:
             self._hz = utils.meshTensor([
                 (self.csz, self.npadz, -self.pfz),
@@ -224,24 +274,13 @@ class TensorMeshGenerator(BaseMeshGenerator):
         return self._hz
 
 
-class CylMeshGenerator(BaseMeshGenerator):
+class BaseCylMixin(properties.HasProperties):
     """
-    Simple 3D cylindrical mesh
-
+    Mixin class that contains properties and methods common to a Cyl Mesh
+    Generator
     """
-    csx = properties.Float(
-        "cell size in the x-direction", default=25.
-    )
     csz = properties.Float(
         "cell size in the z-direction", default=25.
-    )
-
-    # padding factors in each direction
-    pfx = properties.Float(
-        "padding factor to pad to infinity", default=1.5
-    )
-    pfz = properties.Float(
-        "padding factor to pad to infinity", default=1.5
     )
 
     # Theta direction of the mesh
@@ -251,41 +290,30 @@ class CylMeshGenerator(BaseMeshGenerator):
         default=np.r_[2*np.pi] # default is cyl symmetric
     )
 
-    # number of extra cells horizontally, above the air-earth interface and
-    # below the casing
-    nch = properties.Integer(
-        "number of cells to add on each side of the mesh horizontally",
-        default=10.
-    )
+    # z-direction of the mesh
     nca = properties.Integer(
-        "number of extra cells above the air-earth interface",
-        default=5.
+        "number of fine cells above the air-earth interface", default=5
     )
     ncb = properties.Integer(
-        "number of cells below the casing",
-        default=5.
+        "number of fine cells below the casing", default=5
+    )
+    pfz = properties.Float(
+        "padding factor in the z-direction", default=1.5
     )
 
-    # number of padding cells in each direction
+    # number of padding cells
     npadx = properties.Integer(
-        "number of x-padding cells", default=10
+        "number of padding cells required to get to infinity!", default=23
     )
     npadz = properties.Integer(
-        "number of z-padding cells", default=10
+        "number of padding cells in z", default=38
     )
-
-    # domain extent in the y-direction
-    domain_x = properties.Float(
-        "domain extent in the x-direction", default=1000.
-    )
-
-    # Instantiate the class with casing parameters
-    def __init__(self, **kwargs):
-        super(CylMeshGenerator, self).__init__(**kwargs)
-        self._discretizePair = discretize.CylMesh
 
     @property
     def x0(self):
+        """
+        Origin of the mesh
+        """
         if getattr(self, '_x0', None) is None:
             self._x0 = np.r_[
                 0., 0., -np.sum(self.hz[:self.npadz+self.ncz-self.nca])
@@ -294,6 +322,9 @@ class CylMeshGenerator(BaseMeshGenerator):
 
     @property
     def domain_z(self):
+        """
+        z-extent extent of the core mesh
+        """
         if getattr(self, '_domain_z', None) is None:
             if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
@@ -309,6 +340,105 @@ class CylMeshGenerator(BaseMeshGenerator):
     def domain_z(self, value):
         self._domain_z = value
 
+    @properties.observer('hy')
+    def _ensure_2pi(self, change):
+        value = change['value']
+        assert np.absolute(value.sum() - 2*np.pi) < 1e-6
+
+    @property
+    def ncy(self):
+        if getattr(self, '_ncz', None) is None:
+            self._ncy = len(self.hy)
+        return self.ncy
+
+    @property
+    def ncz(self):
+        """
+        number of core z-cells
+        """
+        if getattr(self, '_ncz', None) is None:
+            # number of core z-cells (add 10 below the end of the casing)
+            self._ncz = (
+                np.int(np.ceil(self.domain_z/self.csz)) +
+                self.nca + self.ncb
+            )
+        return self._ncz
+
+    @property
+    def hz(self):
+        """
+        cell spacings in the z-direction
+        """
+        if getattr(self, '_hz', None) is None:
+
+            self._hz = Utils.meshTensor([
+                (self.csz, self.npadz, -self.pfz),
+                (self.csz, self.ncz),
+                (self.csz, self.npadz, self.pfz)
+            ])
+        return self._hz
+
+    def create_2D_mesh(self):
+        """
+        create cylindrically symmetric mesh generator
+        """
+        mesh2D = self.copy()
+        mesh2D.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
+        mesh2D.hy = np.r_[2*np.pi]
+        return mesh2D
+
+    # Plot the physical Property Models
+    def plotModels(self, sigma, mu, xlim=[0., 1.], zlim=[-1200., 100.], ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+
+        plt.colorbar(self.mesh.plotImage(np.log10(sigma), ax=ax[0])[0], ax=ax[0])
+        plt.colorbar(self.mesh.plotImage(mu/mu_0, ax=ax[1])[0], ax=ax[1])
+
+        ax[0].set_xlim(xlim)
+        ax[1].set_xlim(xlim)
+
+        ax[0].set_ylim(zlim)
+        ax[1].set_ylim(zlim)
+
+        ax[0].set_title('$\log_{10}\sigma$')
+        ax[1].set_title('$\mu_r$')
+
+        plt.tight_layout()
+
+        return ax
+
+
+class CylMeshGenerator(BaseMeshGenerator, BaseCylMixin):
+    """
+    Simple 3D cylindrical mesh
+    """
+    csx = properties.Float(
+        "cell size in the x-direction", default=25.
+    )
+
+    # padding factors in each direction
+    pfx = properties.Float(
+        "padding factor to pad to infinity", default=1.5
+    )
+
+    # number of extra cells horizontally, above the air-earth interface and
+    # below the casing
+    nch = properties.Integer(
+        "number of cells to add on each side of the mesh horizontally",
+        default=10.
+    )
+
+    # domain extent in the x-direction
+    domain_x = properties.Float(
+        "domain extent in the x-direction", default=1000.
+    )
+
+    # Instantiate the class with casing parameters
+    def __init__(self, **kwargs):
+        super(CylMeshGenerator, self).__init__(**kwargs)
+        self._discretizePair = discretize.CylMesh
+
     # number of cells in each direction
     @property
     def ncx(self):
@@ -318,22 +448,6 @@ class CylMeshGenerator(BaseMeshGenerator):
                 self.nch
             )
         return self._ncx
-
-    @property
-    def ncy(self):
-        if getattr(self, '_ncy', None) is None:
-            self._ncy = int(
-                np.ceil(self.domain_y / self.csy) + 2*self.nch
-            )
-        return self._ncy
-
-    @property
-    def ncz(self):
-        if getattr(self, '_ncz', None) is None:
-            self._ncz = int(
-                np.ceil(self.domain_z / self.csz) + self.nca + self.ncb
-            )
-        return self._ncz
 
     # cell spacings in each direction
     @property
@@ -345,24 +459,8 @@ class CylMeshGenerator(BaseMeshGenerator):
             ])
         return self._hx
 
-    @property
-    def hz(self):
-        if getattr(self, '_hz', None) is None:
-            self._hz = utils.meshTensor([
-                (self.csz, self.npadz, -self.pfz),
-                (self.csz, self.ncz),
-                (self.csz, self.npadz, self.pfz)
-            ])
-        return self._hz
 
-    def create_2D_mesh(self):
-        mesh2D = self.copy()
-        mesh2D.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
-        mesh2D.hy = np.r_[2*np.pi]
-        return mesh2D
-
-
-class CasingMeshGenerator(BaseMeshGenerator):
+class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     """
     Mesh that makes sense for casing examples
     """
@@ -382,35 +480,6 @@ class CasingMeshGenerator(BaseMeshGenerator):
     )
     domain_x2 = properties.Float(
         "domain extent for uniform cell region", default=1000.
-    )
-
-    # Theta direction of the mesh
-    hy = properties.Array(
-        "cell spacings in the y direction",
-        dtype=float,
-        default=np.r_[2*np.pi] # default is cyl symmetric
-    )
-
-    # z-direction of the mesh
-    csz = properties.Float(
-        "cell size in the z-direction", default=0.05
-    )
-    nca = properties.Integer(
-        "number of fine cells above the air-earth interface", default=5
-    )
-    ncb = properties.Integer(
-        "number of fine cells below the casing", default=5
-    )
-    pfz = properties.Float(
-        "padding factor in the z-direction", default=1.5
-    )
-
-    # number of padding cells
-    npadx = properties.Integer(
-        "number of padding cells required to get to infinity!", default=23
-    )
-    npadz = properties.Integer(
-        "number of padding cells in z", default=38
     )
 
     # Instantiate the class with casing parameters
@@ -456,78 +525,4 @@ class CasingMeshGenerator(BaseMeshGenerator):
             self._hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
         return self._hx
-
-    @properties.observer('hy')
-    def _ensure_2pi(self, change):
-        value = change['value']
-        assert np.absolute(value.sum() - 2*np.pi) < 1e-6
-
-    @property
-    def ncy(self):
-        if getattr(self, '_ncz', None) is None:
-            self._ncy = len(self.hy)
-        return self.ncy
-
-    @property
-    def ncz(self):
-        """
-        number of core z-cells
-        """
-        if getattr(self, '_ncz', None) is None:
-            # number of core z-cells (add 10 below the end of the casing)
-            self._ncz = (
-                np.int(np.ceil(-self.modelParameters.casing_z[0]/self.csz)) +
-                self.nca + self.ncb
-            )
-        return self._ncz
-
-    @property
-    def hz(self):
-        if getattr(self, '_hz', None) is None:
-
-            self._hz = Utils.meshTensor([
-                (self.csz, self.npadz, -self.pfz),
-                (self.csz, self.ncz),
-                (self.csz, self.npadz, self.pfz)
-            ])
-        return self._hz
-
-    @property
-    def x0(self):
-        if getattr(self, '_x0', None) is None:
-            self._x0 = np.r_[
-                0., 0., -np.sum(self.hz[:self.npadz+self.ncz-self.nca])
-            ]
-        return self._x0
-
-    @x0.setter
-    def x0(self, value):
-        assert len(value) == 3, 'x0 must be length 3, not {}'.format(len(x0))
-
-    def create_2D_mesh(self):
-        mesh2D = self.copy()
-        mesh2D.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
-        mesh2D.hy = np.r_[2*np.pi]
-        return mesh2D
-
-    # Plot the physical Property Models
-    def plotModels(self, sigma, mu, xlim=[0., 1.], zlim=[-1200., 100.], ax=None):
-        if ax is None:
-            fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-
-        plt.colorbar(self.mesh.plotImage(np.log10(sigma), ax=ax[0])[0], ax=ax[0])
-        plt.colorbar(self.mesh.plotImage(mu/mu_0, ax=ax[1])[0], ax=ax[1])
-
-        ax[0].set_xlim(xlim)
-        ax[1].set_xlim(xlim)
-
-        ax[0].set_ylim(zlim)
-        ax[1].set_ylim(zlim)
-
-        ax[0].set_title('$\log_{10}\sigma$')
-        ax[1].set_title('$\mu_r$')
-
-        plt.tight_layout()
-
-        return ax
 
