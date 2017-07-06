@@ -468,7 +468,6 @@ class CasingMeshGenerator(BaseMeshGenerator):
             self._ncy = len(self.hy)
         return self.ncy
 
-
     @property
     def ncz(self):
         """

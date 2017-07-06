@@ -69,22 +69,16 @@ class BaseCasingSrc(BaseCasing):
 
     @property
     def casing_a(self):
-<<<<<<< HEAD
         """
         inner radius of the casing
         """
-=======
->>>>>>> master
         return self.modelParameters.casing_a
 
     @property
     def freqs(self):
-<<<<<<< HEAD
         """
         frequencies to consider
         """
-=======
->>>>>>> master
         return self.modelParameters.freqs
 
     @property
