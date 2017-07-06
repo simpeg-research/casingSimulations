@@ -236,12 +236,12 @@ class BaseCasingParametersMixin(BaseCasing):
     casing_d = properties.Float(
         "diameter of the casing (m)",
         default=10e-2
-    ) # 10cm diameter
+    )  # 10cm diameter
 
     casing_t = properties.Float(
         "thickness of the casing (m)",
         default=1e-2
-    ) # 1cm thickness
+    )  # 1cm thickness
 
     # useful quantities to work in
     @property
@@ -482,11 +482,11 @@ class PhysicalProperties(object):
         if ax is None:
             fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 
-        self.plot_sigma(ax=ax[0], clim=clim[0], pcolorOpts=pcolorOpts)
-        self.plot_mur(ax=ax[1], clim=clim[1], pcolorOpts=pcolorOpts)
+        if not isinstance(pcolorOpts, list):
+            pcolorOpts = [pcolorOpts]*2
+
+        self.plot_sigma(ax=ax[0], clim=clim[0], pcolorOpts=pcolorOpts[0])
+        self.plot_mur(ax=ax[1], clim=clim[1], pcolorOpts=pcolorOpts[1])
 
         plt.tight_layout()
         return ax
-
-
-
