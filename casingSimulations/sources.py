@@ -48,22 +48,37 @@ class BaseCasingSrc(BaseCasing):
 
     @property
     def mesh(self):
+        """
+        discretize mesh
+        """
         return self.meshGenerator.mesh
 
     @property
     def src_a(self):
+        """
+        location of the a-electrode
+        """
         return self.modelParameters.src_a
 
     @property
     def src_b(self):
+        """
+        location of the b-electrode
+        """
         return self.modelParameters.src_b
 
     @property
     def casing_a(self):
+        """
+        inner radius of the casing
+        """
         return self.modelParameters.casing_a
 
     @property
     def freqs(self):
+        """
+        frequencies to consider
+        """
         return self.modelParameters.freqs
 
     @property
@@ -166,11 +181,18 @@ class HorizontalElectricDipole(BaseCasingSrc):
 
     @property
     def surface_wire_direction(self):
+        """
+        direction of the source wire
+        """
         # todo: extend to the case where the wire is not along the x-axis
         return [-1. if self.src_a[0] < self.src_b[0] else 1.][0]
 
     @property
     def s_e(self):
+        """
+        electric source term used to build the right hand side of the maxwell
+        system
+        """
         if getattr(self, '_s_e', None) is None:
             # downhole source
             s_x = np.zeros(self.mesh.vnF[0])
