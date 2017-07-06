@@ -24,7 +24,7 @@ SIMULATION_PARAMETERS_FILENAME = "ModelParameters.json"
 
 class TimeStepArray(properties.Array):
 
-    class_info = 'an array or list of tuples specifying the mesh tensor'
+    class_info = "an array or list of tuples specifying the mesh tensor"
 
     def validate(self, instance, value):
         if isinstance(value, list):
@@ -186,12 +186,20 @@ class SingleLayer(Halfspace):
     )
 
     def ind_layer(self, mesh):
+        """
+        Indices where the layer is
+        """
         return (
             (mesh.gridCC[:, 2] < self.layer_z[1]) &
             (mesh.gridCC[:, 2] > self.layer_z[0])
         )
 
     def sigma(self, mesh):
+        """
+        Construct the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put conductivity model on
+        """
         sigma = super(self, sigma)(mesh)
         sigma[self.ind_layer(mesh)] = self.sigma_layer
         return sigma
@@ -337,10 +345,20 @@ class CasingInWholespace(Wholespace, BaseCasingParametersMixin):
     A model of casing in a wholespace
     """
     def sigma(self, mesh):
+        """
+        Construct the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put the conductivity model on
+        """
         sigma = super(CasingInWholespace, self).sigma(mesh)
         return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
+        """
+        Construct the relative permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put the permeability model on
+        """
         mur = super(CasingInWholespace, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
 
@@ -350,10 +368,20 @@ class CasingInHalfspace(Halfspace, BaseCasingParametersMixin):
     A model of casing in a halfspace
     """
     def sigma(self, mesh):
+        """
+        Construct the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put conductivity model on
+        """
         sigma = super(CasingInHalfspace, self).sigma(mesh)
         return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
+        """
+        Construct the relative permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put the permeability model on
+        """
         mur = super(CasingInHalfspace, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
 
@@ -363,10 +391,20 @@ class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
     A model of casing in an earth that has a single layer
     """
     def sigma(self, mesh):
+        """
+        Construct the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put conductivity model on
+        """
         sigma = super(CasingInSingleLayer, self).sigma(mesh)
         return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
+        """
+        Construct the relative permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put the permeability model on
+        """
         mur = super(CasingInSingleLayer, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
 
@@ -382,12 +420,18 @@ class PhysicalProperties(object):
 
     @property
     def mur(self):
+        """
+        Relative permeability
+        """
         if getattr(self, '_mur', None) is None:
             self._mur = self.modelParameters.mur(self.mesh)
         return self._mur
 
     @property
     def mu(self):
+        """
+        Magnetic permeability (H/m)
+        """
         return mu_0 * self.mur
 
     @property

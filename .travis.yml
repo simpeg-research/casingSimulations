@@ -29,8 +29,9 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython mkl;
     fi
-  - pip install -r requirements_dev.txt
   - cd casingSimulations; python setup.py install; cd ..
+  - pip install -r requirements_dev.txt
+
 
 script:
   - nosetests $TEST_DIR --with-cov --cov casingSimulations --cov-config .coveragerc -v -s;

@@ -178,7 +178,7 @@ class SimulationFDEM(BaseSimulation):
     """
     A wrapper to run an FDEM Forward Simulation
     :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
-    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     formulation = properties.StringChoice(
@@ -210,8 +210,8 @@ class SimulationFDEM(BaseSimulation):
 class SimulationTDEM(BaseSimulation):
     """
     A wrapper to run a TDEM Forward Simulation
-    :param CasingSimulations.CasingParameters modelParameters: casing parameters object
-    :param CasingSimulations.MeshGenerator mesh: a CasingSimulation mesh generator object
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
     """
 
     formulation = properties.StringChoice(
@@ -242,7 +242,11 @@ class SimulationTDEM(BaseSimulation):
 
 
 class SimulationDC(BaseSimulation):
-
+    """
+    A wrapper to run a DC Forward Simulation
+    :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
+    :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
+    """
     src_a = properties.Vector3(
         "a electrode location", required=True
     )
