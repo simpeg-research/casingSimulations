@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import discretize
 import os
+import pytest
 from discretize import utils
 from scipy.constants import mu_0
 
@@ -41,7 +42,16 @@ class ModelTests(unittest.TestCase):
         )
 
     def test_layer(self):
-        layer = casingSim.model.SingleLayer(surface_z=0.1, layer_z=[-np.inf, -0.2])
+        layer = casingSim.model.SingleLayer(
+            surface_z=0.1, layer_z=[-np.inf, -0.2]
+        )
+
+    def test_different_version(self):
+        with pytest.warns(UserWarning):
+            wholespace = casingSim.model.Wholespace(version='0.0.1')
+
+        #     wholespace.validate()
+
 
 if __name__ == '__main__':
     unittest.main()
