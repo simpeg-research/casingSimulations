@@ -61,6 +61,34 @@ class SurveyParametersMixin(properties.HasProperties):
         default=np.r_[1e3, 0., 0.]
     )
 
+    @property
+    def info_survey(self):
+        info = "\n ---- Survey ---- "
+
+        # src locations
+        info += "\n\n   src_a: {:s}".format(self.src_a)
+        info += "\n   src_b: {:s}".format(self.src_b)
+        info += "\n"
+
+        # frequencies or times
+        if self.freqs is not None:
+            info += (
+                "\n   {:1.0f} frequencies. "
+                "min: {:1.1e} Hz, max: {:1.1e} Hz".format(
+                    len(self.freqs), self.freqs.min(), self.freqs.max()
+                )
+            )
+
+        if self.timeSteps is not None:
+            info += (
+                "\n   {:1.0f} time steps. min time step: {:1.1e} s, "
+                "max time step: {:1.1e} s. Total time: {:1.1e} s".format(
+                    len(self.timeSteps), self.timeSteps.min(),
+                    self.timeSteps.max(), self.timeSteps.sum()
+                )
+            )
+        return info
+
 
 class Wholespace(SurveyParametersMixin, BaseCasing):
     """
@@ -85,6 +113,25 @@ class Wholespace(SurveyParametersMixin, BaseCasing):
 
     def __init__(self, filename=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
+
+    def __str__(self):
+        return self.info
+
+    @property
+    def info_model(self):
+        info = "\n ---- Model ---- "
+        info += "\n\n  background: "
+        info += "\n    - conductivity: {:1.1e} S/m".format(self.sigma_back)
+        info += "\n    - permeability: {:1.1f} mu_0".format(self.mur_back)
+        return info
+
+    @property
+    def info(self):
+        info = self.info_survey
+        info += "\n\n" + self.info_model
+        if hasattr(self, 'info_casing'):
+            info += "\n\n" + self.info_casing
+        return info
 
     # handy functions
     def skin_depth(self, sigma=None, mu=None, f=None):
@@ -161,6 +208,16 @@ class Halfspace(Wholespace):
         default=0
     )
 
+    @property
+    def info_model(self):
+        info = super(Halfspace, self).info_model
+        info += "\n\n  air: "
+        info += "\n    - conductivity: {:1.1e} S/m".format(self.sigma_air)
+        info += "\n    - earth surface elevaation: {:1.1f} m".format(
+            self.surface_z
+        )
+        return info
+
     def ind_air(self, mesh):
         """
         indices where the air is
@@ -196,6 +253,14 @@ class SingleLayer(Halfspace):
         shape=(2,),
         default=np.r_[-1000., -900.]
     )
+
+    @property
+    def info_model(self):
+        info = super(SingleLayer, self).info_model
+        info += "\n\n  layer: "
+        info += "\n    - conductivity: {:1.1e} S/m".format(self.sigma_layer)
+        info += "\n    - layer z: {:s} m".format(self.layer_z)
+        return info
 
     def ind_layer(self, mesh):
         """
@@ -262,6 +327,25 @@ class BaseCasingParametersMixin(BaseCasing):
         "thickness of the casing (m)",
         default=1e-2
     )  # 1cm thickness
+
+    @property
+    def info_casing(self):
+        info = "\n ---- Casing ---- "
+
+        info += "\n\n  properties: "
+        info += "\n    - conductivity: {:1.1e} S/m".format(self.sigma_casing)
+        info += "\n    - permeability: {:1.1f} mu_0".format(self.mur_casing)
+        info += "\n    - conductivity inside: {:1.1e} S/m".format(
+            self.sigma_inside
+        )
+
+        info += "\n\n  geometry: "
+        info += "\n    - casing top: {:1.1f} m".format(self.casing_top)
+        info += "\n    - casing length: {:1.1f} m".format(self.casing_l)
+        info += "\n    - casing diameter: {:1.1e} m".format(self.casing_d)
+        info += "\n    - casing thickness: {:1.1e} m".format(self.casing_t)
+
+        return info
 
     # useful quantities to work in
     @property
