@@ -596,7 +596,7 @@ class PhysicalProperties(object):
             )
         return self._wires
 
-    def plot_prop(self, prop, ax=None, clim=None, pcolorOpts=None):
+    def plot_prop(self, prop, ax=None, clim=None, pcolorOpts=None, theta_ind=0):
         """
         Plot a cell centered property
 
@@ -621,7 +621,7 @@ class PhysicalProperties(object):
 
         cb = plt.colorbar(
             mesh2D.plotImage(
-                discretize.utils.mkvc(propplt[:, 0, :]), ax=ax,
+                discretize.utils.mkvc(propplt[:, theta_ind, :]), ax=ax,
                 mirror=True, pcolorOpts=pcolorOpts
             )[0], ax=ax,
 
