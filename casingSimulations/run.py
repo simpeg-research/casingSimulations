@@ -163,6 +163,7 @@ class BaseSimulation(BaseCasing):
         # ----------------- Run the the simulation ----------------- #
         print('Starting Simulation')
         t = time.time()
+        print('Using {} Solver'.format(prb.Solver))
         fields = prb.fields(physprops.model)
         np.save(
             '/'.join([self.directory, self.fields_filename]),
