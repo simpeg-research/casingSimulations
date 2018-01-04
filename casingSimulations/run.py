@@ -145,10 +145,11 @@ class BaseSimulation(BaseCasing):
 
         # grab the discretize mesh off of the mesh object
         sim_mesh = self.meshGenerator.mesh
-        print('      max x: {}, min z: {}, max z: {}'.format(
+        print('      max x: {}, min z: {}, max z: {}, nC: {}'.format(
             sim_mesh.vectorNx.max(),
             sim_mesh.vectorNz.min(),
-            sim_mesh.vectorNz.max()
+            sim_mesh.vectorNz.max(),
+            sim_mesh.nC
         ))
 
         # save simulation parameters
