@@ -113,8 +113,8 @@ class BaseSimulation(BaseCasing):
         self.meshGenerator.save()
         self.src.save()
 
-        if physics is None:
-            physics = self.src.physics
+        # if physics is None:
+        #     physics = self.src.physics
 
         # write the simulation.py
         writeSimulationPy(
@@ -122,7 +122,7 @@ class BaseSimulation(BaseCasing):
             meshGenerator=self.meshGenerator.filename,
             src=self.src.filename,
             directory=self.directory,
-            physics=physics
+            physics=self.physics
         )
 
     def fields(self):
@@ -187,6 +187,8 @@ class SimulationFDEM(BaseSimulation):
         choices=["e", "b", "h", "j"]
     )
 
+    physics = "FDEM"
+
     def __init__(self, **kwargs):
         super(SimulationFDEM, self).__init__(**kwargs)
 
@@ -196,7 +198,8 @@ class SimulationFDEM(BaseSimulation):
                 self.meshGenerator.mesh,
                 sigmaMap=self.physprops.wires.sigma,
                 muMap=self.physprops.wires.mu,
-                Solver=Solver
+                Solver=Solver,
+                verbose=True
             )
 
         if getattr(self.src, "physics", None) is None:
@@ -220,6 +223,8 @@ class SimulationTDEM(BaseSimulation):
         choices=["e", "b", "h", "j"]
     )
 
+    physics = "TDEM"
+
     def __init__(self, **kwargs):
         super(SimulationTDEM, self).__init__(**kwargs)
 
@@ -230,7 +235,8 @@ class SimulationTDEM(BaseSimulation):
                 timeSteps=self.modelParameters.timeSteps,
                 sigmaMap=self.physprops.wires.sigma,
                 mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
-                Solver=Solver
+                Solver=Solver,
+                verbose=True
             )
 
         if getattr(self.src, "physics", None) is None:
@@ -264,6 +270,8 @@ class SimulationDC(BaseSimulation):
         "field that we are solving for",
         default="phi"
     )
+
+    physics = "DC"
 
     def __init__(self, **kwargs):
         super(SimulationDC, self).__init__(**kwargs)
