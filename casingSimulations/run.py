@@ -69,6 +69,11 @@ class BaseSimulation(BaseCasing):
         required=False
     )
 
+    verbose = properties.Bool(
+        "run the simulation in Verbose mode?",
+        default = False
+    )
+
     def __init__(self, **kwargs):
         # set keyword arguments
         Utils.setKwargs(self, **kwargs)
@@ -201,7 +206,7 @@ class SimulationFDEM(BaseSimulation):
                 sigmaMap=self.physprops.wires.sigma,
                 muMap=self.physprops.wires.mu,
                 Solver=Solver,
-                verbose=True
+                verbose=self.verbose
             )
 
         if getattr(self.src, "physics", None) is None:
@@ -238,7 +243,7 @@ class SimulationTDEM(BaseSimulation):
                 sigmaMap=self.physprops.wires.sigma,
                 mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
                 Solver=Solver,
-                verbose=True
+                verbose=self.verbose
             )
 
         if getattr(self.src, "physics", None) is None:
