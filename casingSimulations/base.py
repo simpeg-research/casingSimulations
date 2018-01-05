@@ -30,7 +30,7 @@ class BaseCasing(properties.HasProperties):
 
     directory = properties.String(
         "Working directory",
-        default=os.path.abspath(".")
+        default="."
     )
 
     version = properties.String(
@@ -57,7 +57,7 @@ class BaseCasing(properties.HasProperties):
         if not os.path.isdir(fullpath):
             os.mkdir(fullpath)
 
-        change['value'] = fullpath
+        # change['value'] = fullpath
 
 
     # methods
