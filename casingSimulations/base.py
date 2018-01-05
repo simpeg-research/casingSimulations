@@ -30,7 +30,7 @@ class BaseCasing(properties.HasProperties):
 
     directory = properties.String(
         "Working directory",
-        default="."
+        default=os.path.abspath(".")
     )
 
     version = properties.String(
@@ -40,7 +40,7 @@ class BaseCasing(properties.HasProperties):
 
     # Observers and validators
     @properties.validator('version')
-    def validate_version(self, change):
+    def _validate_version(self, change):
         if change['value'] != __version__:
             warnings.warn(
                 "Instance was created on version {}, but the current version "
@@ -48,6 +48,17 @@ class BaseCasing(properties.HasProperties):
                     change['value'], __version__
                 )
             )
+
+    @properties.validator('directory')
+    def _ensure_abspath(self, change):
+        val = change['value']
+        fullpath = os.path.abspath(os.path.expanduser(val))
+
+        if not os.path.isdir(fullpath):
+            os.mkdir(fullpath)
+
+        change['value'] = fullpath
+
 
     # methods
     def save(self, filename=None, directory=None):

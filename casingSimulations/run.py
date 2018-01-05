@@ -162,7 +162,7 @@ class BaseSimulation(BaseCasing):
         # prb.pair(survey)
 
         # ----------------- Run the the simulation ----------------- #
-        print('Starting Simulation')
+        print('Starting {}'.format(type(self).__name__))
         t = time.time()
         print('Using {} Solver'.format(prb.Solver))
         fields = prb.fields(physprops.model)

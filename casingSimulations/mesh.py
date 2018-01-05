@@ -180,17 +180,17 @@ class TensorMeshGenerator(BaseMeshGenerator):
         if getattr(self, '_domain_z', None) is None:
             if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
-                    (
+                    np.absolute(
                         self.modelParameters.casing_z[1] -
                         self.modelParameters.casing_z[0]
                     ),
-                    (
+                    np.absolute(
                         self.modelParameters.src_b[2] -
                         self.modelParameters.src_a[2]
                     )
                 ])
             else:
-                domain_z = (
+                domain_z = np.absolute(
                     self.modelParameters.src_b[2] -
                     self.modelParameters.src_a[2]
                 )
@@ -350,17 +350,17 @@ class BaseCylMixin(properties.HasProperties):
         if getattr(self, '_domain_z', None) is None:
             if getattr(self.modelParameters, 'casing_z', None) is not None:
                 domain_z = max([
-                    (
+                    np.absolute(
                         self.modelParameters.casing_z[1] -
                         self.modelParameters.casing_z[0]
                     ),
-                    (
+                    np.absolute(
                         self.modelParameters.src_b[2] -
                         self.modelParameters.src_a[2]
                     )
                 ])
             else:
-                domain_z = (
+                domain_z = np.absolute(
                     self.modelParameters.src_b[2] -
                     self.modelParameters.src_a[2]
                 )
