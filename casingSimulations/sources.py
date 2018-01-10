@@ -768,7 +768,7 @@ class TopCasingSrc(DownHoleTerminatingSrc):
             )
             surface_wirez = (
                 (mesh.gridFx[:, 2] > src_b[2] + mesh.hz.min()) &
-                (mesh.gridFx[:, 2] <= src_b[2] + 1.75*mesh.hz.min())
+                (mesh.gridFx[:, 2] < src_b[2] + 2*mesh.hz.min())
             )
             self._surface_wire = surface_wirex & surface_wirez
 
