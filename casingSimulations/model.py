@@ -10,10 +10,30 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 from .base import BaseCasing
+from .view import plot_slice
 
 
-# Global variables (Filenames)
+##############################################################################
+#                                                                            #
+#                                 Defaults                                   #
+#                                                                            #
+##############################################################################
+
+# Filenames
 SIMULATION_PARAMETERS_FILENAME = "ModelParameters.json"
+
+# Conductivities
+SIGMA_BACK = 1e-2
+SIGMA_AIR = 1e-6
+SIGMA_CASING = 5.5e6
+
+# Magnetic Permeability
+MUR = 1.
+
+# Casing parameters
+CASING_L = 1000
+CASING_D = 10e-2 # 10cm diameter
+CASING_T = 1e-2 # 1cm thickness
 
 
 ##############################################################################
@@ -53,12 +73,12 @@ class SurveyParametersMixin(properties.HasProperties):
 
     src_a = properties.Array(
         "down-hole z-location for the source",
-        default=np.r_[0., 0., -975.]
+        default=np.r_[0., 0., 0.]
     )
 
     src_b = properties.Array(
         "B electrode location",
-        default=np.r_[1e3, 0., 0.]
+        default=np.r_[CASING_L, 0., 0.]
     )
 
     @property
@@ -101,13 +121,13 @@ class Wholespace(SurveyParametersMixin, BaseCasing):
 
     sigma_back = properties.Float(
         "conductivity of the background (S/m)",
-        default=1e-2,
+        default=SIGMA_BACK,
         min=0.
     )
 
     mur_back = properties.Float(
         "relative permittivity of the background",
-        default=1.,
+        default=MUR,
         min=0.
     )
 
@@ -200,7 +220,7 @@ class Halfspace(Wholespace):
     """
     sigma_air = properties.Float(
         "conductivity of the air (S/m)",
-        default=1e-6
+        default=SIGMA_AIR
     )
 
     surface_z = properties.Float(
@@ -245,13 +265,13 @@ class SingleLayer(Halfspace):
     """
     sigma_layer = properties.Float(
         "conductivity of the layer (S/m)",
-        default=1e-2
+        default=SIGMA_AIR
     )
 
     layer_z = properties.Array(
         "z-limits of the layer",
         shape=(2,),
-        default=np.r_[-1000., -900.]
+        default=np.r_[-CASING_L, -CASING_L*0.9]
     )
 
     @property
@@ -294,18 +314,18 @@ class BaseCasingParametersMixin(BaseCasing):
     """
     sigma_casing = properties.Float(
         "conductivity of the casing (S/m)",
-        default=5.5e6
+        default=SIGMA_CASING
     )
 
     sigma_inside = properties.Float(
         "conductivity of the fluid inside the casing (S/m)",
-        default=1.
+        default=SIGMA_BACK
     )
 
     # Magnetic Permeability
     mur_casing = properties.Float(
         "relative permeability of the casing",
-        default=100.
+        default=MUR
     )
 
     # Casing Geometry
@@ -315,18 +335,17 @@ class BaseCasingParametersMixin(BaseCasing):
     )
     casing_l = properties.Float(
         "length of the casing (m)",
-        default=1000
+        default=CASING_L
     )
 
     casing_d = properties.Float(
         "diameter of the casing (m)",
-        default=10e-2
-    )  # 10cm diameter
-
+        default=CASING_D
+    )
     casing_t = properties.Float(
         "thickness of the casing (m)",
-        default=1e-2
-    )  # 1cm thickness
+        default=CASING_T
+    )
 
     @property
     def info_casing(self):
@@ -509,6 +528,91 @@ class CasingInHalfspace(Halfspace, BaseCasingParametersMixin):
         return self.add_mur_casing(mesh, mur)
 
 
+class FlawedCasingInHalfspace(CasingInHalfspace):
+    """
+    A model of a flawed casing in a wholespace
+    """
+
+    flaw_r = properties.Array(
+        "Radius of the flawed section of the casing [inner radius, outer "
+        "radius]",
+        shape=(2,),
+        default=np.r_[0., 0.]
+    )
+
+    flaw_theta = properties.Array(
+        "Azimuth of the flawed section of the casing [min azimuth, max "
+        "azimuth]",
+        shape=(2,),
+        default=np.r_[0., 2*np.pi]
+    )
+
+    flaw_z = properties.Array(
+        "vertical extent of the flawed section of the casing [z min, z max]",
+        shape=(2,),
+        default=np.r_[0., 0.]
+    )
+
+    sigma_flaw = properties.Float(
+        "conductivity of the flawed section",
+        default=SIGMA_CASING,
+        min=0.
+    )
+
+    mur_flaw = properties.Float(
+        "magnetic permeability of the flawed section",
+        default=MUR,
+        min=0.
+    )
+
+    def _indices_flaw_r(self, mesh):
+        return (
+            (mesh.gridCC[:, 0] >= self.flaw_r[0]) &
+            (mesh.gridCC[:, 0] <= self.flaw_r[1])
+        )
+
+    def _indices_flaw_theta(self, mesh):
+        return (
+            (mesh.gridCC[:, 1] >= self.flaw_theta[0]) &
+            (mesh.gridCC[:, 1] <= self.flaw_theta[1])
+        )
+
+    def _indices_flaw_z(self, mesh):
+        return (
+            (mesh.gridCC[:, 2] >= self.flaw_z[0]) &
+            (mesh.gridCC[:, 2] <= self.flaw_z[1])
+        )
+
+    def indices_flaw(self, mesh):
+        return (
+            self._indices_flaw_r(mesh) &
+            self._indices_flaw_theta(mesh) &
+            self._indices_flaw_z(mesh)
+        )
+
+    def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        sigma = super(FlawedCasingInHalfspace, self).sigma(mesh)
+        sigma[self.indices_flaw(mesh)] = self.sigma_flaw
+        return sigma
+
+    def mur(self, mesh):
+        """
+        put the permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        mur = super(FlawedCasingInHalfspace, self).mur(mesh)
+        mur[self.indices_flaw(mesh)] = self.mur_flaw
+        return mur
+
+
 class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
     """
     A model of casing in an earth that has a single layer
@@ -596,7 +700,9 @@ class PhysicalProperties(object):
             )
         return self._wires
 
-    def plot_prop(self, prop, ax=None, clim=None, pcolorOpts=None, theta_ind=0):
+    def plot_prop(
+        self, prop, ax=None, clim=None, pcolorOpts=None, theta_ind=0
+    ):
         """
         Plot a cell centered property
 
@@ -605,33 +711,10 @@ class PhysicalProperties(object):
         :param numpy.array clim: colorbar limits
         :param dict pcolorOpts: dictionary of pcolor options
         """
-
-        if ax is None:
-            fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-
-        if pcolorOpts is None:
-            pcolorOpts = {}
-
-        # generate a 2D mesh for plotting slices
-        mesh2D = discretize.CylMesh(
-            [self.mesh.hx, 1., self.mesh.hz], x0=self.mesh.x0
+        return plot_slice(
+            self.mesh, prop, ax=ax, clim=clim, pcolorOpts=pcolorOpts,
+            theta_ind=theta_ind
         )
-
-        propplt = prop.reshape(self.mesh.vnC, order='F')
-
-        cb = plt.colorbar(
-            mesh2D.plotImage(
-                discretize.utils.mkvc(propplt[:, theta_ind, :]), ax=ax,
-                mirror=True, pcolorOpts=pcolorOpts
-            )[0], ax=ax,
-
-        )
-
-        if clim is not None:
-            cb.set_clim(clim)
-            cb.update_ticks()
-
-        return ax
 
     def plot_sigma(self, ax=None, clim=None, pcolorOpts=None):
         """

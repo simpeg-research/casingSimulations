@@ -6,6 +6,45 @@ import discretize
 from . import utils
 
 
+def plot_slice(
+    mesh, v, ax=None, clim=None, pcolorOpts=None, theta_ind=0
+):
+    """
+    Plot a cell centered property
+
+    :param numpy.array prop: cell centered property to plot
+    :param matplotlib.axes ax: axis
+    :param numpy.array clim: colorbar limits
+    :param dict pcolorOpts: dictionary of pcolor options
+    """
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+    if pcolorOpts is None:
+        pcolorOpts = {}
+
+    # generate a 2D mesh for plotting slices
+    mesh2D = discretize.CylMesh(
+        [mesh.hx, 1., mesh.hz], x0=mesh.x0
+    )
+
+    vplt = v.reshape(mesh.vnC, order='F')
+
+    cb = plt.colorbar(
+        mesh2D.plotImage(
+            discretize.utils.mkvc(vplt[:, theta_ind, :]), ax=ax,
+            mirror=True, pcolorOpts=pcolorOpts
+        )[0], ax=ax,
+    )
+
+    if clim is not None:
+        cb.set_clim(clim)
+        cb.update_ticks()
+
+    return ax, cb
+
+
 def plotFace2D(
     mesh2D,
     j, real_or_imag='real', ax=None, range_x=None,
