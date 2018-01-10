@@ -701,7 +701,7 @@ class PhysicalProperties(object):
         return self._wires
 
     def plot_prop(
-        self, prop, ax=None, clim=None, pcolorOpts=None, theta_ind=0
+        self, prop, ax=None, clim=None, theta_ind=0, pcolorOpts=None,
     ):
         """
         Plot a cell centered property
@@ -716,7 +716,7 @@ class PhysicalProperties(object):
             theta_ind=theta_ind
         )
 
-    def plot_sigma(self, ax=None, clim=None, pcolorOpts=None):
+    def plot_sigma(self, ax=None, clim=None, theta_ind=0, pcolorOpts=None):
         """
         plot the electrical conductivity
 
@@ -724,11 +724,14 @@ class PhysicalProperties(object):
         :param numpy.array clim: colorbar limits
         :param dict pcolorOpts: dictionary of pcolor options
         """
-        self.plot_prop(self.sigma, ax=ax, clim=clim, pcolorOpts=pcolorOpts)
+        self.plot_prop(
+            self.sigma, ax=ax, clim=clim, theta_ind=theta_ind,
+            pcolorOpts=pcolorOpts
+        )
         ax.set_title('$\sigma$')
         return ax
 
-    def plot_mur(self, ax=None, clim=None, pcolorOpts=None):
+    def plot_mur(self, ax=None, clim=None, theta_ind=0, pcolorOpts=None):
         """
         plot the relative permeability
 
@@ -737,7 +740,10 @@ class PhysicalProperties(object):
         :param dict pcolorOpts: dictionary of pcolor options
         """
 
-        self.plot_prop(self.mur, ax=ax, clim=clim, pcolorOpts=pcolorOpts)
+        self.plot_prop(
+            self.mur, ax=ax, clim=clim, theta_ind=theta_ind,
+            pcolorOpts=pcolorOpts
+        )
         ax.set_title('$\mu_r$')
         return ax
 
