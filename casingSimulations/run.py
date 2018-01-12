@@ -105,7 +105,7 @@ class BaseSimulation(BaseCasing):
     def survey(self):
         return self._survey
 
-    def write_py(self, physics=None, includeDC=True, include2D=True):
+    def write_py(self, includeDC=True, include2D=True):
         """
         Write a python script for running the simulation
         :param str physics: 'TDEM', 'FDEM'
@@ -114,9 +114,9 @@ class BaseSimulation(BaseCasing):
         """
 
         # save the properties
-        self.modelParameters.save()
-        self.meshGenerator.save()
-        self.src.save()
+        for obj in [self.modelParameters, self.meshGenerator, self.src]:
+            obj.directory = self.directory
+            obj.save()
 
         # if physics is None:
         #     physics = self.src.physics
