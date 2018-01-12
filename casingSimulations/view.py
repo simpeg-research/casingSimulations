@@ -161,7 +161,8 @@ def plotLinesFx(
     zloc=0.,
     real_or_imag='real',
     color_ind=0,
-    label=None
+    label=None,
+    linestyle='-'
 ):
 
     mesh2D = discretize.CylMesh([mesh.hx, 1., mesh.hz], x0=mesh.x0)
@@ -190,7 +191,7 @@ def plotLinesFx(
         getattr(ax, pltType)(x, -fx, '--', color='C{}'.format(color_ind))
 
     getattr(ax, pltType)(
-        x, fx.real, '-', color='C{}'.format(color_ind),
+        x, fx.real, linestyle, color='C{}'.format(color_ind),
         label=label
     )
 
@@ -210,7 +211,7 @@ def plotLinesFx(
 
 
     # [a.set_xlim([2., 1000.]) for a in ax]
-    ax.grid('both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8])
+    ax.grid('both', linestyle=linestyle, linewidth=0.4, color=[0.8, 0.8, 0.8])
     ax.set_xlabel('distance from well (m)')
 
     plt.tight_layout()
