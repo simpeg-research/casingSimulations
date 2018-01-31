@@ -25,7 +25,7 @@ from .base import LoadableInstance, BaseCasing
 from . import model
 from .model import PhysicalProperties
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
-from .sources import BaseCasingSrc
+from .sources import BaseCasingSrc, SourceList
 from .utils import writeSimulationPy
 from . import sources
 from .info import __version__
@@ -69,6 +69,13 @@ class BaseSimulation(BaseCasing):
         required=False
     )
 
+    srcList = LoadableInstance(
+        "Source List",
+        SourceList,
+        required=False
+
+    )
+
     verbose = properties.Bool(
         "run the simulation in Verbose mode?",
         default = False
@@ -85,7 +92,7 @@ class BaseSimulation(BaseCasing):
         # hook up the properties classes
         self.meshGenerator.modelParameters = self.modelParameters
 
-        if getattr(self, 'src', None) is not None:
+        if getattr(self, 'src', None) is not None and self.srcList is None:
             self.src.modelParameters = self.modelParameters
             self.src.meshGenerator = self.meshGenerator
 
@@ -260,11 +267,11 @@ class SimulationDC(BaseSimulation):
     :param CasingSimulations.model.WholeSpace modelParameters: casing parameters object
     :param CasingSimulations.mesh.BaseMeshGenerator mesh: a CasingSimulation mesh generator object
     """
-    src_a = properties.Vector3(
+    src_a = properties.Vector3Array(
         "a electrode location", required=True
     )
 
-    src_b = properties.Vector3(
+    src_b = properties.Vector3Array(
         "return electrode location", required=True
     )
 
@@ -289,7 +296,11 @@ class SimulationDC(BaseSimulation):
             bc_type='Dirichlet',
             Solver=Solver
         )
-        self._src = DC.Src.Dipole([], self.src_a, self.src_b)
-        self._survey = DC.Survey([self._src])
+        self._srcList = [
+            DC.Src.Dipole([], self.src_a[i, :], self.src_b[i, :])
+            for i in range(self.src_a.shape[0])
+        ]
+        # self._src = DC.Src.Dipole([], self.src_a, self.src_b)
+        self._survey = DC.Survey(self._srcList)
 
         self._prob.pair(self._survey)

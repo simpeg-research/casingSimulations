@@ -491,8 +491,8 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
         """
         if getattr(self, '_surface_electrode', None) is None:
             mesh = self.mesh
-            src_a = self.src_a
-            src_b = self.src_b
+            src_a = self.src_a_closest
+            src_b = self.src_b_closest
 
             # return electrode
             surface_electrodex = (
@@ -501,7 +501,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             surface_electrodez = (
                 (mesh.gridFz[:, 2] >= src_b[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < src_b[2] + 1.75*mesh.hz.min())
+                (mesh.gridFz[:, 2] <= src_b[2] + 2*mesh.hz.min())
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
@@ -621,8 +621,8 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
         """
         if getattr(self, '_downhole_electrode', None) is None:
             mesh = self.mesh
-            src_a = self.src_a
-            src_b = self.src_b
+            src_a = self.src_a_closest
+            src_b = self.src_b_closest
 
             # couple to the casing downhole - top part
             downhole_electrode_indx = mesh.gridFx[:, 0] <= self.casing_a  # + mesh.hx.min()*2
@@ -706,79 +706,74 @@ class DownHoleCasingSrc(DownHoleTerminatingSrc):
         return True
 
 
-class TopCasingSrc(DownHoleTerminatingSrc):
+class SurfaceGroundedSrc(DownHoleTerminatingSrc):
     """
-    Source that has one electrode coupled to the top of the casing, one return
-    electrode and a wire in between. This source is set up to live on faces.
+    Source that has two surface electrodes, neither connected to the casing.
+    """
 
-    :param discretize.CylMesh mesh: the cylindrical simulation mesh
-    :param CasingSimulations modelParameters: Casing parameters object
-    """
     def __init__(self, **kwargs):
-        super(TopCasingSrc, self).__init__(**kwargs)
+        super(SurfaceGroundedSrc, self).__init__(**kwargs)
 
     @property
-    def tophole_electrode(self):
-        """
-        Indices of the electrode that is grounded on the top of the casing
-        """
-
-        if getattr(self, '_tophole_electrode', None) is None:
+    def positive_electrode(self):
+        if getattr(self, '_positive_electrode', None) is None:
             mesh = self.mesh
-            src_a = self.src_a
-            src_b = self.src_b
+            src_a = self.src_a_closest
+            src_b = self.src_b_closest
 
-            tophole_electrodex = (
-                (mesh.gridFz[:, 0] <= self.casing_a + mesh.hx.min()) &
-                (mesh.gridFz[:, 0] > self.casing_a)
+            positive_electrodex = (
+                (mesh.gridFz[:, 0] <= src_a[0] + mesh.hx.min()) &
+                (mesh.gridFz[:, 0] >= src_a[0])
             )
 
-            tophole_electrodez = (
-                (mesh.gridFz[:, 2] < src_a[2] + 1.5*mesh.hz.min()) &
-                (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min())
+            positive_electrodez = (
+                (mesh.gridFz[:, 2] >= src_a[2] - mesh.hz.min()) &
+                (mesh.gridFz[:, 2] <= src_a[2] + 2*mesh.hz.min())
             )
 
-            self._tophole_electrode = tophole_electrodex & tophole_electrodez
+            self._positive_electrode = (
+                positive_electrodex & positive_electrodez
+            )
 
             if getattr(mesh, 'isSymmetric', False) is False:
-                tophole_electrodey = (
+                positive_electrodey = (
                     (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()) &
                     (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min())
                 )
-                self._tophole_electrode = (
-                    self._tophole_electrode & tophole_electrodey
+                self._positive_electrode = (
+                    self._positive_electrode & positive_electrodey
                 )
 
-        return self._tophole_electrode
+        return self._positive_electrode
 
-    @property
-    def surface_wire(self):
-        """
-        indices of the wire that runs along the surface
-        """
-        if getattr(self, '_surface_wire', None) is None:
-            mesh = self.mesh
-            src_a = self.src_a
-            src_b = self.src_b
+    # @property
+    # def surface_wire(self):
+    #     """
+    #     indices of the wire that runs along the surface
+    #     """
+    #     if getattr(self, '_surface_wire', None) is None:
+    #         mesh = self.mesh
+    #         src_a = self.src_a
+    #         src_b = self.src_b
 
-            # horizontally directed wire
-            surface_wirex = (
-                (mesh.gridFx[:, 0] <= self.src_b_closest[0]) &
-                (mesh.gridFx[:, 0] > self.casing_a + mesh.hx.min()/2.)
-            )
-            surface_wirez = (
-                (mesh.gridFx[:, 2] > src_b[2] + mesh.hz.min()) &
-                (mesh.gridFx[:, 2] < src_b[2] + 2*mesh.hz.min())
-            )
-            self._surface_wire = surface_wirex & surface_wirez
+    #         # horizontally directed wire
+    #         surface_wirex = (
+    #             (mesh.gridFx[:, 0] <= self.src_b_closest[0]) &
+    #             (mesh.gridFx[:, 0] >= self.src_a_closest[0])
+    #         )
+    #         surface_wirez = (
+    #             (mesh.gridFx[:, 2] > src_b[2] + mesh.hz.min()) &
+    #             (mesh.gridFx[:, 2] < src_b[2] + 2*mesh.hz.min())
+    #         )
+    #         self._surface_wire = surface_wirex & surface_wirez
 
-            if getattr(mesh, 'isSymmetric', False) is False:
-                surface_wirey = (
-                    (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.) &
-                    (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.)
-                )
-                self._surface_wire = self._surface_wire & surface_wirey
-        return self._surface_wire
+    #         if getattr(mesh, 'isSymmetric', False) is False:
+    #             surface_wirey = (
+    #                 (mesh.gridFx[:, 1] < src_b[1] + mesh.hy.min()/2.) &
+    #                 (mesh.gridFx[:, 1] > src_b[1] - mesh.hy.min()/2.)
+    #             )
+    #             self._surface_wire = self._surface_wire & surface_wirey
+    #     return self._surface_wire
 
     @property
     def s_e(self):
@@ -791,8 +786,8 @@ class TopCasingSrc(DownHoleTerminatingSrc):
             s_y = np.zeros(self.mesh.vnF[1])
             s_z = np.zeros(self.mesh.vnF[2])
 
-            s_z[self.tophole_electrode] = -1.  # part of wire coupled to casing
-            s_x[self.surface_wire] = -1.  # horizontal part of wire along surface
+            s_z[self.positive_electrode] = -1.  # part of wire coupled to casing
+            s_x[self.surface_wire] = self.surface_wire_direction  # horizontal part of wire along surface
             s_z[self.surface_electrode] = 1.  # vertical part of return electrode
 
             # assemble se source (downhole grounded primary)
@@ -811,8 +806,8 @@ class TopCasingSrc(DownHoleTerminatingSrc):
         mesh = self.mesh
 
         ax.plot(
-            mesh.gridFz[self.tophole_electrode, 0],
-            mesh.gridFz[self.tophole_electrode, 2], 'rv'
+            mesh.gridFz[self.positive_electrode, 0],
+            mesh.gridFz[self.positive_electrode, 2], 'rv'
         )
         ax.plot(
             mesh.gridFz[self.surface_electrode, 0],
@@ -820,7 +815,9 @@ class TopCasingSrc(DownHoleTerminatingSrc):
         )
         ax.plot(
             mesh.gridFx[self.surface_wire, 0],
-            mesh.gridFx[self.surface_wire, 2], 'r<'
+            mesh.gridFx[self.surface_wire, 2], 'r{}'.format(
+                ['<' if self.surface_wire_direction == -1. else '>'][0]
+            )
         )
 
         return ax
@@ -841,11 +838,11 @@ class TopCasingSrc(DownHoleTerminatingSrc):
         )
 
         # check the top casing electrode only has one x and one y location
-        tophole_electrode = self.mesh.gridFz[self.tophole_electrode, :]
-        assert len(np.unique(tophole_electrode[:, 0])) == 1, (
+        positive_electrode = self.mesh.gridFz[self.positive_electrode, :]
+        assert len(np.unique(positive_electrode[:, 0])) == 1, (
             'the tophole electrode has more than one x-location'
         )
-        assert len(np.unique(tophole_electrode[:, 1])) == 1, (
+        assert len(np.unique(positive_electrode[:, 1])) == 1, (
             'the tophole electrode has more than one y-location'
         )
 
@@ -859,3 +856,80 @@ class TopCasingSrc(DownHoleTerminatingSrc):
         )
 
         return True
+
+
+class TopCasingSrc(SurfaceGroundedSrc):
+    """
+    Source that has one electrode coupled to the top of the casing, one return
+    electrode and a wire in between. This source is set up to live on faces.
+
+    :param discretize.CylMesh mesh: the cylindrical simulation mesh
+    :param CasingSimulations modelParameters: Casing parameters object
+    """
+    def __init__(self, **kwargs):
+        super(TopCasingSrc, self).__init__(**kwargs)
+        self.src_a[0] = self.casing_a + self.mesh.hx.min()/2.
+
+    # @property
+    # def tophole_electrode(self):
+    #     """
+    #     Indices of the electrode that is grounded on the top of the casing
+    #     """
+    #     return self.positive_electrode
+
+        # if getattr(self, '_tophole_electrode', None) is None:
+        #     mesh = self.mesh
+        #     src_a = self.src_a
+        #     src_b = self.src_b
+
+        #     tophole_electrodex = (
+        #         (mesh.gridFz[:, 0] <= self.casing_a + mesh.hx.min()) &
+        #         (mesh.gridFz[:, 0] > self.casing_a)
+        #     )
+
+        #     tophole_electrodez = (
+        #         (mesh.gridFz[:, 2] < src_a[2] + 1.5*mesh.hz.min()) &
+        #         (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min())
+        #     )
+
+        #     self._tophole_electrode = tophole_electrodex & tophole_electrodez
+
+        #     if getattr(mesh, 'isSymmetric', False) is False:
+        #         tophole_electrodey = (
+        #             (mesh.gridFz[:, 1] > src_a[1] - mesh.hy.min()) &
+        #             (mesh.gridFz[:, 1] < src_a[1] + mesh.hy.min())
+        #         )
+        #         self._tophole_electrode = (
+        #             self._tophole_electrode & tophole_electrodey
+        #         )
+
+        # return self._tophole_electrode
+
+
+class SourceList(BaseCasing):
+    """
+    The source list
+    """
+
+    filename = properties.String(
+        "filename to serialize the source list to",
+        default="SourceList.json"
+    )
+
+    sources = properties.List(
+        "list of casing sources",
+        properties.Instance(
+            "Instance of a BaseCasingSrc",
+            BaseCasingSrc
+        )
+    )
+
+    @property
+    def srcList(self):
+        if getattr(self, '_srcList', None) is None:
+            srcList = []
+            for src in self.sources:
+                srcList.append(src.srcList)
+            self._srcList = srcList
+        return self.srcList
+

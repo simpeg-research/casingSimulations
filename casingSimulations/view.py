@@ -195,22 +195,6 @@ def plotLinesFx(
         label=label
     )
 
-    # # plot the DC solution
-    # fxDC = utils.face3DthetaSlice(
-    #     mesh, fieldsDC[:, fieldType], theta_ind=theta_ind
-    # )
-    # fxDC = discretize.utils.mkvc(
-    #     fxDC[:mesh2D.vnF[0]].reshape(
-    #         [mesh2D.vnFx[0], mesh2D.vnFx[2]], order='F'
-    #     )
-    # )
-    # fxDC = fxDC[pltind]
-
-    # getattr(ax[0], pltType)(x, -fxDC, '--', color='k')
-    # getattr(ax[0], pltType)(x, fxDC, '-', color='k', label='DC')
-
-
-    # [a.set_xlim([2., 1000.]) for a in ax]
     ax.grid('both', linestyle=linestyle, linewidth=0.4, color=[0.8, 0.8, 0.8])
     ax.set_xlabel('distance from well (m)')
 
