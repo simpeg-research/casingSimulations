@@ -35,7 +35,7 @@ def plot_slice(
         mesh2D.plotImage(
             discretize.utils.mkvc(vplt[:, theta_ind, :]), ax=ax,
             mirror=True, pcolorOpts=pcolorOpts
-        )[0], ax=ax,
+        )[0], ax=ax
     )
 
     if clim is not None:
@@ -92,7 +92,7 @@ def plotFace2D(
 
     if cbar is True:
         cb = plt.colorbar(f[0], ax=ax)
-        out += (cbar,)
+        out += (cb,)
 
         if clim is not None:
             cb.set_clim(clim)

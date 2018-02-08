@@ -724,12 +724,12 @@ class PhysicalProperties(object):
         :param numpy.array clim: colorbar limits
         :param dict pcolorOpts: dictionary of pcolor options
         """
-        self.plot_prop(
+        ax, cb = self.plot_prop(
             self.sigma, ax=ax, clim=clim, theta_ind=theta_ind,
             pcolorOpts=pcolorOpts
         )
         ax.set_title('$\sigma$')
-        return ax
+        return ax, cb
 
     def plot_mur(self, ax=None, clim=None, theta_ind=0, pcolorOpts=None):
         """
@@ -740,12 +740,12 @@ class PhysicalProperties(object):
         :param dict pcolorOpts: dictionary of pcolor options
         """
 
-        self.plot_prop(
+        ax, cb = self.plot_prop(
             self.mur, ax=ax, clim=clim, theta_ind=theta_ind,
             pcolorOpts=pcolorOpts
         )
         ax.set_title('$\mu_r$')
-        return ax
+        return ax, cb
 
     def plot(self, ax=None, clim=[None, None], pcolorOpts=None):
         """

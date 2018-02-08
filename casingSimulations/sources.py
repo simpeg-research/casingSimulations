@@ -501,7 +501,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             surface_electrodez = (
                 (mesh.gridFz[:, 2] >= src_b[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] <= src_b[2] + 2*mesh.hz.min())
+                (mesh.gridFz[:, 2] < src_b[2] + 2*mesh.hz.min())
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
@@ -721,14 +721,11 @@ class SurfaceGroundedSrc(DownHoleTerminatingSrc):
             src_a = self.src_a_closest
             src_b = self.src_b_closest
 
-            positive_electrodex = (
-                (mesh.gridFz[:, 0] <= src_a[0] + mesh.hx.min()) &
-                (mesh.gridFz[:, 0] >= src_a[0])
-            )
+            positive_electrodex = (mesh.gridFz[:, 0] == src_a[0])
 
             positive_electrodez = (
                 (mesh.gridFz[:, 2] >= src_a[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] <= src_a[2] + 2*mesh.hz.min())
+                (mesh.gridFz[:, 2] < src_a[2] + 2*mesh.hz.min())
             )
 
             self._positive_electrode = (
