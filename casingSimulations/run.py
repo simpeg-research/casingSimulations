@@ -78,7 +78,7 @@ class BaseSimulation(BaseCasing):
 
     verbose = properties.Bool(
         "run the simulation in Verbose mode?",
-        default = False
+        default=False
     )
 
     def __init__(self, **kwargs):

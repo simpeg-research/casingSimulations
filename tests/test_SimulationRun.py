@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+import os
 import shutil
 
 import casingSimulations
@@ -54,7 +55,6 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
         src = casingSimulations.sources.TopCasingSrc(
             modelParameters=self.modelParameters,
             meshGenerator=self.meshGenerator,
-            physics="FDEM"
         )
         src.validate()
 
@@ -65,7 +65,6 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
         src = casingSimulations.sources.DownHoleCasingSrc(
             modelParameters=self.modelParameters,
             meshGenerator=self.meshGenerator,
-            physics="FDEM"
         )
         src.validate()
 
@@ -76,7 +75,6 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
         src = casingSimulations.sources.DownHoleTerminatingSrc(
             modelParameters=self.modelParameters,
             meshGenerator=self.meshGenerator,
-            physics="FDEM"
         )
         src.validate()
 
@@ -84,7 +82,8 @@ class ForwardSimulationTestCyl2D(unittest.TestCase):
 
     def tearDown(self):
         for d in [self.dir2D]:
-            shutil.rmtree(d)
+            if os.path.isdir(d):
+                shutil.rmtree(d)
 
 
 if __name__ == '__main__':

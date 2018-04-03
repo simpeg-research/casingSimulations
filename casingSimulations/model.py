@@ -702,6 +702,7 @@ class PhysicalProperties(object):
 
     def plot_prop(
         self, prop, ax=None, clim=None, theta_ind=0, pcolorOpts=None,
+        cb_extend=None
     ):
         """
         Plot a cell centered property
@@ -713,10 +714,12 @@ class PhysicalProperties(object):
         """
         return plot_slice(
             self.mesh, prop, ax=ax, clim=clim, pcolorOpts=pcolorOpts,
-            theta_ind=theta_ind
+            theta_ind=theta_ind, cb_extend=cb_extend
         )
 
-    def plot_sigma(self, ax=None, clim=None, theta_ind=0, pcolorOpts=None):
+    def plot_sigma(
+        self, ax=None, clim=None, theta_ind=0, pcolorOpts=None, cb_extend=None
+    ):
         """
         plot the electrical conductivity
 
@@ -726,12 +729,15 @@ class PhysicalProperties(object):
         """
         ax, cb = self.plot_prop(
             self.sigma, ax=ax, clim=clim, theta_ind=theta_ind,
-            pcolorOpts=pcolorOpts
+            pcolorOpts=pcolorOpts, cb_extend=cb_extend
         )
         ax.set_title('$\sigma$')
         return ax, cb
 
-    def plot_mur(self, ax=None, clim=None, theta_ind=0, pcolorOpts=None):
+    def plot_mur(
+        self, ax=None, clim=None, theta_ind=0, pcolorOpts=None,
+        cb_extend=None
+    ):
         """
         plot the relative permeability
 
@@ -742,12 +748,14 @@ class PhysicalProperties(object):
 
         ax, cb = self.plot_prop(
             self.mur, ax=ax, clim=clim, theta_ind=theta_ind,
-            pcolorOpts=pcolorOpts
+            pcolorOpts=pcolorOpts, cb_extend=cb_extend
         )
         ax.set_title('$\mu_r$')
         return ax, cb
 
-    def plot(self, ax=None, clim=[None, None], pcolorOpts=None):
+    def plot(
+        self, ax=None, clim=[None, None], pcolorOpts=None, cb_extend=None
+    ):
         """
         plot the electrical conductivity and relative permeability
 
@@ -762,8 +770,17 @@ class PhysicalProperties(object):
         if not isinstance(pcolorOpts, list):
             pcolorOpts = [pcolorOpts]*2
 
-        self.plot_sigma(ax=ax[0], clim=clim[0], pcolorOpts=pcolorOpts[0])
-        self.plot_mur(ax=ax[1], clim=clim[1], pcolorOpts=pcolorOpts[1])
+        if not isinstance(cb_extend, list):
+            cb_extend = [cb_extend]*2
+
+        self.plot_sigma(
+            ax=ax[0], clim=clim[0], pcolorOpts=pcolorOpts[0],
+            cb_extend=cb_extend[0]
+        )
+        self.plot_mur(
+            ax=ax[1], clim=clim[1], pcolorOpts=pcolorOpts[1],
+            cb_extend=cb_extend[1]
+        )
 
         plt.tight_layout()
         return ax

@@ -7,7 +7,8 @@ from . import utils
 
 
 def plot_slice(
-    mesh, v, ax=None, clim=None, pcolorOpts=None, theta_ind=0
+    mesh, v, ax=None, clim=None, pcolorOpts=None, theta_ind=0,
+    cb_extend=None
 ):
     """
     Plot a cell centered property
@@ -34,8 +35,8 @@ def plot_slice(
     cb = plt.colorbar(
         mesh2D.plotImage(
             discretize.utils.mkvc(vplt[:, theta_ind, :]), ax=ax,
-            mirror=True, pcolorOpts=pcolorOpts
-        )[0], ax=ax
+            mirror=True, pcolorOpts=pcolorOpts, clim=clim
+        )[0], ax=ax, extend=cb_extend if cb_extend is not None else "neither"
     )
 
     if clim is not None:
@@ -49,8 +50,10 @@ def plotFace2D(
     mesh2D,
     j, real_or_imag='real', ax=None, range_x=None,
     range_y=None, sample_grid=None,
-    logScale=True, clim=None, mirror=False, pcolorOpts=None,
-    cbar=True
+    logScale=True, clim=None, mirror=False, mirror_data=None,
+    pcolorOpts=None,
+    show_cb=True,
+    stream_threshold=None
 ):
     """
     Create a streamplot (a slice in the theta direction) of a face vector
@@ -84,19 +87,19 @@ def plotFace2D(
         getattr(j, real_or_imag),
         view='vec', vType=vType, ax=ax,
         range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-        mirror=mirror,
-        pcolorOpts=pcolorOpts,
+        mirror=mirror, mirror_data=mirror_data,
+        pcolorOpts=pcolorOpts, clim=clim, stream_threshold=stream_threshold
     )
 
-    out = (ax,)
+    out = f + (ax,)
 
-    if cbar is True:
+    if show_cb is True:
         cb = plt.colorbar(f[0], ax=ax)
         out += (cb,)
 
-        if clim is not None:
-            cb.set_clim(clim)
-            cb.update_ticks()
+        # if clim is not None:
+        #     cb.set_clim(clim)
+        #     cb.update_ticks()
 
     return out
 
