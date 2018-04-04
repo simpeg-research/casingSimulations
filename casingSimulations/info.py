@@ -1,4 +1,4 @@
-__version__   = '0.0.4'
+__version__   = '0.0.5'
 __author__    = 'Lindsey Heagy'
 __license__   = 'MIT'
 __copyright__ = 'Copyright 2018 Lindsey Heagy'
