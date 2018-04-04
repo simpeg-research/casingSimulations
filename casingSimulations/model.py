@@ -86,8 +86,8 @@ class SurveyParametersMixin(properties.HasProperties):
         info = "\n ---- Survey ---- "
 
         # src locations
-        info += "\n\n   src_a: {:s}".format(self.src_a)
-        info += "\n   src_b: {:s}".format(self.src_b)
+        info += "\n\n   src_a: {:s}".format(str(self.src_a))
+        info += "\n   src_b: {:s}".format(str(self.src_b))
         info += "\n"
 
         # frequencies or times
