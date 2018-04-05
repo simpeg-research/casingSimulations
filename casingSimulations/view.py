@@ -6,12 +6,54 @@ import discretize
 from . import utils
 
 
+def plot_slice(
+    mesh, v, ax=None, clim=None, pcolorOpts=None, theta_ind=0,
+    cb_extend=None
+):
+    """
+    Plot a cell centered property
+
+    :param numpy.array prop: cell centered property to plot
+    :param matplotlib.axes ax: axis
+    :param numpy.array clim: colorbar limits
+    :param dict pcolorOpts: dictionary of pcolor options
+    """
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+    if pcolorOpts is None:
+        pcolorOpts = {}
+
+    # generate a 2D mesh for plotting slices
+    mesh2D = discretize.CylMesh(
+        [mesh.hx, 1., mesh.hz], x0=mesh.x0
+    )
+
+    vplt = v.reshape(mesh.vnC, order='F')
+
+    cb = plt.colorbar(
+        mesh2D.plotImage(
+            discretize.utils.mkvc(vplt[:, theta_ind, :]), ax=ax,
+            mirror=True, pcolorOpts=pcolorOpts, clim=clim
+        )[0], ax=ax, extend=cb_extend if cb_extend is not None else "neither"
+    )
+
+    if clim is not None:
+        cb.set_clim(clim)
+        cb.update_ticks()
+
+    return ax, cb
+
+
 def plotFace2D(
     mesh2D,
     j, real_or_imag='real', ax=None, range_x=None,
     range_y=None, sample_grid=None,
-    logScale=True, clim=None, mirror=False, pcolorOpts=None,
-    cbar=True
+    logScale=True, clim=None, mirror=False, mirror_data=None,
+    pcolorOpts=None,
+    show_cb=True,
+    stream_threshold=None
 ):
     """
     Create a streamplot (a slice in the theta direction) of a face vector
@@ -45,19 +87,19 @@ def plotFace2D(
         getattr(j, real_or_imag),
         view='vec', vType=vType, ax=ax,
         range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-        mirror=mirror,
-        pcolorOpts=pcolorOpts,
+        mirror=mirror, mirror_data=mirror_data,
+        pcolorOpts=pcolorOpts, clim=clim, stream_threshold=stream_threshold
     )
 
-    out = (ax,)
+    out = f + (ax,)
 
-    if cbar is True:
+    if show_cb is True:
         cb = plt.colorbar(f[0], ax=ax)
-        out += (cbar,)
+        out += (cb,)
 
-        if clim is not None:
-            cb.set_clim(clim)
-            cb.update_ticks()
+        # if clim is not None:
+        #     cb.set_clim(clim)
+        #     cb.update_ticks()
 
     return out
 
@@ -122,7 +164,8 @@ def plotLinesFx(
     zloc=0.,
     real_or_imag='real',
     color_ind=0,
-    label=None
+    label=None,
+    linestyle='-'
 ):
 
     mesh2D = discretize.CylMesh([mesh.hx, 1., mesh.hz], x0=mesh.x0)
@@ -151,27 +194,11 @@ def plotLinesFx(
         getattr(ax, pltType)(x, -fx, '--', color='C{}'.format(color_ind))
 
     getattr(ax, pltType)(
-        x, fx.real, '-', color='C{}'.format(color_ind),
+        x, fx.real, linestyle, color='C{}'.format(color_ind),
         label=label
     )
 
-    # # plot the DC solution
-    # fxDC = utils.face3DthetaSlice(
-    #     mesh, fieldsDC[:, fieldType], theta_ind=theta_ind
-    # )
-    # fxDC = discretize.utils.mkvc(
-    #     fxDC[:mesh2D.vnF[0]].reshape(
-    #         [mesh2D.vnFx[0], mesh2D.vnFx[2]], order='F'
-    #     )
-    # )
-    # fxDC = fxDC[pltind]
-
-    # getattr(ax[0], pltType)(x, -fxDC, '--', color='k')
-    # getattr(ax[0], pltType)(x, fxDC, '-', color='k', label='DC')
-
-
-    # [a.set_xlim([2., 1000.]) for a in ax]
-    ax.grid('both', linestyle='-', linewidth=0.4, color=[0.8, 0.8, 0.8])
+    ax.grid('both', linestyle=linestyle, linewidth=0.4, color=[0.8, 0.8, 0.8])
     ax.set_xlabel('distance from well (m)')
 
     plt.tight_layout()

@@ -1,4 +1,5 @@
 from SimPEG import Utils
+import discretize
 
 import numpy as np
 
@@ -7,7 +8,7 @@ from matplotlib.colors import LogNorm
 
 
 # Calculate Casing Currents from fields object
-def CasingCurrents(j, mesh, survey, casing_a, casing_b, casing_z):
+def CasingCurrents(j, mesh, casing_a, casing_b, casing_z):
     IxCasing = {}
     IzCasing = {}
 
@@ -73,10 +74,10 @@ def plotCurrentDensity(
         xlim = [0., xmax]
         x0 = [0, -csx/2., zmax]
 
-    ylim=[zmax, zmin]
+    ylim = [zmax, zmin]
 
     # define the tensor mesh
-    meshcart = Mesh.TensorMesh(
+    meshcart = discretize.TensorMesh(
         [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], x0
     )
 

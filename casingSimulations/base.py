@@ -59,7 +59,6 @@ class BaseCasing(properties.HasProperties):
 
         # change['value'] = fullpath
 
-
     # methods
     def save(self, filename=None, directory=None):
         """
