@@ -7,21 +7,24 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 
-# Calculate Casing Currents from fields object
-def CasingCurrents(j, mesh, casing_a, casing_b, casing_z):
+def casing_currents(j, mesh, model_parameters):
+    """
+    Compute the current (A) within the casing
+
+    :param numpy.ndarray j: current density
+    :param discretize.BaseMesh mesh: the discretize mesh which the casing is on
+    :param casingSimulations.model.BaseCasingParametersMixin: a model with
+                                                              casing
+
+    :return: :code:`(ix_casing, iz_casing)`
+    """
+
+    casing_a = model_parameters.casing_a
+    casing_b = model_parameters.casing_b
+    casing_z = model_parameters.casing_z
+
     IxCasing = {}
     IzCasing = {}
-
-    # casing_ind = sigma_m.copy()
-    # casing_ind[[0, 1, 3]] = 0. # zero outside casing
-    # casing_ind[2] = 1. # 1 inside casing
-
-    # actMap_Zeros = Maps.InjectActiveCells(mesh, indActive, 0.)
-
-    # indCasing = actMap_Zeros * casingMap * casing_ind
-
-    # casing_faces = mesh.aveF2CC.T * indCasing
-    # casing_faces[casing_faces < 0.25] = 0
 
     casing_faces_x = (
         (mesh.gridFx[:, 0] >= casing_a) &
@@ -53,7 +56,24 @@ def CasingCurrents(j, mesh, casing_a, casing_b, casing_z):
     ixCasing = jxCasing.sum(0).sum(0)
     izCasing = jzCasing.sum(0).sum(0)
 
-    return ixCasing, izCasing
+    ix_inds = (mesh.vectorCCz > casing_z[0]) & (mesh.vectorCCz < casing_z[1])
+    z_ix = mesh.vectorCCz[ix_inds]
+
+    iz_inds = (mesh.vectorNz > casing_z[0]) & (mesh.vectorNz < casing_z[1])
+    z_iz = mesh.vectorNz[iz_inds]
+
+    return {"x": (z_ix, ixCasing[ix_inds]), "z": (z_iz, izCasing[iz_inds])}
+
+def casing_charges(charge, mesh, model_parameters):
+    charge[~model_parameters.ind_casing(mesh)] = 0.
+    charge = charge.reshape(mesh.vnC, order='F').sum(0).sum(0)
+
+    z_inds = (
+        (mesh.vectorCCz > model_parameters.casing_z[0]) &
+        (mesh.vectorCCz < model_parameters.casing_z[1])
+    )
+    z = mesh.vectorCCz[z_inds]
+    return z, charge[z_inds]
 
 
 def plotCurrentDensity(

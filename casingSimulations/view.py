@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -219,12 +221,13 @@ class FieldsViewer(properties.HasProperties):
         default=1e-20
     )
 
-    def __init__(self, sim_dict, fields_dict, background_key=None):
+    def __init__(
+        self, sim_dict, fields_dict, model_keys=None, background_key=None
+    ):
         self.sim_dict = sim_dict
         self.fields_dict = fields_dict
-        self.model_keys = sim_dict.keys()
-        self.mesh2D = (
-            sim_dict[self.model_keys[0]].meshGenerator.create_2D_mesh().mesh
+        self.model_keys = (
+            model_keys if model_keys is not None else sorted(sim_dict.keys())
         )
         self.background_key = background_key
 
@@ -256,6 +259,12 @@ class FieldsViewer(properties.HasProperties):
         ):
             self._sim_type = 'TDEM'
             self.fields_opts = ['e', 'j', 'charge', 'h', 'b']
+
+    def _mesh2D(self, model_key):
+        return self.sim_dict[model_key].meshGenerator.create_2D_mesh().mesh
+
+    def _mesh(self, model_key):
+        return self.sim_dict[model_key].meshGenerator.mesh
 
     def _check_inputs(
         self, model_key, xlim, zlim, view, prim_sec, real_or_imag
@@ -303,7 +312,8 @@ class FieldsViewer(properties.HasProperties):
         cb_extend=None,
         show_cb=True,
         show_mesh=False,
-        use_aspect=False
+        use_aspect=False,
+        streamOpts=None
     ):
         """
         Plot the fields
@@ -327,10 +337,10 @@ class FieldsViewer(properties.HasProperties):
             model_key, xlim, zlim, view, prim_sec, real_or_imag
         )
 
-        # define plot options
-        plotopts = {
-            'theta_ind': theta_ind,
-        }
+        # # define plot options
+        # plotopts = {
+        #     'theta_ind': theta_ind,
+        # }
 
         # get background model if doing primsec
         if prim_sec == 'primary':
@@ -340,30 +350,63 @@ class FieldsViewer(properties.HasProperties):
         pp = self.sim_dict[model_key].physprops
         src = self.sim_dict[model_key].survey.srcList[src_ind]
         plotme = self.fields_dict[model_key][src, view]
+        mesh = self._mesh(model_key)
 
         if prim_sec == 'secondary':
             prim_src = self.sim_dict[self.background_key].survey.srcList[src_ind]
             plotme = plotme - self.fields_dict[self.background_key][prim_src, view]
 
+        if not mesh.isSymmetric:
+            theta_ind_mirror = (
+                theta_ind+int(mesh.vnC[1]/2)
+                if theta_ind < int(mesh.vnC[1]/2)
+                else theta_ind-int(mesh.vnC[1]/2)
+            )
+        else:
+            mirror_data=None
+
         if view in ['charge', 'phi']:
             if clim is None and view == 'charge':
                 clim = np.r_[-1., 1.] * np.max(np.absolute(plotme))
-            out = pp.plot_prop(
-                plotme,
-                ax=ax,
+
+            if not mesh.isSymmetric:
+                plotme = plotme.reshape(mesh.vnC, order='F')
+                mirror_data = discretize.utils.mkvc(
+                    plotme[:, theta_ind_mirror, :]
+                )
+                plotme = discretize.utils.mkvc(plotme[:, theta_ind, :])
+
+            out = self._mesh2D(model_key).plotImage(
+                plotme, ax=ax,
                 pcolorOpts = {
                     'cmap': 'bwr' if view == 'charge' else 'viridis',
                 },
-                cb_extend=cb_extend,
                 clim=clim,
-                **plotopts
+                mirror_data=mirror_data,
+                mirror=True
             )
+
+            if show_cb:
+                cb = plt.colorbar(
+                    out[0], ax=ax,
+                    extend='neither' if cb_extend is None else cb_extend,
+                )
+
+                out += (cb,)
         elif view in ['j', 'e']:
             plt_vec = utils.face3DthetaSlice(
-                self.sim_dict[model_key].meshGenerator.mesh, plotme
+                self._mesh(model_key), plotme,
+                theta_ind=theta_ind
             )
+
+            if not mesh.isSymmetric:
+                mirror_data = utils.face3DthetaSlice(
+                    self._mesh(model_key), plotme,
+                    theta_ind=theta_ind_mirror
+                )
+
             out = plotFace2D(
-                self.mesh2D,
+                self._mesh2D(model_key),
                 plt_vec,
                 real_or_imag=real_or_imag,
                 ax=ax,
@@ -375,7 +418,10 @@ class FieldsViewer(properties.HasProperties):
                 ),
                 logScale=True,
                 clim=clim,
+                stream_threshold=clim[0] if clim is not None else None,
                 mirror=True,
+                mirror_data=mirror_data,
+                streamOpts=streamOpts
             )
 
         if clim is not None:
@@ -384,7 +430,7 @@ class FieldsViewer(properties.HasProperties):
             cb.update_ticks()
 
         if show_mesh is True:
-            self.mesh2D.plotGrid(ax=ax)
+            self._mesh2D(model_key).plotGrid(ax=ax)
 
         title = "{} \n{} {}".format(model_key, prim_sec, view)
         if self._sim_type == "FDEM":
