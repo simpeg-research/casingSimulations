@@ -9,5 +9,6 @@ nose
 nose-cov
 pymatsolver
 pytest
+ipywidgets
 git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh
 git+https://github.com/simpeg/simpeg.git@em/feat/3Dcyl

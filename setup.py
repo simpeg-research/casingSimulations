@@ -36,6 +36,7 @@ setup(
         'cython',
         'pymatsolver>=0.1.1',
         'ipython',
+        'ipywidgets'
         'matplotlib',
         'properties[math]',
         'discretize',
