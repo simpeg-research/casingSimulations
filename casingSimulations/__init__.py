@@ -7,7 +7,7 @@ from .physics import (
     plot_currents_over_mu, plot_j_over_mu_z, plot_j_over_freq_z,
     plot_j_over_mu_x
 )
-from .view import plotEdge2D, plotFace2D
+from .view import plotEdge2D, plotFace2D, FieldsViewer
 from . import sources
 from . import run
 from .utils import (

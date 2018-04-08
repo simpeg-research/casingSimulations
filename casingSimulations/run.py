@@ -22,8 +22,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 from .base import LoadableInstance, BaseCasing
-from . import model
-from .model import PhysicalProperties
+from .model import Wholespace, PhysicalProperties
 from .mesh import BaseMeshGenerator, CylMeshGenerator, TensorMeshGenerator
 from .sources import BaseCasingSrc, SourceList
 from .utils import writeSimulationPy
@@ -53,7 +52,7 @@ class BaseSimulation(BaseCasing):
 
     modelParameters = LoadableInstance(
         "Model Parameters instance",
-        model.Wholespace,
+        Wholespace,
         required=True
     )
 
@@ -145,7 +144,7 @@ class BaseSimulation(BaseCasing):
             self._fields = self.run()
         return self._fields
 
-    def run(self):
+    def run(self, save=True):
         """
         Run the forward simulation
         """
@@ -165,7 +164,8 @@ class BaseSimulation(BaseCasing):
         ))
 
         # save simulation parameters
-        self.save()
+        if save:
+            self.save()
 
         # ----------------- Set up the simulation ----------------- #
         physprops = self.physprops
@@ -178,10 +178,12 @@ class BaseSimulation(BaseCasing):
         t = time.time()
         print('Using {} Solver'.format(prb.Solver))
         fields = prb.fields(physprops.model)
-        np.save(
-            '/'.join([self.directory, self.fields_filename]),
-            fields[:, '{}Solution'.format(self.formulation)]
-        )
+
+        if save:
+            np.save(
+                '/'.join([self.directory, self.fields_filename]),
+                fields[:, '{}Solution'.format(self.formulation)]
+            )
         print('   ... Done. Elapsed time : {}'.format(time.time()-t))
 
         self._fields = fields
