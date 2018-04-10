@@ -208,9 +208,12 @@ class SimulationFDEM(BaseSimulation):
     def __init__(self, **kwargs):
         super(SimulationFDEM, self).__init__(**kwargs)
 
-        self._prob = getattr(
+    @property
+    def prob(self):
+        if getattr(self, '_prob', None) is None:
+            self._prob = getattr(
                 FDEM, 'Problem3D_{}'.format(self.formulation)
-                )(
+            )(
                 self.meshGenerator.mesh,
                 sigmaMap=self.physprops.wires.sigma,
                 muMap=self.physprops.wires.mu,
@@ -218,12 +221,20 @@ class SimulationFDEM(BaseSimulation):
                 verbose=self.verbose
             )
 
-        if getattr(self.src, "physics", None) is None:
-            self.src.physics = "FDEM"
+            if getattr(self, 'src') is not None:
+                self._survey = FDEM.Survey(self.src.srcList)
+            elif getattr(self, 'srcList') is not None:
+                self._survey = FDEM.Survey(self.srcList)
+            else:
+                raise Exception("one of src, srcList must be set")
+            self._prob.pair(self._survey)
+        return self._prob
 
-        self._survey = FDEM.Survey(self.src.srcList)
-
-        self._prob.pair(self._survey)
+    @property
+    def survey(self):
+        if getattr(self, '_survey', None) is None:
+            self.prob
+        return self._survey
 
 
 class SimulationTDEM(BaseSimulation):
@@ -244,23 +255,30 @@ class SimulationTDEM(BaseSimulation):
     def __init__(self, **kwargs):
         super(SimulationTDEM, self).__init__(**kwargs)
 
-        self._prob = getattr(
-                TDEM, 'Problem3D_{}'.format(self.formulation)
-                )(
-                self.meshGenerator.mesh,
-                timeSteps=self.modelParameters.timeSteps,
-                sigmaMap=self.physprops.wires.sigma,
-                mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
-                Solver=Solver,
-                verbose=self.verbose
-            )
+    @property
+    def prob(self):
+        if getattr(self, '_prob', None) is None:
+            self._prob = getattr(
+                    TDEM, 'Problem3D_{}'.format(self.formulation)
+                    )(
+                    self.meshGenerator.mesh,
+                    timeSteps=self.modelParameters.timeSteps,
+                    sigmaMap=self.physprops.wires.sigma,
+                    mu=self.physprops.mu, # right now the TDEM code doesn't support mu inversions
+                    Solver=Solver,
+                    verbose=self.verbose
+                )
 
-        if getattr(self.src, "physics", None) is None:
-            self.src.physics = "TDEM"
+            self._survey = TDEM.Survey(self.src.srcList)
 
-        self._survey = TDEM.Survey(self.src.srcList)
+            self._prob.pair(self._survey)
+        return self.prob
 
-        self._prob.pair(self._survey)
+    @property
+    def survey(self):
+        if getattr(self, '_survey', None) is None:
+            self.prob
+        return self._survey
 
 
 class SimulationDC(BaseSimulation):
