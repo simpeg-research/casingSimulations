@@ -72,7 +72,6 @@ class BaseSimulation(BaseCasing):
         "Source List",
         SourceList,
         required=False
-
     )
 
     verbose = properties.Bool(
@@ -94,6 +93,12 @@ class BaseSimulation(BaseCasing):
         if getattr(self, 'src', None) is not None and self.srcList is None:
             self.src.modelParameters = self.modelParameters
             self.src.meshGenerator = self.meshGenerator
+
+        if getattr(self, 'src', None) is not None:
+            self.src.physics = self.physics
+        elif getattr(self, 'srcList', None) is not None:
+            for src in self.sources:
+                src.physics = self.physics
 
     @property
     def physprops(self):
@@ -272,7 +277,7 @@ class SimulationTDEM(BaseSimulation):
             self._survey = TDEM.Survey(self.src.srcList)
 
             self._prob.pair(self._survey)
-        return self.prob
+        return self._prob
 
     @property
     def survey(self):

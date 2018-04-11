@@ -35,6 +35,9 @@ def face3DthetaSlice(mesh3D, j3D, theta_ind=0):
     :param numpy.ndarray j3D: vector of fluxes on mesh
     :param int theta_ind: index of the theta slice that you want
     """
+    if mesh3D.isSymmetric:
+        return j3D
+
     j3D_x = j3D[:mesh3D.nFx].reshape(mesh3D.vnFx, order='F')
     j3D_z = j3D[mesh3D.vnF[:2].sum():].reshape(mesh3D.vnFz, order='F')
 

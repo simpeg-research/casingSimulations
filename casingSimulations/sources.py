@@ -35,10 +35,11 @@ class BaseCasingSrc(BaseCasing):
         BaseMeshGenerator
     )
 
-    # physics = properties.StringChoice(
-    #     "FDEM or TDEM simulation?",
-    #     choices=["FDEM", "TDEM"]
-    # )
+    physics = properties.StringChoice(
+        "FDEM or TDEM simulation?",
+        choices=["FDEM", "TDEM"],
+        required=False
+    )
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)

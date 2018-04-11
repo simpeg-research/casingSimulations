@@ -2,7 +2,7 @@ from __future__ import division
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm, SymLogNorm
 from scipy.spatial import cKDTree
 import ipywidgets
 import discretize
@@ -57,10 +57,10 @@ def plotFace2D(
     mesh2D,
     j, real_or_imag='real', ax=None, range_x=None,
     range_y=None, sample_grid=None,
-    logScale=True, clim=None, mirror=False, mirror_data=None,
+    log_scale=True, clim=None, mirror=False, mirror_data=None,
     pcolorOpts=None,
     show_cb=True,
-    stream_threshold=None, streamOpts=None
+    stream_threshold=None, stream_opts=None
 ):
     """
     Create a streamplot (a slice in the theta direction) of a face vector
@@ -72,7 +72,7 @@ def plotFace2D(
     :param numpy.ndarray range_x: x-extent over which we want to plot
     :param numpy.ndarray range_y: y-extent over which we want to plot
     :param numpy.ndarray sample_grid: x, y spacings at which to re-sample the plotting grid
-    :param bool logScale: use a log scale for the colorbar?
+    :param bool log_scale: use a log scale for the colorbar?
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
@@ -85,7 +85,7 @@ def plotFace2D(
     if pcolorOpts is None:
         pcolorOpts = {}
 
-    if logScale is True:
+    if log_scale is True:
         pcolorOpts['norm'] = LogNorm()
     else:
         pcolorOpts = {}
@@ -94,9 +94,13 @@ def plotFace2D(
         getattr(j, real_or_imag),
         view='vec', vType=vType, ax=ax,
         range_x=range_x, range_y=range_y, sample_grid=sample_grid,
-        mirror=mirror, mirror_data=mirror_data,
+        mirror=mirror,
+        mirror_data= (
+            getattr(mirror_data, real_or_imag) if mirror_data is not None
+            else None)
+        ,
         pcolorOpts=pcolorOpts, clim=clim, stream_threshold=stream_threshold,
-        streamOpts=streamOpts
+        streamOpts=stream_opts
     )
 
     out = f + (ax,)
@@ -116,7 +120,7 @@ def plotEdge2D(
     mesh2D,
     h, real_or_imag='real', ax=None, range_x=None,
     range_y=None, sample_grid=None,
-    logScale=True, clim=None, mirror=False, pcolorOpts=None
+    log_scale=True, clim=None, mirror=False, pcolorOpts=None
 ):
     """
     Create a pcolor plot (a slice in the theta direction) of an edge vector
@@ -128,7 +132,7 @@ def plotEdge2D(
     :param numpy.ndarray range_x: x-extent over which we want to plot
     :param numpy.ndarray range_y: y-extent over which we want to plot
     :param numpy.ndarray sample_grid: x, y spacings at which to re-sample the plotting grid
-    :param bool logScale: use a log scale for the colorbar?
+    :param bool log_scale: use a log scale for the colorbar?
     """
 
     if ax is None:
@@ -141,7 +145,7 @@ def plotEdge2D(
     elif len(h) == 2*mesh2D.nC:
         vType = 'CCv'
 
-    if logScale is True:
+    if log_scale is True:
         pcolorOpts['norm'] = LogNorm()
     else:
         pcolorOpts = {}
@@ -222,25 +226,19 @@ class FieldsViewer(properties.HasProperties):
         default=1e-20
     )
 
+    primary_key=properties.String(
+        "key indicating which model we treat as the primary"
+    )
+
     def __init__(
-        self, sim_dict, fields_dict, model_keys=None, primary_key=None
+        self, sim_dict, fields_dict, model_keys=None,
+        **kwargs
     ):
         self.sim_dict = sim_dict
         self.fields_dict = fields_dict
         self.model_keys = (
             model_keys if model_keys is not None else sorted(sim_dict.keys())
         )
-        self.primary_key = primary_key
-
-        if self.primary_key is not None:
-            assert primary_key in self.model_keys, (
-                'the provided primary_key {} is not in {}'.format(
-                    primary_key, self.model_keys
-                )
-            )
-            self.prim_sec_opts = ['total', 'primary', 'secondary']
-        else:
-            self.prim_sec_opts = None
 
         if all(
             sim.__class__.__name__ == "SimulationDC"
@@ -248,18 +246,39 @@ class FieldsViewer(properties.HasProperties):
         ):
             self._physics = 'DC'
             self.fields_opts = ['e',  'j', 'phi', 'charge']
+            self.reim_opts = ["real"]
+
         elif all(
             sim.__class__.__name__ == "SimulationFDEM"
             for sim in sim_dict.values()
         ):
             self._physics = 'FDEM'
             self.fields_opts = ['e', 'j', 'h', 'b']
+            self.reim_opts = ["real", "imag"]
+
         elif all(
             sim.__class__.__name__ == "SimulationTDEM"
             for sim in sim_dict.values()
         ):
             self._physics = 'TDEM'
-            self.fields_opts = ['e', 'j', 'charge', 'h', 'b']
+            self.fields_opts = ['e', 'j']
+            if self.sim_dict[model_keys[0]].prob._fieldType=="j":
+                self.fields_opts += ["charge"]
+            elif self.sim_dict[model_keys[0]].prob._fieldType in ["b", "h"]:
+                self.fields_opts += ['h', 'b']
+            self.reim_opts = ["real"]
+
+    @property
+    def prim_sec_opts(self):
+        if self.primary_key is not None:
+            assert primary_key in self.model_keys, (
+                'the provided primary_key {} is not in {}'.format(
+                    primary_key, self.model_keys
+                )
+            )
+            return ['total', 'primary', 'secondary']
+        else:
+            return None
 
     def _mesh2D(self, model_key):
         if self.sim_dict[model_key].meshGenerator.mesh.isSymmetric:
@@ -316,7 +335,7 @@ class FieldsViewer(properties.HasProperties):
         show_cb=True,
         show_mesh=False,
         use_aspect=False,
-        streamOpts=None
+        stream_opts=None
     ):
         """
         Plot the fields
@@ -352,6 +371,7 @@ class FieldsViewer(properties.HasProperties):
             plotme = self.fields_dict[model_key][src, view]
 
         mesh = self._mesh(model_key)
+        norm = None
 
         if prim_sec == 'secondary':
             prim_src = self.sim_dict[self.primary_key].survey.srcList[src_ind]
@@ -376,15 +396,16 @@ class FieldsViewer(properties.HasProperties):
             mirror_data=None
 
         if view in ['charge', 'phi']:
+            plot_type = "scalar"
             if clim is None and view == 'charge':
                 clim = np.r_[-1., 1.] * np.max(np.absolute(plotme))
 
-            if not mesh.isSymmetric:
-                plotme = plotme.reshape(mesh.vnC, order='F')
-                mirror_data = discretize.utils.mkvc(
-                    plotme[:, theta_ind_mirror, :]
-                )
-                plotme = discretize.utils.mkvc(plotme[:, theta_ind, :])
+            # if not mesh.isSymmetric:
+            plotme = plotme.reshape(mesh.vnC, order='F')
+            mirror_data = discretize.utils.mkvc(
+                plotme[:, theta_ind_mirror, :]
+            )
+            plotme = discretize.utils.mkvc(plotme[:, theta_ind, :])
 
 
         elif view in ['j', 'e']:
@@ -394,41 +415,49 @@ class FieldsViewer(properties.HasProperties):
                     theta_ind=theta_ind
                 )
                 mirror_data = face3DthetaSlice(
-                    mesh, -plotme, theta_ind=theta_ind_mirror
+                    mesh, plotme, theta_ind=theta_ind_mirror
                 )
                 plot_type = "vec"
+
             elif self.sim_dict[model_key].prob._formulation == "EB":
                 plotme = mesh.aveE2CC * plotme
-                mirror_data = discretize.utils.mkvc(
-                    -plotme[:, theta_ind_mirror, :]
-                )
+                mirror_data = -plotme
                 plot_type = "scalar"
+                norm = SymLogNorm(
+                    clim[0] if clim is not None else
+                    np.max([self.eps, np.min(np.absolute(plotme))])
+                )
+                clim = clim[1]*np.r_[-1., 1.] if clim is not None else None
 
         elif view in ['h', 'b']:
 
             if self.sim_dict[model_key].prob._formulation == "EB":
                 plt_vec = face3DthetaSlice(
-                    self._mesh(model_key), plotme,
-                    theta_ind=theta_ind
+                    mesh, plotme, theta_ind=theta_ind
                 )
-
                 mirror_data = face3DthetaSlice(
-                    mesh, -plotme, theta_ind=theta_ind_mirror
+                    mesh, plotme, theta_ind=theta_ind_mirror
                 )
                 plot_type = "vec"
+
             elif self.sim_dict[model_key].prob._formulation == "HJ":
                 plotme = mesh.aveE2CC * plotme
                 mirror_data = discretize.utils.mkvc(
                     -plotme[:, theta_ind_mirror, :]
                 )
                 plot_type = "scalar"
-
+                norm = SymLogNorm(
+                    clim[0] if clim is not None else
+                    np.max([self.eps, np.min(np.absolute(plotme))])
+                )
+                clim = clim[1]*np.r_[-1., 1.] if clim is not None else None
 
         if plot_type == "scalar":
             out = self._mesh2D(model_key).plotImage(
-                plotme, ax=ax,
+                getattr(plotme, real_or_imag), ax=ax,
                 pcolorOpts = {
                     'cmap': 'bwr' if view == 'charge' else 'viridis',
+                    'norm': norm
                 },
                 clim=clim,
                 mirror_data=mirror_data,
@@ -443,10 +472,10 @@ class FieldsViewer(properties.HasProperties):
 
                 out += (cb,)
 
-        elif plot_type == "vector":
+        elif plot_type == "vec":
             out = plotFace2D(
                 self._mesh2D(model_key),
-                plt_vec,
+                plt_vec + self.eps,
                 real_or_imag=real_or_imag,
                 ax=ax,
                 range_x=xlim,
@@ -455,15 +484,16 @@ class FieldsViewer(properties.HasProperties):
                     np.r_[np.diff(xlim)/100., np.diff(zlim)/100.]
                     if xlim is not None and zlim is not None else None
                 ),
-                logScale=True,
+                log_scale=True,
                 clim=clim,
                 stream_threshold=clim[0] if clim is not None else None,
                 mirror=True,
                 mirror_data=mirror_data,
-                streamOpts=streamOpts
+                stream_opts=stream_opts,
+                show_cb=show_cb,
             )
 
-        if clim is not None:
+        if clim is not None and show_cb is True:
             cb = out[-1]
             cb.set_clim(clim)
             cb.update_ticks()
@@ -476,7 +506,7 @@ class FieldsViewer(properties.HasProperties):
             title += "\nf = {:1.1e} Hz".format(src.freq)
         elif self._physics == "TDEM":
             title += "\n t = {:1.1e} s".format(
-                self.sim_dict[model_key].prob.times[tind]
+                self.sim_dict[model_key].prob.times[time_ind]
             )
         ax.set_title(
             title, fontsize=13
@@ -509,9 +539,10 @@ class FieldsViewer(properties.HasProperties):
 
         return out
 
-    def _get_cKDTree(self, plan_mesh, k=10):
+    def _get_cKDTree(self, model_key, plan_mesh, k=10):
         # construct interpolation
-        CCcart = self.mesh.cartesianGrid('CC')
+        mesh = self._mesh(model_key)
+        CCcart = mesh.cartesianGrid('CC')
         tree = cKDTree(plan_mesh[:mesh.vnC[:2].prod(),:2])
         d, ii = tree.query(plan_mesh.gridCC, k=k)
         inds = np.vstack([ii, ii+mesh.vnC[:2].prod()])
@@ -537,9 +568,9 @@ class FieldsViewer(properties.HasProperties):
         # casing_outline=True,
         cb_extend=None,
         show_cb=True,
-        show_mesh=False,
+        # show_mesh=False,
         use_aspect=False,
-        streamOpts=None,
+        stream_opts=None,
         plan_mesh=None,
         tree_query=None,
         rotate=False
@@ -608,11 +639,11 @@ class FieldsViewer(properties.HasProperties):
             nC = 200
             hx = np.diff(xlim) * np.ones(nC)/ nC
             hy = np.diff(ylim) * np.ones(nC)/ nC
-            plan_mesh = discretize([hx, hy], x0=[xlim[0], ylim[0]])
+            plan_mesh = discretize.TensorMesh([hx, hy], x0=[xlim[0], ylim[0]])
 
         # construct interpolation
         if tree_query is None:
-            inds, weights = self._get_cKDTree(plan_mesh)
+            inds, weights = self._get_cKDTree(model_key, plan_mesh)
 
         else:
             inds, weights = tree_query
@@ -679,7 +710,8 @@ class FieldsViewer(properties.HasProperties):
         time_ind=0,
         show_mesh=False,
         use_aspect=False,
-        casing_outline=True
+        casing_outline=True,
+        figwidth=5
     ):
 
         if isinstance(model_key, str):
@@ -690,7 +722,7 @@ class FieldsViewer(properties.HasProperties):
 
         if ax is None:
             fig, ax = plt.subplots(
-                1, len(model_key), figsize=(len(model_key)*5, 6)
+                1, len(model_key), figsize=(len(model_key)*figwidth, 6)
             )
 
         if len(model_key) == 1:
@@ -722,7 +754,7 @@ class FieldsViewer(properties.HasProperties):
         plt.tight_layout()
         plt.show()
 
-    def widget_cross_section(self, ax=None, defaults={}, fixed={}):
+    def widget_cross_section(self, ax=None, defaults={}, fixed={}, figwidth=5):
 
         widget_defaults = {
             "max_r": 2*self.sim_dict[self.model_keys[0]].modelParameters.casing_b,
@@ -734,7 +766,7 @@ class FieldsViewer(properties.HasProperties):
             "view": self.fields_opts[0],
             "show_mesh": False,
             "use_aspect": False,
-            "casing_outline": True
+            "casing_outline": True,
         }
 
         [
@@ -743,9 +775,12 @@ class FieldsViewer(properties.HasProperties):
         ]
 
         fixed["ax"] = ax
+        fixed["figwidth"] = figwidth
 
         if not self.sim_dict[self.model_keys[0]].meshGenerator.mesh.isSymmetric:
             widget_defaults["theta_ind"]=0
+        else:
+            fixed["theta_ind"] = 0
 
         if len(self.sim_dict[self.model_keys[0]].survey.srcList) == 1:
             fixed["src_ind"] = 0
@@ -782,7 +817,7 @@ class FieldsViewer(properties.HasProperties):
 
         for key, option in zip(
             ["model_key", "view", "prim_sec", "real_or_imag"],
-            ["model_keys", "fields_opts", "prim_sec_opts", ["real", "imag"]]
+            ["model_keys", "fields_opts", "prim_sec_opts", "reim_opts"]
         ):
             if key in widget_defaults.keys():
                 options = getattr(self, option, None)
@@ -796,7 +831,7 @@ class FieldsViewer(properties.HasProperties):
                 )
 
         for key, max_len in zip(
-            ["theta_ind", "src_ind", "tind"],
+            ["theta_ind", "src_ind", "time_ind"],
             [
                 self.sim_dict[self.model_keys[0]].meshGenerator.mesh.vnC[1] - 1,
                 len(self.sim_dict[self.model_keys[0]].survey.srcList) - 1,
@@ -831,13 +866,13 @@ class FieldsViewer(properties.HasProperties):
         prim_sec=None,
         real_or_imag='real',
         z_ind=None,
-        theta_ind=0,
         src_ind=0,
         time_ind=0,
-        show_mesh=False,
+        # show_mesh=False,
         use_aspect=False,
         # casing_outline=True,
-        rotate=False
+        rotate=False,
+        figwidth=5
     ):
         if isinstance(model_key, str):
             if model_key == 'all':
@@ -847,7 +882,7 @@ class FieldsViewer(properties.HasProperties):
 
         if ax is None:
             fig, ax = plt.subplots(
-                1, len(model_key), figsize=(len(model_key)*5, 6)
+                1, len(model_key), figsize=(len(model_key)*figwidth, 6)
             )
 
         if len(model_key) == 1:
@@ -870,9 +905,9 @@ class FieldsViewer(properties.HasProperties):
             nC = 200
             hx = np.diff(xlim) * np.ones(nC)/ nC
             hy = np.diff(ylim) * np.ones(nC)/ nC
-            plan_mesh = discretize([hx, hy], x0=[xlim[0], ylim[0]])
+            plan_mesh = discretize.TensorMesh([hx, hy], x0=[xlim[0], ylim[0]])
 
-            inds, weights = self._get_cKDTree(plan_mesh)
+            inds, weights = self._get_cKDTree(model_key[0], plan_mesh)
 
             self._cached_cKDTree = {
                 'xlim': xlim,
@@ -910,20 +945,7 @@ class FieldsViewer(properties.HasProperties):
         plt.show()
 
 
-    def widget_depth_slice(self, ax=None, defaults={}, fixed={}):
-        clim_min=None,
-        clim_max=None,
-        model_key=None,
-        view=None,
-        prim_sec=None,
-        real_or_imag='real',
-        z_ind=None,
-        src_ind=0,
-        time_ind=0,
-        show_mesh=False,
-        use_aspect=False,
-        # casing_outline=True,
-        rotate=False
+    def widget_depth_slice(self, ax=None, defaults={}, fixed={}, figwidth=5):
 
         widget_defaults = {
             "max_r": self.sim_dict[self.model_keys[0]].modelParameters.casing_l,
@@ -936,6 +958,7 @@ class FieldsViewer(properties.HasProperties):
             "view": self.fields_opts[0],
             "show_mesh": False,
             "use_aspect": False,
+            "rotate":False
             # "casing_outline": True
         }
 
@@ -944,10 +967,9 @@ class FieldsViewer(properties.HasProperties):
             if key in widget_defaults.keys()
         ]
 
-        fixed["ax"] = ax
 
-        if not self.sim_dict[self.model_keys[0]].meshGenerator.mesh.isSymmetric:
-            widget_defaults["theta_ind"]=0
+        fixed["ax"] = ax
+        fixed["figwidth"] = figwidth
 
         if len(self.sim_dict[self.model_keys[0]].survey.srcList) == 1:
             fixed["src_ind"] = 0
@@ -998,9 +1020,9 @@ class FieldsViewer(properties.HasProperties):
                 )
 
         for key, max_len in zip(
-            ["z_ind", "src_ind", "tind"],
+            ["z_ind", "src_ind", "time_ind"],
             [
-                self.sim_dict[self.model_keys[0]].mesh.vnC[2] - 1,
+                self.sim_dict[self.model_keys[0]].meshGenerator.mesh.vnC[2] - 1,
                 len(self.sim_dict[self.model_keys[0]].survey.srcList) - 1,
                 self.sim_dict[self.model_keys[0]].prob.nT if
                 self._physics == "TDEM" else None
@@ -1011,13 +1033,13 @@ class FieldsViewer(properties.HasProperties):
                     min=0, max=max_len, value=widget_defaults[key]
                 )
 
-        for key in ["show_mesh", "use_aspect", "casing_outline"]:
+        for key in ["show_mesh", "use_aspect", "rotate"]:
             if key in widget_defaults.keys():
                 widget_dict[key] = ipywidgets.Checkbox(
                     value=widget_defaults[key]
                 )
 
         return ipywidgets.interact(
-            self._cross_section_widget_wrapper,
+            self._depth_slice_widget_wrapper,
             **widget_dict
         )
