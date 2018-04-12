@@ -543,14 +543,13 @@ class FieldsViewer(properties.HasProperties):
         # construct interpolation
         mesh = self._mesh(model_key)
         CCcart = mesh.cartesianGrid('CC')
-        tree = cKDTree(plan_mesh[:mesh.vnC[:2].prod(),:2])
+        tree = cKDTree(CCcart[:mesh.vnC[:2].prod(),:2])
         d, ii = tree.query(plan_mesh.gridCC, k=k)
-        inds = np.vstack([ii, ii+mesh.vnC[:2].prod()])
 
         weights = 1./d
-        weights = utils.sdiag(1./weights.sum(1))*weights
+        weights = discretize.utils.sdiag(1./weights.sum(1))*weights
 
-        return inds, weights
+        return ii, weights
 
     def plot_depth_slice(
         self,
@@ -630,9 +629,8 @@ class FieldsViewer(properties.HasProperties):
             elif self.sim_dict[model_key].prob._formulation == 'EB':
                 plotme = mesh.aveF2CCV * plotme
 
-        plotme_cart = discretize.utils.rotate_cyl2cart(
-            mesh.gridCC, plotme.reshape(mesh.vnC, order='F')
-        )
+        plotme = plotme.reshape(mesh.gridCC.shape, order='F')
+        plotme_cart = discretize.utils.rotate_vec_cyl2cart(mesh.gridCC, plotme)
 
         # construct plan mesh if it doesn't exist
         if plan_mesh is None:
@@ -651,10 +649,10 @@ class FieldsViewer(properties.HasProperties):
         # deal with vectors
         if view in ['e', 'b', 'h', 'j']:
             plotme_x = discretize.utils.mkvc(
-                (plome[:, 0]).reshape(mesh.vnC, order='F')[:, :, z_ind]
+                (plotme_cart[:, 0]).reshape(mesh.vnC, order='F')[:, :, z_ind]
             )
             plotme_y = discretize.utils.mkvc(
-                (plome[:, 1]).reshape(mesh.vnC, order='F')[:, :, z_ind]
+                (plotme_cart[:, 1]).reshape(mesh.vnC, order='F')[:, :, z_ind]
             )
 
             plotme = np.hstack([
@@ -679,10 +677,10 @@ class FieldsViewer(properties.HasProperties):
 
         if view in ['e', 'b', 'h', 'j']:
             out = plan_mesh.plotImage(
-                plot_me, view='vec', vType='CCv', ax=ax,
+                plotme, view='vec', vType='CCv', ax=ax,
                 pcolorOpts={'norm':LogNorm()},
-                clim = [clim_min, clim_max],
-                streamOpts={'arrowsize':1.5, 'color':'k'},
+                clim=clim,
+                streamOpts=stream_opts,
             )
 
         if show_cb:
@@ -691,6 +689,16 @@ class FieldsViewer(properties.HasProperties):
         if use_aspect is True:
             ax.set_aspect(1)
 
+        title = "{} \n{} {} \n z={:1.1e}m".format(
+            model_key, prim_sec, view, mesh.vectorCCz[z_ind]
+        )
+        if self._physics == "FDEM":
+            title += "\nf = {:1.1e} Hz".format(src.freq)
+        elif self._physics == "TDEM":
+            title += "\n t = {:1.1e} s".format(
+                self.sim_dict[model_key].prob.times[time_ind]
+            )
+        ax.set_title(title)
         return out
 
     def _cross_section_widget_wrapper(
@@ -868,7 +876,6 @@ class FieldsViewer(properties.HasProperties):
         z_ind=None,
         src_ind=0,
         time_ind=0,
-        # show_mesh=False,
         use_aspect=False,
         # casing_outline=True,
         rotate=False,
@@ -933,7 +940,7 @@ class FieldsViewer(properties.HasProperties):
                 src_ind=src_ind, time_ind=time_ind,
                 # casing_outline=casing_outline,
                 cb_extend=None, show_cb=True,
-                show_mesh=show_mesh, use_aspect=use_aspect,
+                use_aspect=use_aspect,
                 tree_query=(
                     self._cached_cKDTree['inds'],
                     self._cached_cKDTree['weights']
