@@ -36,11 +36,11 @@ setup(
         'cython',
         'pymatsolver>=0.1.1',
         'ipython',
-        'ipywidgets'
+        'ipywidgets',
         'matplotlib',
         'properties[math]',
         'discretize',
-        'SimPEG'
+        'SimPEG',
     ],
     author="Lindsey Heagy",
     author_email="lindseyheagy@gmail.com",
