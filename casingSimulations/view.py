@@ -234,6 +234,7 @@ class FieldsViewer(properties.HasProperties):
         self, sim_dict, fields_dict, model_keys=None,
         **kwargs
     ):
+        super(FieldsViewer, self).__init__(**kwargs)
         self.sim_dict = sim_dict
         self.fields_dict = fields_dict
         self.model_keys = (
@@ -271,9 +272,9 @@ class FieldsViewer(properties.HasProperties):
     @property
     def prim_sec_opts(self):
         if self.primary_key is not None:
-            assert primary_key in self.model_keys, (
+            assert self.primary_key in self.model_keys, (
                 'the provided primary_key {} is not in {}'.format(
-                    primary_key, self.model_keys
+                    self.primary_key, self.model_keys
                 )
             )
             return ['total', 'primary', 'secondary']
