@@ -729,7 +729,6 @@ class FieldsViewer(properties.HasProperties):
                     'norm': norm
                 },
                 clim=clim,
-                mirror_data=mirror_data,
                 mirror=True
             )
 
