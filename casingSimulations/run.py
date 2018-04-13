@@ -138,7 +138,9 @@ class BaseSimulation(BaseCasing):
             meshGenerator=self.meshGenerator.filename,
             src=self.src.filename,
             directory=self.directory,
-            physics=self.physics
+            physics=self.physics,
+            includeDC=includeDC,
+            include2D=include2D
         )
 
     def fields(self):
