@@ -716,7 +716,7 @@ class FieldsViewer(properties.HasProperties):
 
         if view in ['e', 'b', 'h', 'j']:
             out = plan_mesh.plotImage(
-                getattr(plotme, real_or_imag) view='vec', vType='CCv', ax=ax,
+                getattr(plotme, real_or_imag), view='vec', vType='CCv', ax=ax,
                 pcolorOpts={'norm':LogNorm()},
                 clim=clim,
                 streamOpts=stream_opts,
