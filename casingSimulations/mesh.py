@@ -423,7 +423,7 @@ class BaseCylMixin(properties.HasProperties):
         create cylindrically symmetric mesh generator
         """
         mesh2D = self.copy()
-        mesh2D.modelParameters = self.modelParameters  # see https://github.com/3ptscience/properties/issues/175
+        # mesh2D.modelParameters = self.modelParameters.copy()  # see https://github.com/3ptscience/properties/issues/175
         mesh2D.hy = np.r_[2*np.pi]
         return mesh2D
 
