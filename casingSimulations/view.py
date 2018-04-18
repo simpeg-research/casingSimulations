@@ -38,11 +38,22 @@ def plot_slice(
     )
 
     vplt = v.reshape(mesh.vnC, order='F')
+    plotme = discretize.utils.mkvc(vplt[:, theta_ind, :])
+    if not mesh.isSymmetric:
+        theta_ind_mirror = (
+                theta_ind+int(mesh.vnC[1]/2)
+                if theta_ind < int(mesh.vnC[1]/2)
+                else theta_ind-int(mesh.vnC[1]/2)
+            )
+        mirror_data = discretize.utils.mkvc(vplt[:, theta_ind_mirror, :])
+    else:
+        mirror_data = plotme
 
     cb = plt.colorbar(
         mesh2D.plotImage(
-            discretize.utils.mkvc(vplt[:, theta_ind, :]), ax=ax,
-            mirror=True, pcolorOpts=pcolorOpts, clim=clim
+            plotme, ax=ax,
+            mirror=True, mirror_data=mirror_data,
+            pcolorOpts=pcolorOpts, clim=clim
         )[0], ax=ax, extend=cb_extend if cb_extend is not None else "neither"
     )
 
@@ -210,7 +221,7 @@ def plotLinesFx(
         )
 
     getattr(ax, pltType)(
-        x, fx.real, linestyle, color='C{}'.format(color_ind),
+        x, fx.real, linestyle, color=color if color is not None else 'C{}'.format(color_ind),
         label=label
     )
 
@@ -652,8 +663,8 @@ class FieldsViewer(properties.HasProperties):
             plotme = plotme - background
 
         # interpolate to cell centers
-        if view in ['sigma', 'mur', 'phi', 'charges']:
-            plotme_cart = plotme
+        if view in ['sigma', 'mur', 'phi', 'charge']:
+            plotme_cart = discretize.utils.mkvc(plotme)
         else:
             if view in ['e', 'j']:
                 if self.sim_dict[model_key].prob._formulation == 'HJ':
@@ -709,7 +720,7 @@ class FieldsViewer(properties.HasProperties):
                 plotme = np.hstack([plotme_y, plotme_x])
 
         else:
-            plotme = (plotme[inds] * weights).sum(1)
+            plotme = (discretize.utils.mkvc(plotme)[inds] * weights).sum(1)
 
             if rotate is True:
                 plotme = plotme.reshape(plan_mesh.vnC, order='F').T
@@ -729,7 +740,6 @@ class FieldsViewer(properties.HasProperties):
                     'norm': norm
                 },
                 clim=clim,
-                mirror=True
             )
 
         if show_cb:
@@ -928,7 +938,8 @@ class FieldsViewer(properties.HasProperties):
         use_aspect=False,
         # casing_outline=True,
         rotate=False,
-        figwidth=5
+        figwidth=5,
+        k=10,
     ):
         if isinstance(model_key, str):
             if model_key == 'all':
@@ -963,20 +974,22 @@ class FieldsViewer(properties.HasProperties):
             hy = np.diff(ylim) * np.ones(nC)/ nC
             plan_mesh = discretize.TensorMesh([hx, hy], x0=[xlim[0], ylim[0]])
 
-            inds, weights = self._get_cKDTree(model_key[0], plan_mesh)
+            inds, weights = self._get_cKDTree(model_key[0], plan_mesh, k=k)
 
             self._cached_cKDTree = {
                 'xlim': xlim,
                 'ylim': ylim,
                 'inds': inds,
-                'weights': weights
+                'weights': weights,
+                'k':k
             }
 
         if getattr(self, '_cached_cKDTree', None) is None:
             assign_cKDTree()
         elif not (
             np.all(self._cached_cKDTree['xlim'] == xlim) &
-            np.all(self._cached_cKDTree['ylim'] == ylim)
+            np.all(self._cached_cKDTree['ylim'] == ylim) &
+            self._cached_cKDTree['k'] == k
         ):
             assign_cKDTree()
 
@@ -1014,7 +1027,8 @@ class FieldsViewer(properties.HasProperties):
             "view": self.fields_opts[0],
             "show_mesh": False,
             "use_aspect": False,
-            "rotate":False
+            "rotate":False,
+            "k": 10
             # "casing_outline": True
         }
 
@@ -1076,13 +1090,15 @@ class FieldsViewer(properties.HasProperties):
                 )
 
         for key, max_len in zip(
-            ["z_ind", "src_ind", "time_ind"],
+            ["z_ind", "src_ind", "time_ind", "k"],
             [
                 self.sim_dict[self.model_keys[0]].meshGenerator.mesh.vnC[2] - 1,
                 len(self.sim_dict[self.model_keys[0]].survey.srcList) - 1,
                 self.sim_dict[self.model_keys[0]].prob.nT if
-                self._physics == "TDEM" else None
+                self._physics == "TDEM" else None,
+                50
             ]
+
         ):
             if key in widget_defaults.keys():
                 widget_dict[key] = ipywidgets.IntSlider(
