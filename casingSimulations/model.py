@@ -478,59 +478,10 @@ class BaseCasingParametersMixin(BaseCasing):
         return mur
 
 
-class CasingInWholespace(Wholespace, BaseCasingParametersMixin):
+class FlawedCasingMixin(BaseCasingParametersMixin):
+
     """
-    A model of casing in a wholespace
-    """
-    def sigma(self, mesh):
-        """
-        put the conductivity model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        sigma = super(CasingInWholespace, self).sigma(mesh)
-        return self.add_sigma_casing(mesh, sigma)
-
-    def mur(self, mesh):
-        """
-        put the permeability model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        mur = super(CasingInWholespace, self).mur(mesh)
-        return self.add_mur_casing(mesh, mur)
-
-
-class CasingInHalfspace(Halfspace, BaseCasingParametersMixin):
-    """
-    A model of casing in a halfspace
-    """
-    def sigma(self, mesh):
-        """
-        put the conductivity model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        sigma = super(CasingInHalfspace, self).sigma(mesh)
-        return self.add_sigma_casing(mesh, sigma)
-
-    def mur(self, mesh):
-        """
-        put the permeability model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        mur = super(CasingInHalfspace, self).mur(mesh)
-        return self.add_mur_casing(mesh, mur)
-
-
-class FlawedCasingInHalfspace(CasingInHalfspace):
-    """
-    A model of a flawed casing in a wholespace
+    Model parameters for a flawed well.
     """
 
     flaw_r = properties.Array(
@@ -590,6 +541,34 @@ class FlawedCasingInHalfspace(CasingInHalfspace):
             self._indices_flaw_z(mesh)
         )
 
+    def add_sigma_casing(self, mesh, sigma):
+        """
+        add the conductivity of the casing to the provided conductivity model
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :param numpy.ndarray sigma: electrical conductivity model to modify
+        :rtype: numpy.ndarray
+        :return: electrical conductivity model with casing
+        """
+        sigma = super(FlawedCasingMixin, self).add_sigma_casing(mesh, sigma)
+        sigma[self.indices_flaw(mesh)] = self.sigma_flaw
+        return sigma
+
+    def add_mur_casing(self, mesh, mur):
+        """
+        add relative magnetic permeability of the casing to the provided model
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :param numpy.ndarray mur: relative magnetic permittivity model to modify
+        :rtype: numpy.ndarray
+        :return: relative magnetic permeability model with casing
+        """
+        mur = super(FlawedCasingMixin, self).add_mur_casing(mesh, mur)
+        mur[self.indices_flaw(mesh)] = self.mur_flaw
+        return mur
+
+class CasingInWholespace(Wholespace, BaseCasingParametersMixin):
+    """
+    A model of casing in a wholespace
+    """
     def sigma(self, mesh):
         """
         put the conductivity model on a mesh
@@ -597,9 +576,8 @@ class FlawedCasingInHalfspace(CasingInHalfspace):
         :param discretize.BaseMesh mesh: a discretize mesh
         :rtype: numpy.array
         """
-        sigma = super(FlawedCasingInHalfspace, self).sigma(mesh)
-        sigma[self.indices_flaw(mesh)] = self.sigma_flaw
-        return sigma
+        sigma = super(CasingInWholespace, self).sigma(mesh)
+        return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
         """
@@ -608,9 +586,59 @@ class FlawedCasingInHalfspace(CasingInHalfspace):
         :param discretize.BaseMesh mesh: a discretize mesh
         :rtype: numpy.array
         """
-        mur = super(FlawedCasingInHalfspace, self).mur(mesh)
-        mur[self.indices_flaw(mesh)] = self.mur_flaw
-        return mur
+        mur = super(CasingInWholespace, self).mur(mesh)
+        return self.add_mur_casing(mesh, mur)
+
+
+class CasingInHalfspace(Halfspace, BaseCasingParametersMixin):
+    """
+    A model of casing in a halfspace
+    """
+    def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        sigma = super(CasingInHalfspace, self).sigma(mesh)
+        return self.add_sigma_casing(mesh, sigma)
+
+    def mur(self, mesh):
+        """
+        put the permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        mur = super(CasingInHalfspace, self).mur(mesh)
+        return self.add_mur_casing(mesh, mur)
+
+
+class FlawedCasingInHalfspace(CasingInHalfspace, FlawedCasingMixin):
+    """
+    A model of a flawed casing in a wholespace
+    """
+
+    # def sigma(self, mesh):
+    #     """
+    #     put the conductivity model on a mesh
+
+    #     :param discretize.BaseMesh mesh: a discretize mesh
+    #     :rtype: numpy.array
+    #     """
+    #     sigma = super(CasingInHalfspace, self).sigma(mesh)
+    #     return self.add_sigma_casing(mesh, sigma)
+
+    # def mur(self, mesh):
+    #     """
+    #     put the permeability model on a mesh
+
+    #     :param discretize.BaseMesh mesh: a discretize mesh
+    #     :rtype: numpy.array
+    #     """
+    #     mur = super(CasingInHalfspace, self).mur(mesh)
+    #     return self.add_mur_casing(mesh, mur)
 
 
 class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
@@ -637,6 +665,11 @@ class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
         mur = super(CasingInSingleLayer, self).mur(mesh)
         return self.add_mur_casing(mesh, mur)
 
+
+class FlawedCasingInSingleLayer(CasingInSingleLayer, FlawedCasingMixin):
+    """
+    Flawed casing in a halfspace with a single layer present
+    """
 
 class PhysicalProperties(object):
     """
