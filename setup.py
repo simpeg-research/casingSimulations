@@ -39,7 +39,6 @@ setup(
         'ipywidgets',
         'matplotlib',
         'properties[math]',
-        'discretize',
         'SimPEG',
     ],
     author="Lindsey Heagy",

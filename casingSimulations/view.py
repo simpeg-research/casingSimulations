@@ -707,9 +707,7 @@ class FieldsViewer(properties.HasProperties):
             if theta_shift is not None:
                 gridCC[:, 1] = gridCC[:, 1] - theta_shift
 
-            plotme_cart = discretize.utils.rotate_vec_cyl2cart(
-                gridCC, plotme
-            )
+            plotme_cart = discretize.utils.cyl2cart(gridCC, plotme)
 
         # construct plan mesh if it doesn't exist
         if plan_mesh is None:
