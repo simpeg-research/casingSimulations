@@ -28,7 +28,7 @@ with open("README.rst") as f:
 
 setup(
     name="CasingSimulations",
-    version="0.0.5",
+    version="0.0.6",
     packages=find_packages(),
     install_requires=[
         'numpy>=1.7',
@@ -37,11 +37,12 @@ setup(
         'pymatsolver>=0.1.1',
         'ipython',
         'ipywidgets',
+        'jupyter',
         'matplotlib',
         'properties[math]',
-        'discretize',
         'SimPEG',
     ],
+
     author="Lindsey Heagy",
     author_email="lindseyheagy@gmail.com",
     description="Casing Simulations: Electromagnetics + Steel Cased Wells",

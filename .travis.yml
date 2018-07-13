@@ -25,11 +25,11 @@ before_install:
 
 install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython mkl;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython jupyter mkl;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython mkl;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython jupyter mkl;
     fi
-  - cd casingSimulations; export PATH=$PWD:$PATH; export PYTHONPATH=$PWD:$PYTHONPATH; cd ..
+  - python setup.py install
   - pip install -r requirements_dev.txt
 
 

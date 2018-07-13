@@ -15,7 +15,7 @@ from .utils import face3DthetaSlice
 
 def plot_slice(
     mesh, v, ax=None, clim=None, pcolorOpts=None, theta_ind=0,
-    cb_extend=None
+    cb_extend=None, show_cb=True
 ):
     """
     Plot a cell centered property
@@ -49,19 +49,26 @@ def plot_slice(
     else:
         mirror_data = plotme
 
-    cb = plt.colorbar(
-        mesh2D.plotImage(
-            plotme, ax=ax,
-            mirror=True, mirror_data=mirror_data,
-            pcolorOpts=pcolorOpts, clim=clim
-        )[0], ax=ax, extend=cb_extend if cb_extend is not None else "neither"
+    out = mesh2D.plotImage(
+        plotme, ax=ax,
+        mirror=True, mirror_data=mirror_data,
+        pcolorOpts=pcolorOpts, clim=clim
     )
 
-    if clim is not None:
-        cb.set_clim(clim)
-        cb.update_ticks()
+    out += (ax, )
 
-    return ax, cb
+    if show_cb:
+        cb = plt.colorbar(
+            out[0], ax=ax,
+            extend=cb_extend if cb_extend is not None else "neither"
+        )
+        out += (cb, )
+
+        if clim is not None:
+            cb.set_clim(clim)
+            cb.update_ticks()
+
+    return out
 
 
 def plotFace2D(
@@ -189,7 +196,8 @@ def plotLinesFx(
     color_ind=0,
     color=None,
     label=None,
-    linestyle='-'
+    linestyle='-',
+    alpha=None
 ):
 
     mesh2D = discretize.CylMesh([mesh.hx, 1., mesh.hz], x0=mesh.x0)
@@ -222,7 +230,7 @@ def plotLinesFx(
 
     getattr(ax, pltType)(
         x, fx.real, linestyle, color=color if color is not None else 'C{}'.format(color_ind),
-        label=label
+        label=label, alpha=alpha
     )
 
     ax.grid('both', linestyle=linestyle, linewidth=0.4, color=[0.8, 0.8, 0.8])
@@ -241,6 +249,7 @@ class FieldsViewer(properties.HasProperties):
         default=1e-20
     )
 
+    # todo: we should also allow this to be a dict
     primary_key=properties.String(
         "key indicating which model we treat as the primary"
     )
@@ -261,7 +270,9 @@ class FieldsViewer(properties.HasProperties):
             for sim in sim_dict.values()
         ):
             self._physics = 'DC'
-            self.fields_opts = ['sigma', 'e',  'j', 'phi', 'charge']
+            self.fields_opts = [
+                'sigma', 'e',  'j', 'phi', 'charge', 'charge_density'
+            ]
             self.reim_opts = ["real"]
 
         elif all(
@@ -292,7 +303,7 @@ class FieldsViewer(properties.HasProperties):
                     self.primary_key, self.model_keys
                 )
             )
-            return ['total', 'primary', 'secondary']
+            return ['total', 'primary', 'secondary', 'percent']
         else:
             return None
 
@@ -346,7 +357,7 @@ class FieldsViewer(properties.HasProperties):
         theta_ind=0,
         src_ind=0,
         time_ind=0,
-        casing_outline=True,
+        casing_outline=False,
         cb_extend=None,
         show_cb=True,
         show_mesh=False,
@@ -393,7 +404,7 @@ class FieldsViewer(properties.HasProperties):
         mesh = self._mesh(model_key)
         norm = None
 
-        if prim_sec == 'secondary':
+        if prim_sec in ['secondary', 'percent']:
             if view in ['sigma', 'mur']:
                 background = getattr(
                     self.sim_dict[self.primary_key].physprops, model_key
@@ -410,6 +421,9 @@ class FieldsViewer(properties.HasProperties):
                     ]
             plotme = plotme - background
 
+            if prim_sec == "percent":
+                plotme = 100 * plotme / (np.absolute(background) + self.eps)
+
         if not mesh.isSymmetric:
             theta_ind_mirror = (
                 theta_ind+int(mesh.vnC[1]/2)
@@ -420,11 +434,11 @@ class FieldsViewer(properties.HasProperties):
             theta_ind_mirror = 0
             mirror_data=None
 
-        if view in ['charge', 'phi', 'sigma', 'mur']:
+        if view in ['charge', 'charge_density', 'phi', 'sigma', 'mur']:
             plot_type = "scalar"
             if view == 'sigma':
                 norm = LogNorm()
-            if clim is None and view == 'charge':
+            if clim is None and view in ['charge', 'charge_density']:
                 clim = np.r_[-1., 1.] * np.max(np.absolute(plotme))
 
             if view == 'phi' and log_scale is True:
@@ -490,7 +504,7 @@ class FieldsViewer(properties.HasProperties):
             out = self._mesh2D(model_key).plotImage(
                 getattr(plotme, real_or_imag), ax=ax,
                 pcolorOpts = {
-                    'cmap': 'bwr' if view == 'charge' else 'viridis',
+                    'cmap': 'bwr' if view in ['charge', 'charge_density'] else 'viridis',
                     'norm': norm
                 },
                 clim=clim,
@@ -573,10 +587,10 @@ class FieldsViewer(properties.HasProperties):
 
         return out
 
-    def _get_cKDTree(self, model_key, plan_mesh, k=10):
+    def _get_cKDTree(self, model_key, plan_mesh, k=10, theta_shift=None):
         # construct interpolation
         mesh = self._mesh(model_key)
-        CCcart = mesh.cartesianGrid('CC')
+        CCcart = mesh.cartesianGrid('CC', theta_shift=theta_shift)
         tree = cKDTree(CCcart[:mesh.vnC[:2].prod(),:2])
         d, ii = tree.query(plan_mesh.gridCC, k=k)
 
@@ -598,7 +612,8 @@ class FieldsViewer(properties.HasProperties):
         real_or_imag='real',
         src_ind=0,
         time_ind=0,
-        # casing_outline=True,
+        theta_shift=None,
+        # casing_outline=False,
         cb_extend=None,
         show_cb=True,
         # show_mesh=False,
@@ -606,7 +621,9 @@ class FieldsViewer(properties.HasProperties):
         stream_opts=None,
         plan_mesh=None,
         tree_query=None,
-        rotate=False
+        rotate=False,
+        k=10,
+        denominator=None,
     ):
 
         # create default ax
@@ -645,7 +662,7 @@ class FieldsViewer(properties.HasProperties):
                 plotme = self.fields_dict[model_key][src, view]
         mesh = self._mesh(model_key)
 
-        if prim_sec == 'secondary':
+        if prim_sec in ['secondary', 'percent']:
             if view in ['sigma', 'mur']:
                 background = getattr(
                     self.sim_dict[self.primary_key].physprops, view
@@ -663,24 +680,34 @@ class FieldsViewer(properties.HasProperties):
             plotme = plotme - background
 
         # interpolate to cell centers
-        if view in ['sigma', 'mur', 'phi', 'charge']:
+        if view in ['sigma', 'mur', 'phi', 'charge', 'charge_density']:
             plotme_cart = discretize.utils.mkvc(plotme)
         else:
-            if view in ['e', 'j']:
-                if self.sim_dict[model_key].prob._formulation == 'HJ':
-                    plotme = mesh.aveF2CCV * plotme
-                elif self.sim_dict[model_key].prob._formulation == 'EB':
-                    plotme = mesh.aveE2CCV * plotme
-            elif view in ['b', 'h']:
-                if self.sim_dict[model_key].prob._formulation == 'HJ':
-                    plotme = mesh.aveE2CCV * plotme
-                elif self.sim_dict[model_key].prob._formulation == 'EB':
-                    plotme = mesh.aveF2CCV * plotme
-
+            if self.sim_dict[model_key].prob._formulation == 'HJ':
+                ave = mesh.aveF2CCV if view in ['e', 'j'] else mesh.aveE2CCV
+            elif self.sim_dict[model_key].prob._formulation == 'EB':
+                ave = mesh.aveF2CCV if view in ['h', 'b'] else mesh.aveE2CCV
+            plotme = ave * plotme
             plotme = plotme.reshape(mesh.gridCC.shape, order='F')
-            plotme_cart = discretize.utils.rotate_vec_cyl2cart(
-                mesh.gridCC, plotme
-            )
+
+            if prim_sec == "percent":
+                background = (ave * background).reshape(
+                    mesh.gridCC.shape, order='F'
+                )
+                if denominator is None or denominator == "magnitude":
+                    den = np.outer(np.sqrt((background**2).sum(1)), np.ones(3))
+                elif denominator == "component":
+                    den = np.absolute(background)
+                elif denominator == "radial":
+                    den = np.outer(np.absolute(background[:, 0]), np.ones(3))
+                plotme = 100 * plotme / (den + self.eps)
+
+
+            gridCC = mesh.gridCC.copy()
+            if theta_shift is not None:
+                gridCC[:, 1] = gridCC[:, 1] - theta_shift
+
+            plotme_cart = discretize.utils.cyl2cart(gridCC, plotme)
 
         # construct plan mesh if it doesn't exist
         if plan_mesh is None:
@@ -690,11 +717,9 @@ class FieldsViewer(properties.HasProperties):
             plan_mesh = discretize.TensorMesh([hx, hy], x0=[xlim[0], ylim[0]])
 
         # construct interpolation
-        if tree_query is None:
-            inds, weights = self._get_cKDTree(model_key, plan_mesh)
-
-        else:
-            inds, weights = tree_query
+        inds, weights = self._get_cKDTree(
+            model_key, plan_mesh, k=k, theta_shift=theta_shift
+        )
 
         # deal with vectors
         if view in ['e', 'b', 'h', 'j']:
@@ -726,17 +751,23 @@ class FieldsViewer(properties.HasProperties):
                 plotme = plotme.reshape(plan_mesh.vnC, order='F').T
 
         if view in ['e', 'b', 'h', 'j']:
+
+            norm = LogNorm()
+            if prim_sec == "percent":
+                norm = None
+
             out = plan_mesh.plotImage(
                 getattr(plotme, real_or_imag), view='vec', vType='CCv', ax=ax,
-                pcolorOpts={'norm':LogNorm()},
+                pcolorOpts={'norm':norm},
                 clim=clim,
                 streamOpts=stream_opts,
+                stream_threshold=clim[0] if clim is not None else None
             )
         else:
             out = plan_mesh.plotImage(
                 getattr(plotme, real_or_imag), ax=ax,
                 pcolorOpts = {
-                    'cmap': 'bwr' if view == 'charge' else 'viridis',
+                    'cmap': 'bwr' if view in ['charge', 'charge_density'] else 'viridis',
                     'norm': norm
                 },
                 clim=clim,
@@ -777,7 +808,7 @@ class FieldsViewer(properties.HasProperties):
         time_ind=0,
         show_mesh=False,
         use_aspect=False,
-        casing_outline=True,
+        casing_outline=False,
         figwidth=5
     ):
 
@@ -797,7 +828,7 @@ class FieldsViewer(properties.HasProperties):
 
         clim = None
         if clim_max is not None and clim_max != 0:
-            if view in ['charge', 'phi']:
+            if view in ['charge', 'charge_density', 'phi']:
                 clim = np.r_[-1., 1.]*clim_max
             else:
                 clim = np.r_[self.eps, clim_max]
@@ -824,9 +855,23 @@ class FieldsViewer(properties.HasProperties):
     def widget_cross_section(self, ax=None, defaults={}, fixed={}, figwidth=5):
 
         widget_defaults = {
-            "max_r": 2*self.sim_dict[self.model_keys[0]].modelParameters.casing_b,
+            "max_r": (
+                2*self.sim_dict[self.model_keys[0]].modelParameters.casing_b
+                if getattr(
+                    self.sim_dict[self.model_keys[0]].modelParameters,
+                    'casing_b', None
+                ) is not None else
+                self.sim_dict[self.model_keys[0]].meshGenerator.domain_x
+            ),
             "min_depth": -10.,
-            "max_depth": 1.25*self.sim_dict[self.model_keys[0]].modelParameters.casing_l,
+            "max_depth": (
+                1.25*self.sim_dict[self.model_keys[0]].modelParameters.casing_l
+                if getattr(
+                    self.sim_dict[self.model_keys[0]].modelParameters,
+                    'casing_b', None
+                ) is not None else
+                self.sim_dict[self.model_keys[0]].meshGenerator.domain_z
+            ),
             "clim_min": 0,
             "clim_max": 0,
             "model_key": self.model_keys[0],
@@ -936,10 +981,11 @@ class FieldsViewer(properties.HasProperties):
         src_ind=0,
         time_ind=0,
         use_aspect=False,
-        # casing_outline=True,
+        # casing_outline=False,
         rotate=False,
         figwidth=5,
         k=10,
+        theta_shift=None,
     ):
         if isinstance(model_key, str):
             if model_key == 'all':
@@ -957,7 +1003,7 @@ class FieldsViewer(properties.HasProperties):
 
         clim = None
         if clim_max is not None and clim_max != 0:
-            if view in ['charge', 'phi']:
+            if view in ['charge', 'charge_density', 'phi']:
                 clim = np.r_[-1., 1.]*clim_max
             else:
                 clim = np.r_[self.eps, clim_max]
@@ -974,7 +1020,9 @@ class FieldsViewer(properties.HasProperties):
             hy = np.diff(ylim) * np.ones(nC)/ nC
             plan_mesh = discretize.TensorMesh([hx, hy], x0=[xlim[0], ylim[0]])
 
-            inds, weights = self._get_cKDTree(model_key[0], plan_mesh, k=k)
+            inds, weights = self._get_cKDTree(
+                model_key[0], plan_mesh, k=k, theta_shift=theta_shift
+            )
 
             self._cached_cKDTree = {
                 'xlim': xlim,
@@ -1007,7 +1055,8 @@ class FieldsViewer(properties.HasProperties):
                     self._cached_cKDTree['inds'],
                     self._cached_cKDTree['weights']
                 ),
-                rotate=rotate
+                rotate=rotate,
+                theta_shift=theta_shift,
             )
 
         plt.tight_layout()
@@ -1028,7 +1077,8 @@ class FieldsViewer(properties.HasProperties):
             "show_mesh": False,
             "use_aspect": False,
             "rotate":False,
-            "k": 10
+            "k": 10,
+            "theta_shift":0,
             # "casing_outline": True
         }
 
@@ -1068,7 +1118,7 @@ class FieldsViewer(properties.HasProperties):
             key: ipywidgets.fixed(value=val) for key, val in fixed.items()
         }
 
-        for key in ["max_r", "clim_min", "clim_max"]:
+        for key in ["max_r", "clim_min", "clim_max", "theta_shift"]:
             if key in widget_defaults.keys():
                 widget_dict[key] = ipywidgets.FloatText(
                     value=widget_defaults[key]

@@ -65,7 +65,14 @@ def casing_currents(j, mesh, model_parameters):
     return {"x": (z_ix, ixCasing[ix_inds]), "z": (z_iz, izCasing[iz_inds])}
 
 def casing_charges(charge, mesh, model_parameters):
-    charge[~model_parameters.ind_casing(mesh)] = 0.
+    casing_inds = (
+        (mesh.gridCC[:, 0] >= -model_parameters.casing_b-mesh.hx.min()) &
+        (mesh.gridCC[:, 0] <= model_parameters.casing_b+mesh.hx.min()) &
+        (mesh.gridCC[:, 2] < model_parameters.casing_z[1]) &
+        (mesh.gridCC[:, 2] > model_parameters.casing_z[0])
+    )
+
+    charge[~casing_inds] = 0.
     charge = charge.reshape(mesh.vnC, order='F').sum(0).sum(0)
 
     z_inds = (

@@ -265,7 +265,7 @@ class SingleLayer(Halfspace):
     """
     sigma_layer = properties.Float(
         "conductivity of the layer (S/m)",
-        default=SIGMA_AIR
+        default=SIGMA_BACK
     )
 
     layer_z = properties.Array(
@@ -279,7 +279,7 @@ class SingleLayer(Halfspace):
         info = super(SingleLayer, self).info_model
         info += "\n\n  layer: "
         info += "\n    - conductivity: {:1.1e} S/m".format(self.sigma_layer)
-        info += "\n    - layer z: {:s} m".format(self.layer_z)
+        info += "\n    - layer z: {} m".format(self.layer_z)
         return info
 
     def ind_layer(self, mesh):
@@ -297,16 +297,111 @@ class SingleLayer(Halfspace):
 
         :param discretize.BaseMesh mesh: mesh to put conductivity model on
         """
-        sigma = super(self, sigma)(mesh)
+        sigma = super(SingleLayer, self).sigma(mesh)
         sigma[self.ind_layer(mesh)] = self.sigma_layer
         return sigma
 
 
-# class Layers(BaseCasing):
-#     pass
+class Layers(Halfspace):
+    """
+    A model containing an arbitrary number of layers
+    """
+
+    sigma_layers = properties.List(
+        "list containing the conductivity of each of the layers (S/m)",
+        properties.Float(
+            "conductivity of the layer (S/m)",
+            min=0.
+        ),
+        default=[SIGMA_BACK]
+    )
+
+    layer_tops = properties.List(
+        "top of each of the layers",
+        properties.Float(
+            "top of each of the layers, z (m)"
+        ),
+        default=[0.]
+    )
+
+    # todo: sanity checking that sigma_layers and layer_tops the same size
+
+    def sigma(self, mesh):
+        """
+        Construct the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: mesh to put conductivity model on
+        """
+        sigma = super(Layers, self).sigma(mesh)
+        for z, sig in zip(self.layer_tops, self.sigma_layers):
+            z_inds = mesh.gridCC[:, 2] < z
+            sigma[z_inds] = sig
+        return sigma
 
 
-class BaseCasingParametersMixin(BaseCasing):
+class TargetMixin(BaseCasing):
+
+    target_radius = properties.Array(
+        "radial extent of the target (m) [min, max]",
+        shape=(2,),
+        default=np.r_[0., 25.]
+    )
+
+    target_z = properties.Array(
+        "vertical extent of the target (m) [min, max]",
+        shape=(2,),
+        default=np.r_[-925., -900.]
+    )
+
+    target_theta = properties.Array(
+        "azimuthal extent of the target (m) [min, max]",
+        shape=(2,),
+        default=np.r_[0., 2*np.pi]
+    )
+
+    sigma_target = properties.Float(
+        "conductivity of the target (S/m)",
+        min=0.,
+        default=SIGMA_BACK
+    )
+
+    def indx_target(self, mesh):
+        return (
+            (mesh.gridCC[:, 0] >= self.target_radius[0]) &
+            (mesh.gridCC[:, 0] <= self.target_radius[1])
+        )
+
+    def indy_target(self, mesh):
+        return (
+            (mesh.gridCC[:, 1] >= self.target_theta[0]) &
+            (mesh.gridCC[:, 1] <= self.target_theta[1])
+        )
+
+    def indz_target(self, mesh):
+        return (
+            (mesh.gridCC[:, 2] >= self.target_z[0]) &
+            (mesh.gridCC[:, 2] <= self.target_z[1])
+        )
+
+    def ind_target(self, mesh):
+        return (
+            self.indx_target(mesh) & self.indy_target(mesh) &
+            self.indz_target(mesh)
+        )
+
+    def add_sigma_target(self, mesh, sigma):
+        ind_target = self.ind_target(mesh)
+        sigma[ind_target] = self.sigma_target
+        return sigma
+
+
+class TargetInHalfspace(Halfspace, TargetMixin):
+
+    def sigma(self, mesh):
+        sigma = super(TargetInHalfspace, self).sigma(mesh)
+        return self.add_sigma_target(mesh, sigma)
+
+class CasingMixin(BaseCasing):
     """
     Parameters used to set up a casing in a background. This class does not
     function on its own. It should be mixed in with the background model of
@@ -478,59 +573,10 @@ class BaseCasingParametersMixin(BaseCasing):
         return mur
 
 
-class CasingInWholespace(Wholespace, BaseCasingParametersMixin):
+class FlawedCasingMixin(CasingMixin):
+
     """
-    A model of casing in a wholespace
-    """
-    def sigma(self, mesh):
-        """
-        put the conductivity model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        sigma = super(CasingInWholespace, self).sigma(mesh)
-        return self.add_sigma_casing(mesh, sigma)
-
-    def mur(self, mesh):
-        """
-        put the permeability model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        mur = super(CasingInWholespace, self).mur(mesh)
-        return self.add_mur_casing(mesh, mur)
-
-
-class CasingInHalfspace(Halfspace, BaseCasingParametersMixin):
-    """
-    A model of casing in a halfspace
-    """
-    def sigma(self, mesh):
-        """
-        put the conductivity model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        sigma = super(CasingInHalfspace, self).sigma(mesh)
-        return self.add_sigma_casing(mesh, sigma)
-
-    def mur(self, mesh):
-        """
-        put the permeability model on a mesh
-
-        :param discretize.BaseMesh mesh: a discretize mesh
-        :rtype: numpy.array
-        """
-        mur = super(CasingInHalfspace, self).mur(mesh)
-        return self.add_mur_casing(mesh, mur)
-
-
-class FlawedCasingInHalfspace(CasingInHalfspace):
-    """
-    A model of a flawed casing in a wholespace
+    Model parameters for a flawed well.
     """
 
     flaw_r = properties.Array(
@@ -590,6 +636,34 @@ class FlawedCasingInHalfspace(CasingInHalfspace):
             self._indices_flaw_z(mesh)
         )
 
+    def add_sigma_casing(self, mesh, sigma):
+        """
+        add the conductivity of the casing to the provided conductivity model
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :param numpy.ndarray sigma: electrical conductivity model to modify
+        :rtype: numpy.ndarray
+        :return: electrical conductivity model with casing
+        """
+        sigma = super(FlawedCasingMixin, self).add_sigma_casing(mesh, sigma)
+        sigma[self.indices_flaw(mesh)] = self.sigma_flaw
+        return sigma
+
+    def add_mur_casing(self, mesh, mur):
+        """
+        add relative magnetic permeability of the casing to the provided model
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :param numpy.ndarray mur: relative magnetic permittivity model to modify
+        :rtype: numpy.ndarray
+        :return: relative magnetic permeability model with casing
+        """
+        mur = super(FlawedCasingMixin, self).add_mur_casing(mesh, mur)
+        mur[self.indices_flaw(mesh)] = self.mur_flaw
+        return mur
+
+class CasingInWholespace(Wholespace, CasingMixin):
+    """
+    A model of casing in a wholespace
+    """
     def sigma(self, mesh):
         """
         put the conductivity model on a mesh
@@ -597,9 +671,8 @@ class FlawedCasingInHalfspace(CasingInHalfspace):
         :param discretize.BaseMesh mesh: a discretize mesh
         :rtype: numpy.array
         """
-        sigma = super(FlawedCasingInHalfspace, self).sigma(mesh)
-        sigma[self.indices_flaw(mesh)] = self.sigma_flaw
-        return sigma
+        sigma = super(CasingInWholespace, self).sigma(mesh)
+        return self.add_sigma_casing(mesh, sigma)
 
     def mur(self, mesh):
         """
@@ -608,12 +681,56 @@ class FlawedCasingInHalfspace(CasingInHalfspace):
         :param discretize.BaseMesh mesh: a discretize mesh
         :rtype: numpy.array
         """
-        mur = super(FlawedCasingInHalfspace, self).mur(mesh)
-        mur[self.indices_flaw(mesh)] = self.mur_flaw
-        return mur
+        mur = super(CasingInWholespace, self).mur(mesh)
+        return self.add_mur_casing(mesh, mur)
 
 
-class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
+class CasingInHalfspace(Halfspace, CasingMixin):
+    """
+    A model of casing in a halfspace
+    """
+    def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        sigma = super(CasingInHalfspace, self).sigma(mesh)
+        return self.add_sigma_casing(mesh, sigma)
+
+    def mur(self, mesh):
+        """
+        put the permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        mur = super(CasingInHalfspace, self).mur(mesh)
+        return self.add_mur_casing(mesh, mur)
+
+
+class FlawedCasingInHalfspace(CasingInHalfspace, FlawedCasingMixin):
+    """
+    A model of a flawed casing in a wholespace
+    """
+
+class CasingInHalfspaceWithTarget(TargetInHalfspace, CasingMixin):
+    """
+    Casing in a halfspace with a target
+    """
+
+    def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        sigma = super(CasingInHalfspaceWithTarget, self).sigma(mesh)
+        return self.add_sigma_casing(mesh, sigma)
+
+class CasingInSingleLayer(SingleLayer, CasingMixin):
     """
     A model of casing in an earth that has a single layer
     """
@@ -638,6 +755,49 @@ class CasingInSingleLayer(SingleLayer, BaseCasingParametersMixin):
         return self.add_mur_casing(mesh, mur)
 
 
+class FlawedCasingInSingleLayer(CasingInSingleLayer, FlawedCasingMixin):
+    """
+    Flawed casing in a halfspace with a single layer present
+    """
+
+
+class CasingInLayers(Layers, CasingMixin):
+    """
+    A model of a casing in a layered space
+    """
+
+    def sigma(self, mesh):
+        """
+        put the conductivity model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        sigma = super(CasingInLayers, self).sigma(mesh)
+        return self.add_sigma_casing(mesh, sigma)
+
+    def mur(self, mesh):
+        """
+        put the permeability model on a mesh
+
+        :param discretize.BaseMesh mesh: a discretize mesh
+        :rtype: numpy.array
+        """
+        mur = super(CasingInLayers, self).mur(mesh)
+        return self.add_mur_casing(mesh, mur)
+
+
+class FlawedCasingInLayers(CasingInLayers, FlawedCasingMixin):
+    """
+    Flawed casing in a layered space
+    """
+
+
+##############################################################################
+#                                                                            #
+#                             Physical Properties                            #
+#                                                                            #
+##############################################################################
 class PhysicalProperties(object):
     """
     Physical properties on the mesh
@@ -702,7 +862,7 @@ class PhysicalProperties(object):
 
     def plot_prop(
         self, prop, ax=None, clim=None, theta_ind=0, pcolorOpts=None,
-        cb_extend=None
+        cb_extend=None, show_cb=True
     ):
         """
         Plot a cell centered property
@@ -714,11 +874,12 @@ class PhysicalProperties(object):
         """
         return plot_slice(
             self.mesh, prop, ax=ax, clim=clim, pcolorOpts=pcolorOpts,
-            theta_ind=theta_ind, cb_extend=cb_extend
+            theta_ind=theta_ind, cb_extend=cb_extend, show_cb=show_cb
         )
 
     def plot_sigma(
-        self, ax=None, clim=None, theta_ind=0, pcolorOpts=None, cb_extend=None
+        self, ax=None, clim=None, theta_ind=0, pcolorOpts=None, cb_extend=None,
+        show_cb=True
     ):
         """
         plot the electrical conductivity
@@ -727,16 +888,16 @@ class PhysicalProperties(object):
         :param numpy.array clim: colorbar limits
         :param dict pcolorOpts: dictionary of pcolor options
         """
-        ax, cb = self.plot_prop(
+        out = self.plot_prop(
             self.sigma, ax=ax, clim=clim, theta_ind=theta_ind,
-            pcolorOpts=pcolorOpts, cb_extend=cb_extend
+            pcolorOpts=pcolorOpts, cb_extend=cb_extend, show_cb=show_cb
         )
-        ax.set_title('$\sigma$')
-        return ax, cb
+        out[1].set_title('$\sigma$')
+        return out
 
     def plot_mur(
         self, ax=None, clim=None, theta_ind=0, pcolorOpts=None,
-        cb_extend=None
+        cb_extend=None, show_cb=True
     ):
         """
         plot the relative permeability
@@ -746,12 +907,12 @@ class PhysicalProperties(object):
         :param dict pcolorOpts: dictionary of pcolor options
         """
 
-        ax, cb = self.plot_prop(
+        out = self.plot_prop(
             self.mur, ax=ax, clim=clim, theta_ind=theta_ind,
-            pcolorOpts=pcolorOpts, cb_extend=cb_extend
+            pcolorOpts=pcolorOpts, cb_extend=cb_extend, show_cb=show_cb
         )
-        ax.set_title('$\mu_r$')
-        return ax, cb
+        out[1].set_title('$\mu_r$')
+        return out
 
     def plot(
         self, ax=None, clim=[None, None], pcolorOpts=None, cb_extend=None
