@@ -1,8 +1,8 @@
 Casing Simulations
 ==================
 
-.. image:: https://travis-ci.org/lheagy/casingSimulations.svg?branch=master
-    :target: https://travis-ci.org/lheagy/casingSimulations
+.. image:: https://travis-ci.org/simpeg-research/casingSimulations.svg?branch=master
+    :target: https://travis-ci.org/simpeg-research/casingSimulations
     :alt: Testing Status
 
 .. image:: https://readthedocs.org/projects/casingresearch/badge/?version=latest
