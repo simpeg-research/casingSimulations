@@ -37,10 +37,12 @@ setup(
         'pymatsolver>=0.1.1',
         'ipython',
         'ipywidgets',
+        'jupyter',
         'matplotlib',
         'properties[math]',
         'SimPEG',
     ],
+
     author="Lindsey Heagy",
     author_email="lindseyheagy@gmail.com",
     description="Casing Simulations: Electromagnetics + Steel Cased Wells",
