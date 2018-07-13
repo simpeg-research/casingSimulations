@@ -9,6 +9,12 @@ Casing Simulations
     :target: http://casingresearch.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+.. image:: https://img.shields.io/github/license/simpeg-research/casingSimulations.svg
+    :target: https://github.com/simpeg-research/casingSimulations/blob/master/LICENSE
+    
+.. image:: https://zenodo.org/badge/69693380.svg
+   :target: https://zenodo.org/badge/latestdoi/69693380
+
 .. image:: https://img.shields.io/badge/powered%20by-SimPEG-blue.svg
     :target: http://simpeg.xyz
     :alt: SimPEG
