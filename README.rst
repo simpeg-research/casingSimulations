@@ -9,6 +9,10 @@ Casing Simulations
     :target: http://casingresearch.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+.. image:: https://img.shields.io/badge/powered%20by-SimPEG-blue.svg
+    :target: http://simpeg.xyz
+    :alt: SimPEG
+
 *Lindsey Heagy*
 
 Software for running simuations of electromagnetic problems
@@ -18,4 +22,17 @@ The numerical simulation engine we rely on is SimPEG_
 
 
 .. _SimPEG: http://simpeg.xyz
+
+
+Repositories using casingSimulations
+------------------------------------
+
+- `simpeg-research/heagy-2018-emcyl <https://github.com/simpeg-research/heagy-2018-emcyl>`_ : DC and EM simulations
+  on 2D and 3D cylindrical meshes. These notebooks were used to generate the figures in
+  `Finite volume electromagnetic modelling on 2D and 3D cylindrical meshes with applications to steel cased wells <https://arxiv.org/abs/1804.07991>`_
+  (submitted to Computers & Geosciences)
+
+- `simpeg-research/heagy-2018-dc-casing <https://github.com/simpeg-research/heagy-2018-dc-casing>`_ :
+  A repository of notebooks looking a DC resistivity surveys in the presence of steel cased wells.
+  These notebooks were used to generate the figures in **Direct current resistivity with steel-cased wells** (in prep)
 
