@@ -88,7 +88,8 @@ class BaseSimulation(BaseCasing):
             os.mkdir(self.directory)
 
         # hook up the properties classes
-        self.meshGenerator.modelParameters = self.modelParameters
+        if getattr(self.meshGenerator, 'modelParameters', None) is None:
+            self.meshGenerator.modelParameters = self.modelParameters
 
         if getattr(self, 'src', None) is not None and self.srcList is None:
             self.src.modelParameters = self.modelParameters
