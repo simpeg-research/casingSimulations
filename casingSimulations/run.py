@@ -152,7 +152,7 @@ class BaseSimulation(BaseCasing):
             self._fields = self.run()
         return self._fields
 
-    def run(self, save=True):
+    def run(self, save=True, verbose=False):
         """
         Run the forward simulation
         """
@@ -161,6 +161,8 @@ class BaseSimulation(BaseCasing):
 
         print('Validating parameters...')
         self.validate()
+
+
 
         # grab the discretize mesh off of the mesh object
         sim_mesh = self.meshGenerator.mesh
@@ -178,21 +180,26 @@ class BaseSimulation(BaseCasing):
         # ----------------- Set up the simulation ----------------- #
         physprops = self.physprops
         prb = self.prob
+
+        if verbose is True:
+            prb.verbose = True
         # survey = self.survey
         # prb.pair(survey)
 
         # ----------------- Run the the simulation ----------------- #
         print('Starting {}'.format(type(self).__name__))
         t = time.time()
+
         print('Using {} Solver'.format(prb.Solver))
         fields = prb.fields(physprops.model)
+        print('   ... Done. Elapsed time : {}'.format(time.time()-t))
 
         if save:
             np.save(
                 '/'.join([self.directory, self.fields_filename]),
                 fields[:, '{}Solution'.format(self.formulation)]
             )
-        print('   ... Done. Elapsed time : {}'.format(time.time()-t))
+
 
         self._fields = fields
         return fields
