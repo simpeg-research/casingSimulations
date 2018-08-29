@@ -98,7 +98,7 @@ class BaseSimulation(BaseCasing):
         if getattr(self, 'src', None) is not None:
             self.src.physics = self.physics
         elif getattr(self, 'srcList', None) is not None:
-            for src in self.sources:
+            for src in self.srcList.sources:
                 src.physics = self.physics
 
     @property
@@ -236,10 +236,10 @@ class SimulationFDEM(BaseSimulation):
                 verbose=self.verbose
             )
 
-            if getattr(self, 'src') is not None:
+            if getattr(self, 'srcList') is not None:
+                self._survey = FDEM.Survey(self.srcList.srcList)
+            elif getattr(self, 'src') is not None:
                 self._survey = FDEM.Survey(self.src.srcList)
-            elif getattr(self, 'srcList') is not None:
-                self._survey = FDEM.Survey(self.srcList)
             else:
                 raise Exception("one of src, srcList must be set")
             self._prob.pair(self._survey)
@@ -284,7 +284,7 @@ class SimulationTDEM(BaseSimulation):
                     verbose=self.verbose
                 )
 
-            self._survey = TDEM.Survey(self.src.srcList)
+            self._survey = TDEM.Survey(self.srcList.srcList)
 
             self._prob.pair(self._survey)
         return self._prob

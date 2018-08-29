@@ -59,14 +59,26 @@ class BaseCasingSrc(BaseCasing):
         """
         location of the a-electrode
         """
-        return self.modelParameters.src_a
+        if getattr(self, '_src_a', None) is None:
+            return self.modelParameters.src_a
+        return self._src_a
+
+    @src_a.setter
+    def src_a(self, value):
+        self._src_a = value
 
     @property
     def src_b(self):
         """
         location of the b-electrode
         """
-        return self.modelParameters.src_b
+        if getattr(self, '_src_b', None) is None:
+            return self.modelParameters.src_b
+        return self._src_b
+
+    @src_b.setter
+    def src_b(self, value):
+        self._src_b = value
 
     @property
     def casing_a(self):
@@ -726,7 +738,7 @@ class SurfaceGroundedSrc(DownHoleTerminatingSrc):
 
             positive_electrodez = (
                 (mesh.gridFz[:, 2] >= src_a[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < src_a[2] + 2*mesh.hz.min())
+                (mesh.gridFz[:, 2] <= src_a[2] + 2*mesh.hz.min())
             )
 
             self._positive_electrode = (
@@ -927,7 +939,7 @@ class SourceList(BaseCasing):
         if getattr(self, '_srcList', None) is None:
             srcList = []
             for src in self.sources:
-                srcList.append(src.srcList)
+                srcList += src.srcList
             self._srcList = srcList
-        return self.srcList
+        return self._srcList
 
