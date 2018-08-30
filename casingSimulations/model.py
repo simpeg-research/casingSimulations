@@ -72,23 +72,23 @@ class SurveyParametersMixin(properties.HasProperties):
     )
 
     src_a = properties.Array(
-        "down-hole z-location for the source",
-        default=np.r_[0., 0., 0.]
+        "down-hole z-location for the source"
+        # default=np.r_[0., 0., 0.]
     )
 
     src_b = properties.Array(
-        "B electrode location",
-        default=np.r_[CASING_L, 0., 0.]
+        "B electrode location"
+        # default=np.r_[CASING_L, 0., 0.]
     )
 
     @property
     def info_survey(self):
         info = "\n ---- Survey ---- "
 
-        # src locations
-        info += "\n\n   src_a: {:s}".format(str(self.src_a))
-        info += "\n   src_b: {:s}".format(str(self.src_b))
-        info += "\n"
+        # # src locations
+        # info += "\n\n   src_a: {:s}".format(str(self.src_a))
+        # info += "\n   src_b: {:s}".format(str(self.src_b))
+        # info += "\n"
 
         # frequencies or times
         if self.freqs is not None:

@@ -41,6 +41,14 @@ class BaseCasingSrc(BaseCasing):
         required=False
     )
 
+    src_a = properties.Array(
+        "A electrode location"
+    )
+
+    src_b = properties.Array(
+        "B electrode location"
+    )
+
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert self.modelParameters.src_a[1] == self.modelParameters.src_b[1], (
@@ -54,31 +62,31 @@ class BaseCasingSrc(BaseCasing):
         """
         return self.meshGenerator.mesh
 
-    @property
-    def src_a(self):
-        """
-        location of the a-electrode
-        """
-        if getattr(self, '_src_a', None) is None:
-            return self.modelParameters.src_a
-        return self._src_a
+    # @property
+    # def src_a(self):
+    #     """
+    #     location of the a-electrode
+    #     """
+    #     if getattr(self, '_src_a', None) is None:
+    #         return self.modelParameters.src_a
+    #     return self._src_a
 
-    @src_a.setter
-    def src_a(self, value):
-        self._src_a = value
+    # @src_a.setter
+    # def src_a(self, value):
+    #     self._src_a = value
 
-    @property
-    def src_b(self):
-        """
-        location of the b-electrode
-        """
-        if getattr(self, '_src_b', None) is None:
-            return self.modelParameters.src_b
-        return self._src_b
+    # @property
+    # def src_b(self):
+    #     """
+    #     location of the b-electrode
+    #     """
+    #     if getattr(self, '_src_b', None) is None:
+    #         return self.modelParameters.src_b
+    #     return self._src_b
 
-    @src_b.setter
-    def src_b(self, value):
-        self._src_b = value
+    # @src_b.setter
+    # def src_b(self, value):
+    #     self._src_b = value
 
     @property
     def casing_a(self):

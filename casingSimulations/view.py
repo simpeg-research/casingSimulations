@@ -288,7 +288,7 @@ class FieldsViewer(properties.HasProperties):
             for sim in sim_dict.values()
         ):
             self._physics = 'TDEM'
-            self.fields_opts = ['sigma', 'mur', 'e', 'j']
+            self.fields_opts = ['sigma', 'mur', 'e', 'j', 'dbdt', 'dhdt']
             if self.sim_dict[model_keys[0]].prob._fieldType=="j":
                 self.fields_opts += ["charge"]
             elif self.sim_dict[model_keys[0]].prob._fieldType in ["b", "h"]:
@@ -477,7 +477,7 @@ class FieldsViewer(properties.HasProperties):
                 )
                 clim = clim[1]*np.r_[-1., 1.] if clim is not None else None
 
-        elif view in ['h', 'b']:
+        elif view in ['h', 'b', 'dbdt', 'dhdt']:
 
             if self.sim_dict[model_key].prob._formulation == "EB":
                 plt_vec = face3DthetaSlice(
@@ -489,16 +489,29 @@ class FieldsViewer(properties.HasProperties):
                 plot_type = "vec"
 
             elif self.sim_dict[model_key].prob._formulation == "HJ":
-                plotme = mesh.aveE2CC * plotme
+
+                plot_type = "scalar"
+
+                if len(mesh.hy) == 1:
+                    plotme = mesh.aveE2CC * plotme
+
+                else:
+                    plotme = (mesh.aveE2CCV * plotme)[mesh.nC:2*mesh.nC]
+
+                plotme = plotme.reshape(mesh.vnC, order="F")
                 mirror_data = discretize.utils.mkvc(
                     -plotme[:, theta_ind_mirror, :]
                 )
-                plot_type = "scalar"
+                plotme = discretize.utils.mkvc(
+                    plotme[:, theta_ind, :]
+                )
+
                 norm = SymLogNorm(
                     clim[0] if clim is not None else
                     np.max([self.eps, np.min(np.absolute(plotme))])
                 )
                 clim = clim[1]*np.r_[-1., 1.] if clim is not None else None
+
 
         if plot_type == "scalar":
             out = self._mesh2D(model_key).plotImage(
