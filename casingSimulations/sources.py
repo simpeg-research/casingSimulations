@@ -51,7 +51,14 @@ class BaseCasingSrc(BaseCasing):
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert self.modelParameters.src_a[1] == self.modelParameters.src_b[1], (
+
+        if self.src_a is None:
+            self.src_a = self.modelParameters.src_a
+
+        if self.src_b is None:
+            self.src_b = self.modelParameters.src_b
+
+        assert self.src_a[1] == self.src_b[1], (
             'non y-axis aligned sources have not been implemented'
         )
 

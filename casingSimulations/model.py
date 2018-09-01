@@ -423,6 +423,11 @@ class CasingMixin(BaseCasing):
         default=MUR
     )
 
+    mur_inside = properties.Float(
+        "relative permeability of the casing",
+        default=MUR
+    )
+
     # Casing Geometry
     casing_top = properties.Float(
         "top of the casing (m)",
@@ -570,6 +575,7 @@ class CasingMixin(BaseCasing):
         :return: relative magnetic permeability model with casing
         """
         mur[self.ind_casing(mesh)] = self.mur_casing
+        mur[self.ind_inside(mesh)] = self.mur_inside
         return mur
 
 
