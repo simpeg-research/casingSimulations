@@ -54,8 +54,8 @@ class BaseCasing(properties.HasProperties):
         val = change['value']
         fullpath = os.path.abspath(os.path.expanduser(val))
 
-        # if not os.path.isdir(fullpath):
-        #     os.mkdir(fullpath)
+        if not os.path.isdir(fullpath):
+            os.mkdir(fullpath)
 
         change['value'] = fullpath
 
