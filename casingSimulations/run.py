@@ -101,6 +101,10 @@ class BaseSimulation(BaseCasing):
             for src in self.srcList.sources:
                 src.physics = self.physics
 
+    @properties.observer('src')
+    def _set_srcList(self, change):
+        self.srcList = SourceList(sources=[self.src])
+
     @property
     def physprops(self):
         if getattr(self, '_physprops', None) is None:
