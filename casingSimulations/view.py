@@ -290,7 +290,7 @@ class FieldsViewer(properties.HasProperties):
             self._physics = 'TDEM'
             self.fields_opts = ['sigma', 'mur', 'e', 'j', 'dbdt', 'dhdt']
             if self.sim_dict[model_keys[0]].prob._fieldType=="j":
-                self.fields_opts += ["charge"]
+                self.fields_opts += ["charge", "charge_density"]
             elif self.sim_dict[model_keys[0]].prob._fieldType in ["b", "h"]:
                 self.fields_opts += ['sigma', 'mur', 'h', 'b']
             self.reim_opts = ["real"]
@@ -699,7 +699,7 @@ class FieldsViewer(properties.HasProperties):
             if self.sim_dict[model_key].prob._formulation == 'HJ':
                 ave = mesh.aveF2CCV if view in ['e', 'j'] else mesh.aveE2CCV
             elif self.sim_dict[model_key].prob._formulation == 'EB':
-                ave = mesh.aveF2CCV if view in ['h', 'b'] else mesh.aveE2CCV
+                ave = mesh.aveF2CCV if view in ['h', 'b', 'dbdt', 'dhdt'] else mesh.aveE2CCV
             plotme = ave * plotme
             plotme = plotme.reshape(mesh.gridCC.shape, order='F')
 
@@ -713,6 +713,8 @@ class FieldsViewer(properties.HasProperties):
                     den = np.absolute(background)
                 elif denominator == "radial":
                     den = np.outer(np.absolute(background[:, 0]), np.ones(3))
+                elif denominator == "theta":
+                    den = np.outer(np.absolute(background[:, 1]), np.ones(3))
                 plotme = 100 * plotme / (den + self.eps)
 
 
@@ -735,7 +737,7 @@ class FieldsViewer(properties.HasProperties):
         )
 
         # deal with vectors
-        if view in ['e', 'b', 'h', 'j']:
+        if view in ['e', 'b', 'h', 'j', 'dbdt', 'dhdt']:
             plotme_x = discretize.utils.mkvc(
                 (plotme_cart[:, 0]).reshape(mesh.vnC, order='F')[:, :, z_ind]
             )
@@ -763,7 +765,7 @@ class FieldsViewer(properties.HasProperties):
             if rotate is True:
                 plotme = plotme.reshape(plan_mesh.vnC, order='F').T
 
-        if view in ['e', 'b', 'h', 'j']:
+        if view in ['e', 'b', 'h', 'j', 'dbdt', 'dhdt']:
 
             norm = LogNorm()
             if prim_sec == "percent":
