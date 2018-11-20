@@ -117,8 +117,8 @@ class BaseCasingSrc(BaseCasing):
         if getattr(self, '_srcList', None) is None:
             if self.physics == "FDEM":
                 srcList = [
-                    FDEM.Src.RawVec_e([], _, self.s_e.astype("complex"))
-                    for _ in self.freqs
+                    FDEM.Src.RawVec_e([], f, self.s_e.astype("complex"))
+                    for f in self.freqs
                 ]
             elif self.physics == "TDEM":
                 srcList = [TDEM.Src.RawVec_Grounded([], self.s_e)]
@@ -280,10 +280,10 @@ class VerticalElectricDipole(BaseCasingSrc):
     """
 
     def __init__(self, **kwargs):
-        assert all(modelParameters.src_a[:2] == modelParameters.src_b[:2]), (
+        super(VerticalElectricDipole, self).__init__(**kwargs)
+        assert all(self.src_a[:2] == self.src_b[:2]), (
             'src_a and src_b must have the same horizontal location'
         )
-        super(VerticalElectricDipole, self).__init__(**kwargs)
 
     @property
     def src_a_closest(self):
@@ -314,6 +314,12 @@ class VerticalElectricDipole(BaseCasingSrc):
         return self._src_b_closest
 
     @property
+    def _wire_direction(self):
+        if self.src_a_closest[2] < self.src_b_closest[2]:
+            return -1
+        return 1
+
+    @property
     def wire_in_borehole(self):
         """
         Indices of the verically directed wire inside of the borehole. It goes
@@ -330,8 +336,14 @@ class VerticalElectricDipole(BaseCasingSrc):
                 (mesh.gridFz[:, 0] > self.src_a_closest[0] - mesh.hx.min()/2.)
             )
             wire_in_boreholez = (
-                (mesh.gridFz[:, 2] >= src_a[2] - 0.5*mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < src_b[2] + 1.5*mesh.hz.min())
+                (
+                    mesh.gridFz[:, 2] >=
+                    np.min([src_a[2], src_b[2]]) - 0.5*mesh.hz.min()
+                ) &
+                (
+                    mesh.gridFz[:, 2] <=
+                    np.max([src_a[2], src_b[2]]) + 0.5*mesh.hz.min()
+                )
             )
 
             self._wire_in_borehole = wire_in_boreholex & wire_in_boreholez
@@ -358,7 +370,7 @@ class VerticalElectricDipole(BaseCasingSrc):
             s_y = np.zeros(self.mesh.vnF[1])
             s_z = np.zeros(self.mesh.vnF[2])
 
-            s_z[self.wire_in_borehole] = -1.   # part of wire through borehole
+            s_z[self.wire_in_borehole] = self._wire_direction   # part of wire through borehole
 
             # assemble the source (downhole grounded primary)
             s_e = np.hstack([s_x, s_y, s_z])
@@ -376,7 +388,8 @@ class VerticalElectricDipole(BaseCasingSrc):
 
         ax.plot(
             mesh.gridFz[self.wire_in_borehole, 0],
-            mesh.gridFz[self.wire_in_borehole, 2], 'rv'
+            mesh.gridFz[self.wire_in_borehole, 2],
+            'rv' if self._wire_direction < 0 else 'r^'
         )
 
     @properties.validator
