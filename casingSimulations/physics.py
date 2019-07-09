@@ -1,4 +1,4 @@
-from SimPEG import Utils
+from SimPEG.utils import ndgrid, mkvc, sdiag
 import discretize
 
 import numpy as np
@@ -40,9 +40,9 @@ def casing_currents(j, mesh, model_parameters):
         (mesh.gridFz[:, 2] >= casing_z[0])
     )
 
-    jA = Utils.sdiag(mesh.area) * j
+    jA = sdiag(mesh.area) * j
 
-    jACasing = Utils.sdiag(
+    jACasing = sdiag(
         np.hstack([casing_faces_x, casing_faces_y, casing_faces_z])
     ) * jA
 
@@ -187,7 +187,7 @@ def plot_currents_over_freq(
     for i, f in enumerate(modelParameters.freqs):
         for srcind in srcinds:
             # src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
-            # j = Utils.mkvc(fields[mur][src, 'j'].copy())
+            # j = mkvc(fields[mur][src, 'j'].copy())
 
             Iind = i + srcind*len(modelParameters.freqs)
 
@@ -360,7 +360,7 @@ def plot_j_over_mu_z(
     x_plt = np.r_[r]
     z_plt = np.linspace(xlim[0], xlim[1], int(xlim[1]-xlim[0]))
 
-    XYZ = Utils.ndgrid(x_plt, np.r_[0], z_plt)
+    XYZ = ndgrid(x_plt, np.r_[0], z_plt)
 
     Pfx = mesh.getInterpolationMat(XYZ, 'Fx')
     Pfz = mesh.getInterpolationMat(XYZ, 'Fz')
@@ -391,10 +391,10 @@ def plot_j_over_mu_z(
     for i, mur in enumerate(modelParameters.muModels):
         for srcind in srcinds:
             src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
-            j = Utils.mkvc(fields[mur][src, 'j'].copy())
+            j = mkvc(fields[mur][src, 'j'].copy())
 
             if subtract is not None:
-                j = j - Utils.mkvc(
+                j = j - mkvc(
                     fields[subtract][src, 'j'].copy()
                 )
 
@@ -469,7 +469,7 @@ def plot_j_over_freq_z(
     x_plt = np.r_[r]
     z_plt = np.linspace(xlim[0], xlim[1], int(xlim[1]-xlim[0]))
 
-    XYZ = Utils.ndgrid(x_plt, np.r_[0], z_plt)
+    XYZ = ndgrid(x_plt, np.r_[0], z_plt)
 
     Pfx = mesh.getInterpolationMat(XYZ, 'Fx')
     Pfz = mesh.getInterpolationMat(XYZ, 'Fz')
@@ -498,10 +498,10 @@ def plot_j_over_freq_z(
     for i, freq in enumerate(modelParameters.freqs):
         for srcind in srcinds:
             src = survey.getSrcByFreq(freq)[srcind]
-            j = Utils.mkvc(fields[mur][src, 'j'].copy())
+            j = mkvc(fields[mur][src, 'j'].copy())
 
             if subtract is not None:
-                j = j - Utils.mkvc(
+                j = j - mkvc(
                     fields[subtract][src, 'j'].copy()
                 )
 
@@ -576,7 +576,7 @@ def plot_j_over_mu_x(
     x_plt = np.linspace(xlim[0], xlim[1], xlim[1])
     z_plt = np.r_[z]
 
-    XYZ = Utils.ndgrid(x_plt, np.r_[0], z_plt)
+    XYZ = ndgrid(x_plt, np.r_[0], z_plt)
 
     Pfx = mesh.getInterpolationMat(XYZ, 'Fx')
     Pfz = mesh.getInterpolationMat(XYZ, 'Fz')
@@ -605,10 +605,10 @@ def plot_j_over_mu_x(
     for i, f in enumerate(modelParameters.freqs):
         for srcind in srcinds:
             src = survey.getSrcByFreq(survey.freqs[freqind])[srcind]
-            j = Utils.mkvc(fields[mur][src, 'j'].copy())
+            j = mkvc(fields[mur][src, 'j'].copy())
 
             if subtract is not None:
-                j = j - Utils.mkvc(
+                j = j - mkvc(
                     fields[subtract][src, 'j'].copy()
                 )
 

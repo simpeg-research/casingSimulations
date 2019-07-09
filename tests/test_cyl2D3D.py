@@ -7,8 +7,8 @@ import sympy
 
 from scipy.constants import mu_0
 
-from SimPEG.EM import FDEM
-from SimPEG import Utils, Maps
+from SimPEG.electromagnetics import frequency_domain as fdem
+from SimPEG import utils, maps
 
 from pymatsolver import Pardiso
 
@@ -110,11 +110,11 @@ class Test2Dv3DCyl(unittest.TestCase):
 
         # create sources
         srcList2D = [
-            FDEM.Src.RawVec_e(s_e=wire2D, freq=freq, rxList=[]) for freq in
+            fdem.sources.RawVec_e(s_e=wire2D, freq=freq, rxList=[]) for freq in
             modelParameters.freqs
         ]
         srcList3D = [
-            FDEM.Src.RawVec_e(s_e=wire3D, freq=freq, rxList=[]) for freq in
+            fdem.sources.RawVec_e(s_e=wire3D, freq=freq, rxList=[]) for freq in
             modelParameters.freqs
         ]
 
@@ -127,21 +127,21 @@ class Test2Dv3DCyl(unittest.TestCase):
         )
 
         # create the problems and surveys
-        prb2D = FDEM.Problem3D_h(
+        prb2D = fdem.Problem3D_h(
             mesh2D.mesh,
             sigmaMap=physprops2D.wires.sigma,
             muMap=physprops2D.wires.mu,
             Solver=Pardiso
         )
-        prb3D = FDEM.Problem3D_h(
+        prb3D = fdem.Problem3D_h(
             mesh3D.mesh,
             sigmaMap=physprops3D.wires.sigma,
             muMap=physprops3D.wires.mu,
             Solver=Pardiso
         )
 
-        survey2D = FDEM.Survey(srcList2D)
-        survey3D = FDEM.Survey(srcList3D)
+        survey2D = fdem.Survey(srcList2D)
+        survey3D = fdem.Survey(srcList3D)
 
         prb2D.pair(survey2D)
         prb3D.pair(survey3D)

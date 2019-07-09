@@ -40,7 +40,7 @@ setup(
         'jupyter',
         'matplotlib',
         'properties[math]',
-        'SimPEG',
+        'git+https://github.com/simpeg/simpeg@simulation',
     ],
 
     author="Lindsey Heagy",
