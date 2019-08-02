@@ -123,6 +123,11 @@ class BaseSimulation(BaseCasing):
     def survey(self):
         return self._survey
 
+    @property
+    def mesh(self):
+        return self.meshGenerator.mesh
+
+
     def write_py(self, includeDC=True, include2D=True):
         """
         Write a python script for running the simulation
