@@ -11,6 +11,14 @@ import discretize
 import properties
 
 from .utils import face3DthetaSlice
+from .mesh import mesh2d_from_3d
+
+from SimPEG.electromagnetics.static.resistivity.fields import FieldsDC
+from SimPEG.electromagnetics.time_domain.fields import (
+    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j
+)
+from SimPEG.electromagnetics.frequency_domain.fields import FieldsFDEM
+
 # from .run import SimulationDC, SimulationFDEM, SimulationTDEM
 
 
@@ -256,43 +264,37 @@ class FieldsViewer(properties.HasProperties):
     )
 
     def __init__(
-        self, sim_dict, fields_dict, model_keys=None,
+        self, mesh, model_parameters_dict, survey_dict, fields_dict, model_keys=None,
         **kwargs
     ):
         super(FieldsViewer, self).__init__(**kwargs)
-        self.sim_dict = sim_dict
+        # self.sim_dict = sim_dict
+        self.model_parameters_dict = model_parameters_dict
+        self.mesh = mesh
+        self.survey_dict = survey_dict
         self.fields_dict = fields_dict
         self.model_keys = (
-            model_keys if model_keys is not None else sorted(sim_dict.keys())
+            model_keys if model_keys is not None else sorted(fields_dict.keys())
         )
 
-        if all(
-            sim.__class__.__name__ == "SimulationDC"
-            for sim in sim_dict.values()
-        ):
+        if all(isinstance(f, FieldsDC) for f in fields_dict.values()):
             self._physics = 'DC'
             self.fields_opts = [
                 'sigma', 'e',  'j', 'phi', 'charge', 'charge_density'
             ]
             self.reim_opts = ["real"]
 
-        elif all(
-            sim.__class__.__name__ == "SimulationFDEM"
-            for sim in sim_dict.values()
-        ):
+        elif all(isinstance(f, FieldsFDEM) for f in fields_dict.values()):
             self._physics = 'FDEM'
             self.fields_opts = ['sigma', 'mur', 'e', 'j', 'h', 'b']
             self.reim_opts = ["real", "imag"]
 
-        elif all(
-            sim.__class__.__name__ == "SimulationTDEM"
-            for sim in sim_dict.values()
-        ):
+        elif all(isinstance(f, FieldsTDEM) for f in fields_dict.values()):
             self._physics = 'TDEM'
             self.fields_opts = ['sigma', 'mur', 'e', 'j', 'dbdt', 'dhdt']
-            if self.sim_dict[model_keys[0]].prob._fieldType=="j":
+            if isinstance(self.fields_dict[model_keys[0]], Fields3D_j):
                 self.fields_opts += ["charge", "charge_density"]
-            elif self.sim_dict[model_keys[0]].prob._fieldType in ["b", "h"]:
+            elif isinstance(self.fields_dict[model_keys[0]], (Fields3D_b, Fields3d_h)):
                 self.fields_opts += ['sigma', 'mur', 'h', 'b']
             self.reim_opts = ["real"]
 
@@ -308,13 +310,10 @@ class FieldsViewer(properties.HasProperties):
         else:
             return None
 
-    def _mesh2D(self, model_key):
-        if self.sim_dict[model_key].mesh.isSymmetric:
-            return self.sim_dict[model_key].mesh
-        return self.sim_dict[model_key].meshGenerator.create_2D_mesh().mesh
-
-    def _mesh(self, model_key):
-        return self.sim_dict[model_key].mesh
+    def _mesh2D(self):
+        if self.mesh.isSymmetric:
+            return self.mesh
+        return mesh2d_from_3d(self.mesh)
 
     def _check_inputs(
         self, model_key, view, prim_sec, real_or_imag
@@ -348,7 +347,7 @@ class FieldsViewer(properties.HasProperties):
     def fetch_field(self, model_key, view, src=None, time_ind=None):
 
         if view in ['sigma', 'mur']:
-                plotme = getattr(self.sim_dict[model_key].physprops, view)
+            plotme = getattr(self.model_parameters_dict[model_key], view)(self.mesh)
         else:
             if self._physics == "TDEM":
                 plotme = self.fields_dict[model_key][src, view, time_ind]
@@ -404,7 +403,7 @@ class FieldsViewer(properties.HasProperties):
             model_key = self.primary_key
 
         # grab relevant parameters
-        src = self.sim_dict[model_key].survey.srcList[src_ind]
+        src = self.survey_dict[model_key].srcList[src_ind]
         plotme = self.fetch_field(model_key, view, src, time_ind)
         mesh = self._mesh(model_key)
         norm = None
@@ -412,7 +411,7 @@ class FieldsViewer(properties.HasProperties):
             norm = LogNorm()
 
         if prim_sec in ['secondary', 'percent']:
-            prim_src = self.sim_dict[self.primary_key].survey.srcList[src_ind]
+            prim_src = self.survey_dict[self.primary_key].srcList[src_ind]
             background = self.fetch_field(self.primary_key, view, prim_src, time_ind)
             plotme = plotme - background
 
@@ -452,17 +451,12 @@ class FieldsViewer(properties.HasProperties):
 
 
         elif view in ['j', 'e']:
-            if self.sim_dict[model_key].prob._formulation == "HJ":
-                plt_vec = face3DthetaSlice(
-                    mesh, plotme,
-                    theta_ind=theta_ind
-                )
-                mirror_data = face3DthetaSlice(
-                    mesh, plotme, theta_ind=theta_ind_mirror
-                )
+            if len(plotme) == self.mesh.vnF.sum():
+                plt_vec = face3DthetaSlice(mesh, plotme, theta_ind=theta_ind)
+                mirror_data = face3DthetaSlice(mesh, plotme, theta_ind=theta_ind_mirror)
                 plot_type = "vec"
 
-            elif self.sim_dict[model_key].prob._formulation == "EB":
+            elif len(plotme) == self.mesh.vnF.sum():
                 plotme = mesh.aveE2CC * plotme
                 mirror_data = -plotme
                 plot_type = "scalar"
@@ -474,12 +468,12 @@ class FieldsViewer(properties.HasProperties):
 
         elif view in ['h', 'b', 'dbdt', 'dhdt']:
 
-            if self.sim_dict[model_key].prob._formulation == "EB":
+            if len(plotme) == self.mesh.vnF.sum():
                 plt_vec = face3DthetaSlice(mesh, plotme, theta_ind=theta_ind)
                 mirror_data = face3DthetaSlice(mesh, plotme, theta_ind=theta_ind_mirror)
                 plot_type = "vec"
 
-            elif self.sim_dict[model_key].prob._formulation == "HJ":
+            elif len(plotme) == self.mesh.vnF.sum():
 
                 plot_type = "scalar"
 
