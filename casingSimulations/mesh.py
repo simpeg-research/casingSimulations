@@ -11,8 +11,9 @@ from SimPEG.utils import setKwargs
 import discretize
 from discretize.utils import mkvc, meshTensor
 
-from . import model
+from .model import Wholespace
 from .base import BaseCasing
+from .utils import mesh2d_from_3d
 # __all__ = [TensorMeshGenerator, CylMeshGenerator]
 
 
@@ -28,13 +29,6 @@ from .base import BaseCasing
 #         )
 #         return value
 
-def mesh2d_from_3d(mesh):
-        """
-        create cylindrically symmetric mesh generator
-        """
-        mesh2D = mesh.copy()
-        mesh2D.hy = np.r_[2*np.pi]
-        return mesh2D
 
 
 class BaseMeshGenerator(BaseCasing):
@@ -50,7 +44,7 @@ class BaseMeshGenerator(BaseCasing):
     # casing parameters
     modelParameters = properties.Instance(
         "casing parameters instance",
-        model.Wholespace,
+        Wholespace,
         required=True
     )
 

@@ -3,7 +3,7 @@ import numpy as np
 import time
 import os
 import datetime
-from discretize import utils
+from discretize import utils, CylMesh
 import properties
 import casingSimulations
 
@@ -86,6 +86,14 @@ def ccv3DthetaSlice(mesh3D, v3D, theta_ind=0):
         utils.mkvc(ccv_z[:, theta_ind, :], 2)
     ])
 
+def mesh2d_from_3d(mesh):
+        """
+        create cylindrically symmetric mesh generator
+        """
+        mesh2D = CylMesh(
+            [mesh.hx, 1., mesh.hz], x0=mesh.x0
+        )
+        return mesh2D
 
 def writeSimulationPy(
     modelParameters='ModelParameters.json',
