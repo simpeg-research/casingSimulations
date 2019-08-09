@@ -10,8 +10,7 @@ import discretize
 
 import properties
 
-from .utils import face3DthetaSlice
-from .mesh import mesh2d_from_3d
+from .utils import face3DthetaSlice, mesh2d_from_3d
 
 from SimPEG.electromagnetics.static.resistivity.fields import FieldsDC
 from SimPEG.electromagnetics.time_domain.fields import (
