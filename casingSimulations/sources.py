@@ -512,7 +512,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             surface_wirez = (
                 (mesh.gridFx[:, 2] > mesh.hz.min()) &
-                (mesh.gridFx[:, 2] <= 1.75*mesh.hz.min())
+                (mesh.gridFx[:, 2] <= 2*mesh.hz.min())
             )
             self._surface_wire = surface_wirex & surface_wirez
 
@@ -543,7 +543,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             surface_electrodez = (
                 (mesh.gridFz[:, 2] >= src_b[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < src_b[2] + 2*mesh.hz.min())
+                (mesh.gridFz[:, 2] < 2*mesh.hz.min())
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
@@ -766,8 +766,8 @@ class SurfaceGroundedSrc(DownHoleTerminatingSrc):
             positive_electrodex = (mesh.gridFz[:, 0] == src_a[0])
 
             positive_electrodez = (
-                (mesh.gridFz[:, 2] >= src_a[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] <= src_a[2] + 2*mesh.hz.min())
+                (mesh.gridFz[:, 2] >= src_a[2]) &
+                (mesh.gridFz[:, 2] < 1.5*mesh.hz.min())
             )
 
             self._positive_electrode = (
