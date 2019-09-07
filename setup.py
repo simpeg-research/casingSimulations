@@ -40,7 +40,7 @@ setup(
         'matplotlib',
         'properties',
         'vectormath',
-        'git+https://github.com/simpeg/simpeg.git@simulation',
+        'SimPEG @ git+https://github.com/simpeg/simpeg.git@simulation',
     ],
 
     author="Lindsey Heagy",
