@@ -400,14 +400,14 @@ class FieldsViewer(properties.HasProperties):
             model_key = self.primary_key
 
         # grab relevant parameters
-        src = self.survey_dict[model_key].srcList[src_ind]
+        src = self.survey_dict[model_key].source_list[src_ind]
         plotme = self.fetch_field(model_key, view, src, time_ind)
         norm = None
         if view == "sigma":
             norm = LogNorm()
 
         if prim_sec in ['secondary', 'percent']:
-            prim_src = self.survey_dict[self.primary_key].srcList[src_ind]
+            prim_src = self.survey_dict[self.primary_key].source_list[src_ind]
             background = self.fetch_field(self.primary_key, view, prim_src, time_ind)
             plotme = plotme - background
 
@@ -541,7 +541,7 @@ class FieldsViewer(properties.HasProperties):
 
         title = "{} \n{} {}".format(model_key, prim_sec, view)
         if self._physics == "FDEM":
-            title += "\nf = {:1.1e} Hz".format(src.freq)
+            title += "\nf = {:1.1e} Hz".format(src.frequency)
         elif self._physics == "TDEM":
             title += "\n t = {:1.1e} s".format(
                 self.fields_dict[model_key]._times[time_ind]
@@ -638,14 +638,14 @@ class FieldsViewer(properties.HasProperties):
             model_key = self.primary_key
 
         # grab relevant parameters
-        src = self.survey_dict[model_key].srcList[src_ind]
+        src = self.survey_dict[model_key].source_list[src_ind]
         plotme = self.fetch_field(model_key, view, src, time_ind)
         norm = None
         if view == "sigma":
             norm = LogNorm()
 
         if prim_sec in ['secondary', 'percent']:
-            prim_src = self.survey_dict[self.primary_key].srcList[src_ind]
+            prim_src = self.survey_dict[self.primary_key].source_list[src_ind]
             background = self.fetch_field(self.primary_key, view, prim_src, time_ind)
             plotme = plotme - background
 
@@ -756,7 +756,7 @@ class FieldsViewer(properties.HasProperties):
             model_key, prim_sec, view, self.mesh.vectorCCz[z_ind]
         )
         if self._physics == "FDEM":
-            title += "\nf = {:1.1e} Hz".format(src.freq)
+            title += "\nf = {:1.1e} Hz".format(src.frequency)
         elif self._physics == "TDEM":
             title += "\n t = {:1.1e} s".format(
                 self.fields_dict[model_key]._times[time_ind]
@@ -867,7 +867,7 @@ class FieldsViewer(properties.HasProperties):
         else:
             fixed["theta_ind"] = 0
 
-        if len(self.survey_dict[self.model_keys[0]].srcList) == 1:
+        if len(self.survey_dict[self.model_keys[0]].source_list) == 1:
             fixed["src_ind"] = 0
         else:
             widget_defaults["src_ind"] = 0
@@ -919,7 +919,7 @@ class FieldsViewer(properties.HasProperties):
             ["theta_ind", "src_ind", "time_ind"],
             [
                 self.mesh.vnC[1] - 1,
-                len(self.survey_dict[self.model_keys[0]].srcList) - 1,
+                len(self.survey_dict[self.model_keys[0]].source_list) - 1,
                 len(self.fields_dict[self.model_keys[0]]._times) if
                 self._physics == "TDEM" else None
             ]
@@ -1064,7 +1064,7 @@ class FieldsViewer(properties.HasProperties):
         fixed["ax"] = ax
         fixed["figwidth"] = figwidth
 
-        if len(self.survey_dict[self.model_keys[0]].srcList) == 1:
+        if len(self.survey_dict[self.model_keys[0]].source_list) == 1:
             fixed["src_ind"] = 0
         else:
             widget_defaults["src_ind"] = 0
@@ -1116,7 +1116,7 @@ class FieldsViewer(properties.HasProperties):
             ["z_ind", "src_ind", "time_ind", "k"],
             [
                 self.mesh.vnC[2] - 1,
-                len(self.survey_dict[self.model_keys[0]].srcList) - 1,
+                len(self.survey_dict[self.model_keys[0]].source_list) - 1,
                 len(self.fields_dict[self.model_keys[0]]._times) if
                 self._physics == "TDEM" else None,
                 50
