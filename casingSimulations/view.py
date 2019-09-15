@@ -657,9 +657,9 @@ class FieldsViewer(properties.HasProperties):
             plotme_cart = discretize.utils.mkvc(plotme)
         else:
             if len(plotme) == self.mesh.vnE.sum():
-                ave = self.mesh.aveF2CCV if view in ['e', 'j'] else self.mesh.aveE2CCV
+                ave = self.mesh.aveE2CCV #if view in ['e', 'j'] else self.mesh.aveE2CCV
             elif len(plotme) == self.mesh.vnF.sum():
-                ave = self.mesh.aveF2CCV if view in ['h', 'b', 'dbdt', 'dhdt'] else self.mesh.aveE2CCV
+                ave = self.mesh.aveF2CCV #if view in ['h', 'b', 'dbdt', 'dhdt'] else self.mesh.aveE2CCV
             plotme = ave * plotme
             plotme = plotme.reshape(self.mesh.gridCC.shape, order='F')
 
