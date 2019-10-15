@@ -558,9 +558,9 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
             hx1b = utils.meshTensor([(self.csx1, self.npadx1, self.pfx1)])
 
             # scale padding so it matches cell size properly
-            dx1 = sum(hx1a)+sum(hx1b)
+            dx1 = np.sum(hx1a)+np.sum(hx1b)
             dx1 = np.floor(dx1/self.csx2)
-            hx1b *= (dx1*self.csx2 - sum(hx1a))/sum(hx1b)
+            hx1b *= (dx1*self.csx2 - np.sum(hx1a))/np.sum(hx1b)
 
             # second uniform chunk of mesh
             ncx2 = np.ceil((self.domain_x - dx1)/self.csx2)
