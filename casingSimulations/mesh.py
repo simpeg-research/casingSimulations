@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 import inspect
 
 import properties
-from SimPEG.utils import setKwargs
+from SimPEG import Utils
 
 import discretize
-from discretize.utils import mkvc, meshTensor
+from discretize import utils
+from discretize.utils import mkvc
 
-from .model import Wholespace
+from . import model
 from .base import BaseCasing
-from .utils import mesh2d_from_3d
 # __all__ = [TensorMeshGenerator, CylMeshGenerator]
 
 
@@ -30,7 +30,6 @@ from .utils import mesh2d_from_3d
 #         return value
 
 
-
 class BaseMeshGenerator(BaseCasing):
     """
     Base Mesh Generator Class
@@ -44,12 +43,12 @@ class BaseMeshGenerator(BaseCasing):
     # casing parameters
     modelParameters = properties.Instance(
         "casing parameters instance",
-        Wholespace,
+        model.Wholespace,
         required=True
     )
 
     def __init__(self, **kwargs):
-        setKwargs(self, **kwargs)
+        Utils.setKwargs(self, **kwargs)
 
     @property
     def mesh(self):
@@ -252,7 +251,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
         :rtype: numpy.array
         """
         if getattr(self, '_hx', None) is None:
-            self._hx = meshTensor([
+            self._hx = utils.meshTensor([
                 (self.csx, self.npadx, -self.pfx),
                 (self.csx, self.ncx),
                 (self.csx, self.npadx, self.pfx)
@@ -267,7 +266,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
         :rtype: numpy.array
         """
         if getattr(self, '_hy', None) is None:
-            self._hy = meshTensor([
+            self._hy = utils.meshTensor([
                 (self.csy, self.npady, -self.pfy),
                 (self.csy, self.ncy),
                 (self.csy, self.npady, self.pfy)
@@ -282,7 +281,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
         :rtype: numpy.array
         """
         if getattr(self, '_hz', None) is None:
-            self._hz = meshTensor([
+            self._hz = utils.meshTensor([
                 (self.csz, self.npadz, -self.pfz),
                 (self.csz, self.ncz),
                 (self.csz, self.npadz, self.pfz)
@@ -412,7 +411,7 @@ class BaseCylMixin(properties.HasProperties):
         """
         if getattr(self, '_hz', None) is None:
 
-            self._hz = meshTensor([
+            self._hz = Utils.meshTensor([
                 (self.csz, self.npadz, -self.pfz),
                 (self.csz, self.ncz),
                 (self.csz, self.npadz, self.pfz)
@@ -423,7 +422,10 @@ class BaseCylMixin(properties.HasProperties):
         """
         create cylindrically symmetric mesh generator
         """
-        return mesh2d_from_3d(self.mesh)
+        mesh2D = self.copy()
+        # mesh2D.modelParameters = self.modelParameters.copy()  # see https://github.com/3ptscience/properties/issues/175
+        mesh2D.hy = np.r_[2*np.pi]
+        return mesh2D
 
     # Plot the physical Property Models
     def plotModels(
@@ -495,7 +497,7 @@ class CylMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     @property
     def hx(self):
         if getattr(self, '_hx', None) is None:
-            self._hx = meshTensor([
+            self._hx = utils.meshTensor([
                 (self.csx, self.ncx),
                 (self.csx, self.npadx, self.pfx)
             ])
@@ -520,6 +522,9 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     pfx2 = properties.Float(
         "padding factor to pad to infinity", default=1.5
     )
+    _ncx1 = properties.Integer(
+        "number of core cells in the first region of the mesh"
+    )
 
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
@@ -529,7 +534,10 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     @property
     def ncx1(self):
         """number of cells with size csx1"""
-        return np.ceil(self.modelParameters.casing_b/self.csx1+2)
+        if getattr(self, '_ncx1', None) is None:
+            self._ncx1 = np.ceil(self.modelParameters.casing_b/self.csx1+2)
+        return self._ncx1
+
 
     @property
     def npadx1(self):
@@ -544,10 +552,10 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
         if getattr(self, '_hx', None) is None:
 
             # finest uniform region
-            hx1a = meshTensor([(self.csx1, self.ncx1)])
+            hx1a = Utils.meshTensor([(self.csx1, self.ncx1)])
 
             # pad to second uniform region
-            hx1b = meshTensor([(self.csx1, self.npadx1, self.pfx1)])
+            hx1b = Utils.meshTensor([(self.csx1, self.npadx1, self.pfx1)])
 
             # scale padding so it matches cell size properly
             dx1 = sum(hx1a)+sum(hx1b)
@@ -556,10 +564,10 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
 
             # second uniform chunk of mesh
             ncx2 = np.ceil((self.domain_x - dx1)/self.csx2)
-            hx2a = meshTensor([(self.csx2, ncx2)])
+            hx2a = Utils.meshTensor([(self.csx2, ncx2)])
 
             # pad to infinity
-            hx2b = meshTensor([(self.csx2, self.npadx, self.pfx2)])
+            hx2b = Utils.meshTensor([(self.csx2, self.npadx, self.pfx2)])
 
             self._hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
