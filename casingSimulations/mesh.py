@@ -559,7 +559,7 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
 
             # scale padding so it matches cell size properly
             dx1 = np.sum(hx1a)+np.sum(hx1b)
-            dx1 = np.floor(dx1/self.csx2)
+            dx1 = 3 #np.floor(dx1/self.csx2)
             hx1b *= (dx1*self.csx2 - np.sum(hx1a))/np.sum(hx1b)
 
             # second uniform chunk of mesh
