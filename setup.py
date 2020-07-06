@@ -28,18 +28,18 @@ with open("README.rst") as f:
 
 setup(
     name="CasingSimulations",
-    version="0.0.7",
+    version="0.1.0",
     packages=find_packages(),
     install_requires=[
         'numpy>=1.7',
         'scipy>=0.13',
         'cython',
         'pymatsolver>=0.1.1',
-        'ipython',
         'ipywidgets',
         'jupyter',
         'matplotlib',
-        'properties[math]',
+        'properties',
+        'vectormath',
         'SimPEG',
     ],
 
@@ -49,8 +49,8 @@ setup(
     long_description=LONG_DESCRIPTION,
     license="MIT",
     keywords="geophysics electromagnetics",
-    url="http://github.com/lheagy/casingResearch",
-    download_url="http://github.com/lheagy/casingResearch",
+    url="http://github.com/simpeg-research/casingResearch",
+    download_url="http://github.com/simpeg-research/casingResearch",
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False

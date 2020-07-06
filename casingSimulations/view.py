@@ -4,12 +4,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm, SymLogNorm
 from scipy.spatial import cKDTree
+from scipy.constants import mu_0
 import ipywidgets
 import discretize
 
 import properties
 
-from .utils import face3DthetaSlice
+from .utils import face3DthetaSlice, mesh2d_from_3d
+
+from SimPEG.electromagnetics.static.resistivity.fields import FieldsDC
+from SimPEG.electromagnetics.time_domain.fields import (
+    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j
+)
+from SimPEG.electromagnetics.frequency_domain.fields import FieldsFDEM
+
 # from .run import SimulationDC, SimulationFDEM, SimulationTDEM
 
 
@@ -33,9 +41,7 @@ def plot_slice(
         pcolorOpts = {}
 
     # generate a 2D mesh for plotting slices
-    mesh2D = discretize.CylMesh(
-        [mesh.hx, 1., mesh.hz], x0=mesh.x0
-    )
+    mesh2D = mesh2d_from_3d(mesh)
 
     vplt = v.reshape(mesh.vnC, order='F')
     plotme = discretize.utils.mkvc(vplt[:, theta_ind, :])
@@ -199,8 +205,7 @@ def plotLinesFx(
     linestyle='-',
     alpha=None
 ):
-
-    mesh2D = discretize.CylMesh([mesh.hx, 1., mesh.hz], x0=mesh.x0)
+    mesh2D = mesh2d_from_3d(mesh)
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(8, 6))
@@ -255,43 +260,37 @@ class FieldsViewer(properties.HasProperties):
     )
 
     def __init__(
-        self, sim_dict, fields_dict, model_keys=None,
+        self, mesh, model_parameters_dict, survey_dict, fields_dict, model_keys=None,
         **kwargs
     ):
         super(FieldsViewer, self).__init__(**kwargs)
-        self.sim_dict = sim_dict
+        # self.sim_dict = sim_dict
+        self.model_parameters_dict = model_parameters_dict
+        self.mesh = mesh
+        self.survey_dict = survey_dict
         self.fields_dict = fields_dict
         self.model_keys = (
-            model_keys if model_keys is not None else sorted(sim_dict.keys())
+            model_keys if model_keys is not None else sorted(fields_dict.keys())
         )
 
-        if all(
-            sim.__class__.__name__ == "SimulationDC"
-            for sim in sim_dict.values()
-        ):
+        if all(isinstance(f, FieldsDC) for f in fields_dict.values()):
             self._physics = 'DC'
             self.fields_opts = [
                 'sigma', 'e',  'j', 'phi', 'charge', 'charge_density'
             ]
             self.reim_opts = ["real"]
 
-        elif all(
-            sim.__class__.__name__ == "SimulationFDEM"
-            for sim in sim_dict.values()
-        ):
+        elif all(isinstance(f, FieldsFDEM) for f in fields_dict.values()):
             self._physics = 'FDEM'
             self.fields_opts = ['sigma', 'mur', 'e', 'j', 'h', 'b']
             self.reim_opts = ["real", "imag"]
 
-        elif all(
-            sim.__class__.__name__ == "SimulationTDEM"
-            for sim in sim_dict.values()
-        ):
+        elif all(isinstance(f, FieldsTDEM) for f in fields_dict.values()):
             self._physics = 'TDEM'
             self.fields_opts = ['sigma', 'mur', 'e', 'j', 'dbdt', 'dhdt']
-            if self.sim_dict[model_keys[0]].prob._fieldType=="j":
+            if isinstance(self.fields_dict[model_keys[0]], Fields3D_j):
                 self.fields_opts += ["charge", "charge_density"]
-            elif self.sim_dict[model_keys[0]].prob._fieldType in ["b", "h"]:
+            elif isinstance(self.fields_dict[model_keys[0]], (Fields3D_b, Fields3D_h)):
                 self.fields_opts += ['sigma', 'mur', 'h', 'b']
             self.reim_opts = ["real"]
 
@@ -307,13 +306,11 @@ class FieldsViewer(properties.HasProperties):
         else:
             return None
 
-    def _mesh2D(self, model_key):
-        if self.sim_dict[model_key].meshGenerator.mesh.isSymmetric:
-            return self.sim_dict[model_key].meshGenerator.mesh
-        return self.sim_dict[model_key].meshGenerator.create_2D_mesh().mesh
-
-    def _mesh(self, model_key):
-        return self.sim_dict[model_key].meshGenerator.mesh
+    @property
+    def _mesh2D(self):
+        if self.mesh.isSymmetric:
+            return self.mesh
+        return mesh2d_from_3d(self.mesh)
 
     def _check_inputs(
         self, model_key, view, prim_sec, real_or_imag
@@ -342,6 +339,19 @@ class FieldsViewer(properties.HasProperties):
             run_assert('real_or_imag', real_or_imag, ['real'])
         elif self._physics == 'FDEM':
             run_assert('real_or_imag', real_or_imag,['real', 'imag'])
+
+
+    def fetch_field(self, model_key, view, src=None, time_ind=None):
+
+        if view in ['sigma', 'mur']:
+            plotme = getattr(self.model_parameters_dict[model_key], view)(self.mesh)
+        else:
+            if self._physics == "TDEM":
+                plotme = self.fields_dict[model_key][src, view, time_ind]
+            else:
+                plotme = self.fields_dict[model_key][src, view]
+
+        return plotme
 
 
     def plot_cross_section(
@@ -383,52 +393,32 @@ class FieldsViewer(properties.HasProperties):
         if prim_sec is None and self.prim_sec_opts is not None:
             prim_sec = 'total'
 
-        self._check_inputs(
-            model_key, view, prim_sec, real_or_imag
-        )
+        self._check_inputs(model_key, view, prim_sec, real_or_imag)
 
         # get background model if doing primsec
         if prim_sec == 'primary':
             model_key = self.primary_key
 
         # grab relevant parameters
-        src = self.sim_dict[model_key].survey.srcList[src_ind]
-        if view in ['sigma', 'mur']:
-            plotme = getattr(self.sim_dict[model_key].physprops, view)
-        else:
-            if self._physics == "TDEM":
-                plotme = self.fields_dict[model_key][src, view, time_ind]
-            else:
-                plotme = self.fields_dict[model_key][src, view]
-
-        mesh = self._mesh(model_key)
+        src = self.survey_dict[model_key].source_list[src_ind]
+        plotme = self.fetch_field(model_key, view, src, time_ind)
         norm = None
+        if view == "sigma":
+            norm = LogNorm()
 
         if prim_sec in ['secondary', 'percent']:
-            if view in ['sigma', 'mur']:
-                background = getattr(
-                    self.sim_dict[self.primary_key].physprops, model_key
-                )
-            else:
-                prim_src = self.sim_dict[self.primary_key].survey.srcList[src_ind]
-                if self._physics == "TDEM":
-                    background = self.fields_dict[self.primary_key][
-                        prim_src, view, time_ind
-                    ]
-                else:
-                    background = self.fields_dict[self.primary_key][
-                        prim_src, view
-                    ]
+            prim_src = self.survey_dict[self.primary_key].source_list[src_ind]
+            background = self.fetch_field(self.primary_key, view, prim_src, time_ind)
             plotme = plotme - background
 
             if prim_sec == "percent":
                 plotme = 100 * plotme / (np.absolute(background) + self.eps)
 
-        if not mesh.isSymmetric:
+        if not self.mesh.isSymmetric:
             theta_ind_mirror = (
-                theta_ind+int(mesh.vnC[1]/2)
-                if theta_ind < int(mesh.vnC[1]/2)
-                else theta_ind-int(mesh.vnC[1]/2)
+                theta_ind+int(self.mesh.vnC[1]/2)
+                if theta_ind < int(self.mesh.vnC[1]/2)
+                else theta_ind-int(self.mesh.vnC[1]/2)
             )
         else:
             theta_ind_mirror = 0
@@ -449,7 +439,7 @@ class FieldsViewer(properties.HasProperties):
                 clim = clim[1]*np.r_[-1., 1.] if clim is not None else None
 
             # if not mesh.isSymmetric:
-            plotme = plotme.reshape(mesh.vnC, order='F')
+            plotme = plotme.reshape(self.mesh.vnC, order='F')
             mirror_data = discretize.utils.mkvc(
                 plotme[:, theta_ind_mirror, :]
             )
@@ -457,18 +447,13 @@ class FieldsViewer(properties.HasProperties):
 
 
         elif view in ['j', 'e']:
-            if self.sim_dict[model_key].prob._formulation == "HJ":
-                plt_vec = face3DthetaSlice(
-                    mesh, plotme,
-                    theta_ind=theta_ind
-                )
-                mirror_data = face3DthetaSlice(
-                    mesh, plotme, theta_ind=theta_ind_mirror
-                )
+            if len(plotme) == self.mesh.vnF.sum():
+                plt_vec = face3DthetaSlice(self.mesh, plotme, theta_ind=theta_ind)
+                mirror_data = face3DthetaSlice(self.mesh, plotme, theta_ind=theta_ind_mirror)
                 plot_type = "vec"
 
-            elif self.sim_dict[model_key].prob._formulation == "EB":
-                plotme = mesh.aveE2CC * plotme
+            elif len(plotme) == self.mesh.vnF.sum():
+                plotme = self.mesh.aveE2CC * plotme
                 mirror_data = -plotme
                 plot_type = "scalar"
                 norm = SymLogNorm(
@@ -479,32 +464,24 @@ class FieldsViewer(properties.HasProperties):
 
         elif view in ['h', 'b', 'dbdt', 'dhdt']:
 
-            if self.sim_dict[model_key].prob._formulation == "EB":
-                plt_vec = face3DthetaSlice(
-                    mesh, plotme, theta_ind=theta_ind
-                )
-                mirror_data = face3DthetaSlice(
-                    mesh, plotme, theta_ind=theta_ind_mirror
-                )
+            if len(plotme) == self.mesh.vnF.sum():
+                plt_vec = face3DthetaSlice(self.mesh, plotme, theta_ind=theta_ind)
+                mirror_data = face3DthetaSlice(self.mesh, plotme, theta_ind=theta_ind_mirror)
                 plot_type = "vec"
 
-            elif self.sim_dict[model_key].prob._formulation == "HJ":
+            else:
 
                 plot_type = "scalar"
 
-                if len(mesh.hy) == 1:
-                    plotme = mesh.aveE2CC * plotme
+                if len(self.mesh.hy) == 1:
+                    plotme = self.mesh.aveE2CC * plotme
 
                 else:
-                    plotme = (mesh.aveE2CCV * plotme)[mesh.nC:2*mesh.nC]
+                    plotme = (self.mesh.aveE2CCV * plotme)[self.mesh.nC:2*self.mesh.nC]
 
-                plotme = plotme.reshape(mesh.vnC, order="F")
-                mirror_data = discretize.utils.mkvc(
-                    -plotme[:, theta_ind_mirror, :]
-                )
-                plotme = discretize.utils.mkvc(
-                    plotme[:, theta_ind, :]
-                )
+                plotme = plotme.reshape(self.mesh.vnC, order="F")
+                mirror_data = discretize.utils.mkvc(-plotme[:, theta_ind_mirror, :])
+                plotme = discretize.utils.mkvc(plotme[:, theta_ind, :])
 
                 norm = SymLogNorm(
                     clim[0] if clim is not None else
@@ -514,10 +491,10 @@ class FieldsViewer(properties.HasProperties):
 
 
         if plot_type == "scalar":
-            out = self._mesh2D(model_key).plotImage(
+            out = self._mesh2D.plotImage(
                 getattr(plotme, real_or_imag), ax=ax,
                 pcolorOpts = {
-                    'cmap': 'bwr' if view in ['charge', 'charge_density'] else 'viridis',
+                    'cmap': 'RdBu_r' if view in ['charge', 'charge_density'] else 'viridis',
                     'norm': norm
                 },
                 clim=clim,
@@ -535,7 +512,7 @@ class FieldsViewer(properties.HasProperties):
 
         elif plot_type == "vec":
             out = plotFace2D(
-                self._mesh2D(model_key),
+                self._mesh2D,
                 plt_vec + self.eps,
                 real_or_imag=real_or_imag,
                 ax=ax,
@@ -560,14 +537,14 @@ class FieldsViewer(properties.HasProperties):
             cb.update_ticks()
 
         if show_mesh is True:
-            self._mesh2D(model_key).plotGrid(ax=ax)
+            self._mesh2D.plotGrid(ax=ax)
 
         title = "{} \n{} {}".format(model_key, prim_sec, view)
         if self._physics == "FDEM":
-            title += "\nf = {:1.1e} Hz".format(src.freq)
+            title += "\nf = {:1.1e} Hz".format(src.frequency)
         elif self._physics == "TDEM":
             title += "\n t = {:1.1e} s".format(
-                self.sim_dict[model_key].prob.times[time_ind]
+                self.fields_dict[model_key]._times[time_ind]
             )
         ax.set_title(
             title, fontsize=13
@@ -577,7 +554,7 @@ class FieldsViewer(properties.HasProperties):
 
         # plot outline of casing
         if casing_outline is True:
-            m = self.sim_dict[model_key].modelParameters
+            m = self.model_parameters_dict[model_key]
             factor = [-1, 1]
             [
                 ax.plot(
@@ -602,9 +579,8 @@ class FieldsViewer(properties.HasProperties):
 
     def _get_cKDTree(self, model_key, plan_mesh, k=10, theta_shift=None):
         # construct interpolation
-        mesh = self._mesh(model_key)
-        CCcart = mesh.cartesianGrid('CC', theta_shift=theta_shift)
-        tree = cKDTree(CCcart[:mesh.vnC[:2].prod(),:2])
+        CCcart = self.mesh.cartesianGrid('CC', theta_shift=theta_shift)
+        tree = cKDTree(CCcart[:self.mesh.vnC[:2].prod(),:2])
         d, ii = tree.query(plan_mesh.gridCC, k=k)
 
         weights = 1./d
@@ -662,51 +638,33 @@ class FieldsViewer(properties.HasProperties):
             model_key = self.primary_key
 
         # grab relevant parameters
+        src = self.survey_dict[model_key].source_list[src_ind]
+        plotme = self.fetch_field(model_key, view, src, time_ind)
         norm = None
-        src = self.sim_dict[model_key].survey.srcList[src_ind]
-        if view in ['sigma', 'mur']:
-            plotme = getattr(self.sim_dict[model_key].physprops, view)
-            if view == "sigma":
-                    norm = LogNorm()
-        else:
-            if self._physics == "TDEM":
-                plotme = self.fields_dict[model_key][src, view, time_ind]
-            else:
-                plotme = self.fields_dict[model_key][src, view]
-        mesh = self._mesh(model_key)
+        if view == "sigma":
+            norm = LogNorm()
 
         if prim_sec in ['secondary', 'percent']:
-            if view in ['sigma', 'mur']:
-                background = getattr(
-                    self.sim_dict[self.primary_key].physprops, view
-                )
-            else:
-                prim_src = self.sim_dict[self.primary_key].survey.srcList[src_ind]
-                if self._physics == "TDEM":
-                    background = self.fields_dict[self.primary_key][
-                        prim_src, view, time_ind
-                    ]
-                else:
-                    background = self.fields_dict[self.primary_key][
-                        prim_src, view
-                    ]
+            prim_src = self.survey_dict[self.primary_key].source_list[src_ind]
+            background = self.fetch_field(self.primary_key, view, prim_src, time_ind)
             plotme = plotme - background
+
+            if prim_sec == "percent":
+                plotme = 100 * plotme / (np.absolute(background) + self.eps)
 
         # interpolate to cell centers
         if view in ['sigma', 'mur', 'phi', 'charge', 'charge_density']:
             plotme_cart = discretize.utils.mkvc(plotme)
         else:
-            if self.sim_dict[model_key].prob._formulation == 'HJ':
-                ave = mesh.aveF2CCV if view in ['e', 'j'] else mesh.aveE2CCV
-            elif self.sim_dict[model_key].prob._formulation == 'EB':
-                ave = mesh.aveF2CCV if view in ['h', 'b', 'dbdt', 'dhdt'] else mesh.aveE2CCV
+            if len(plotme) == self.mesh.vnE.sum():
+                ave = self.mesh.aveE2CCV #if view in ['e', 'j'] else self.mesh.aveE2CCV
+            elif len(plotme) == self.mesh.vnF.sum():
+                ave = self.mesh.aveF2CCV #if view in ['h', 'b', 'dbdt', 'dhdt'] else self.mesh.aveE2CCV
             plotme = ave * plotme
-            plotme = plotme.reshape(mesh.gridCC.shape, order='F')
+            plotme = plotme.reshape(self.mesh.gridCC.shape, order='F')
 
             if prim_sec == "percent":
-                background = (ave * background).reshape(
-                    mesh.gridCC.shape, order='F'
-                )
+                background = (ave * background).reshape(self.mesh.gridCC.shape, order='F')
                 if denominator is None or denominator == "magnitude":
                     den = np.outer(np.sqrt((background**2).sum(1)), np.ones(3))
                 elif denominator == "component":
@@ -718,7 +676,7 @@ class FieldsViewer(properties.HasProperties):
                 plotme = 100 * plotme / (den + self.eps)
 
 
-            gridCC = mesh.gridCC.copy()
+            gridCC = self.mesh.gridCC.copy()
             if theta_shift is not None:
                 gridCC[:, 1] = gridCC[:, 1] - theta_shift
 
@@ -739,10 +697,10 @@ class FieldsViewer(properties.HasProperties):
         # deal with vectors
         if view in ['e', 'b', 'h', 'j', 'dbdt', 'dhdt']:
             plotme_x = discretize.utils.mkvc(
-                (plotme_cart[:, 0]).reshape(mesh.vnC, order='F')[:, :, z_ind]
+                (plotme_cart[:, 0]).reshape(self.mesh.vnC, order='F')[:, :, z_ind]
             )
             plotme_y = discretize.utils.mkvc(
-                (plotme_cart[:, 1]).reshape(mesh.vnC, order='F')[:, :, z_ind]
+                (plotme_cart[:, 1]).reshape(self.mesh.vnC, order='F')[:, :, z_ind]
             )
 
             plotme = np.hstack([
@@ -782,7 +740,7 @@ class FieldsViewer(properties.HasProperties):
             out = plan_mesh.plotImage(
                 getattr(plotme, real_or_imag), ax=ax,
                 pcolorOpts = {
-                    'cmap': 'bwr' if view in ['charge', 'charge_density'] else 'viridis',
+                    'cmap': 'RdBu_r' if view in ['charge', 'charge_density'] else 'viridis',
                     'norm': norm
                 },
                 clim=clim,
@@ -795,13 +753,13 @@ class FieldsViewer(properties.HasProperties):
             ax.set_aspect(1)
 
         title = "{} \n{} {} \n z={:1.1e}m".format(
-            model_key, prim_sec, view, mesh.vectorCCz[z_ind]
+            model_key, prim_sec, view, self.mesh.vectorCCz[z_ind]
         )
         if self._physics == "FDEM":
-            title += "\nf = {:1.1e} Hz".format(src.freq)
+            title += "\nf = {:1.1e} Hz".format(src.frequency)
         elif self._physics == "TDEM":
             title += "\n t = {:1.1e} s".format(
-                self.sim_dict[model_key].prob.times[time_ind]
+                self.fields_dict[model_key]._times[time_ind]
             )
         ax.set_title(title)
         return out
@@ -871,21 +829,21 @@ class FieldsViewer(properties.HasProperties):
 
         widget_defaults = {
             "max_r": (
-                2*self.sim_dict[self.model_keys[0]].modelParameters.casing_b
+                2*self.model_parameters_dict[self.model_keys[0]].casing_b
                 if getattr(
-                    self.sim_dict[self.model_keys[0]].modelParameters,
+                    self.model_parameters_dict[self.model_keys[0]],
                     'casing_b', None
                 ) is not None else
-                self.sim_dict[self.model_keys[0]].meshGenerator.domain_x
+                self.mesh.vectorNx.max()
             ),
             "min_depth": -10.,
             "max_depth": (
-                1.25*self.sim_dict[self.model_keys[0]].modelParameters.casing_l
+                1.25*self.model_parameters_dict[self.model_keys[0]].casing_l
                 if getattr(
-                    self.sim_dict[self.model_keys[0]].modelParameters,
+                    self.model_parameters_dict[self.model_keys[0]],
                     'casing_b', None
                 ) is not None else
-                self.sim_dict[self.model_keys[0]].meshGenerator.domain_z
+                - self.mesh.vectorNz.min()
             ),
             "clim_min": 0,
             "clim_max": 0,
@@ -904,12 +862,12 @@ class FieldsViewer(properties.HasProperties):
         fixed["ax"] = ax
         fixed["figwidth"] = figwidth
 
-        if not self.sim_dict[self.model_keys[0]].meshGenerator.mesh.isSymmetric:
+        if not self.mesh.isSymmetric:
             widget_defaults["theta_ind"]=0
         else:
             fixed["theta_ind"] = 0
 
-        if len(self.sim_dict[self.model_keys[0]].survey.srcList) == 1:
+        if len(self.survey_dict[self.model_keys[0]].source_list) == 1:
             fixed["src_ind"] = 0
         else:
             widget_defaults["src_ind"] = 0
@@ -960,9 +918,9 @@ class FieldsViewer(properties.HasProperties):
         for key, max_len in zip(
             ["theta_ind", "src_ind", "time_ind"],
             [
-                self.sim_dict[self.model_keys[0]].meshGenerator.mesh.vnC[1] - 1,
-                len(self.sim_dict[self.model_keys[0]].survey.srcList) - 1,
-                self.sim_dict[self.model_keys[0]].prob.nT if
+                self.mesh.vnC[1] - 1,
+                len(self.survey_dict[self.model_keys[0]].source_list) - 1,
+                len(self.fields_dict[self.model_keys[0]]._times) if
                 self._physics == "TDEM" else None
             ]
         ):
@@ -1081,9 +1039,9 @@ class FieldsViewer(properties.HasProperties):
     def widget_depth_slice(self, ax=None, defaults={}, fixed={}, figwidth=5):
 
         widget_defaults = {
-            "max_r": self.sim_dict[self.model_keys[0]].modelParameters.casing_l,
+            "max_r": self.model_parameters_dict[self.model_keys[0]].casing_l,
             "z_ind": int(
-                self.sim_dict[self.model_keys[0]].meshGenerator.mesh.vnC[2]/2.
+                self.mesh.vnC[2]/2.
             ),
             "clim_min": 0,
             "clim_max": 0,
@@ -1106,7 +1064,7 @@ class FieldsViewer(properties.HasProperties):
         fixed["ax"] = ax
         fixed["figwidth"] = figwidth
 
-        if len(self.sim_dict[self.model_keys[0]].survey.srcList) == 1:
+        if len(self.survey_dict[self.model_keys[0]].source_list) == 1:
             fixed["src_ind"] = 0
         else:
             widget_defaults["src_ind"] = 0
@@ -1157,9 +1115,9 @@ class FieldsViewer(properties.HasProperties):
         for key, max_len in zip(
             ["z_ind", "src_ind", "time_ind", "k"],
             [
-                self.sim_dict[self.model_keys[0]].meshGenerator.mesh.vnC[2] - 1,
-                len(self.sim_dict[self.model_keys[0]].survey.srcList) - 1,
-                self.sim_dict[self.model_keys[0]].prob.nT if
+                self.mesh.vnC[2] - 1,
+                len(self.survey_dict[self.model_keys[0]].source_list) - 1,
+                len(self.fields_dict[self.model_keys[0]]._times) if
                 self._physics == "TDEM" else None,
                 50
             ]

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import inspect
 
 import properties
-from SimPEG import Utils
+from SimPEG.utils import setKwargs
 
 import discretize
 from discretize import utils
@@ -48,7 +48,7 @@ class BaseMeshGenerator(BaseCasing):
     )
 
     def __init__(self, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     @property
     def mesh(self):
@@ -411,7 +411,7 @@ class BaseCylMixin(properties.HasProperties):
         """
         if getattr(self, '_hz', None) is None:
 
-            self._hz = Utils.meshTensor([
+            self._hz = utils.meshTensor([
                 (self.csz, self.npadz, -self.pfz),
                 (self.csz, self.ncz),
                 (self.csz, self.npadz, self.pfz)
@@ -531,7 +531,10 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     @property
     def ncx1(self):
         """number of cells with size csx1"""
-        return np.ceil(self.modelParameters.casing_b/self.csx1+2)
+        if getattr(self, '_ncx1', None) is None:
+            self._ncx1 = np.ceil(self.modelParameters.casing_b/self.csx1+2)
+        return self._ncx1
+
 
     @property
     def npadx1(self):
@@ -546,22 +549,22 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
         if getattr(self, '_hx', None) is None:
 
             # finest uniform region
-            hx1a = Utils.meshTensor([(self.csx1, self.ncx1)])
+            hx1a = utils.meshTensor([(self.csx1, self.ncx1)])
 
             # pad to second uniform region
-            hx1b = Utils.meshTensor([(self.csx1, self.npadx1, self.pfx1)])
+            hx1b = utils.meshTensor([(self.csx1, self.npadx1, self.pfx1)])
 
             # scale padding so it matches cell size properly
-            dx1 = sum(hx1a)+sum(hx1b)
-            dx1 = np.floor(dx1/self.csx2)
-            hx1b *= (dx1*self.csx2 - sum(hx1a))/sum(hx1b)
+            dx1 = np.sum(hx1a)+np.sum(hx1b)
+            dx1 = 3 #np.floor(dx1/self.csx2)
+            hx1b *= (dx1*self.csx2 - np.sum(hx1a))/np.sum(hx1b)
 
             # second uniform chunk of mesh
             ncx2 = np.ceil((self.domain_x - dx1)/self.csx2)
-            hx2a = Utils.meshTensor([(self.csx2, ncx2)])
+            hx2a = utils.meshTensor([(self.csx2, ncx2)])
 
             # pad to infinity
-            hx2b = Utils.meshTensor([(self.csx2, self.npadx, self.pfx2)])
+            hx2b = utils.meshTensor([(self.csx2, self.npadx, self.pfx2)])
 
             self._hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 

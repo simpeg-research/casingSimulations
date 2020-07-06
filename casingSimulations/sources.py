@@ -6,8 +6,9 @@ import properties
 import discretize
 from discretize.utils import closestPoints
 
-from SimPEG import Utils
-from SimPEG.EM import FDEM, TDEM
+from SimPEG.utils import setKwargs
+from SimPEG.electromagnetics import frequency_domain as fdem
+from SimPEG.electromagnetics import time_domain as tdem
 
 from .base import LoadableInstance, BaseCasing
 from . import model
@@ -36,8 +37,8 @@ class BaseCasingSrc(BaseCasing):
     )
 
     physics = properties.StringChoice(
-        "FDEM or TDEM simulation?",
-        choices=["FDEM", "TDEM"],
+        "fdem or tdem simulation?",
+        choices=["fdem", "tdem"],
         required=False
     )
 
@@ -50,7 +51,7 @@ class BaseCasingSrc(BaseCasing):
     )
 
     def __init__(self, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         if self.src_a is None:
             self.src_a = self.modelParameters.src_a
@@ -115,13 +116,13 @@ class BaseCasingSrc(BaseCasing):
         Source List
         """
         if getattr(self, '_srcList', None) is None:
-            if self.physics == "FDEM":
+            if self.physics.lower() == "fdem":
                 srcList = [
-                    FDEM.Src.RawVec_e([], f, self.s_e.astype("complex"))
+                    fdem.sources.RawVec_e([], f, self.s_e.astype("complex"))
                     for f in self.freqs
                 ]
-            elif self.physics == "TDEM":
-                srcList = [TDEM.Src.RawVec_Grounded([], self.s_e)]
+            elif self.physics == "tdem":
+                srcList = [tdem.sources.RawVec_Grounded([], self.s_e)]
             self._srcList = srcList
         return self._srcList
 
@@ -511,7 +512,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             surface_wirez = (
                 (mesh.gridFx[:, 2] > mesh.hz.min()) &
-                (mesh.gridFx[:, 2] <= 1.75*mesh.hz.min())
+                (mesh.gridFx[:, 2] <= 2*mesh.hz.min())
             )
             self._surface_wire = surface_wirex & surface_wirez
 
@@ -542,7 +543,7 @@ class DownHoleTerminatingSrc(BaseCasingSrc):
             )
             surface_electrodez = (
                 (mesh.gridFz[:, 2] >= src_b[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] < src_b[2] + 2*mesh.hz.min())
+                (mesh.gridFz[:, 2] < 2*mesh.hz.min())
             )
             self._surface_electrode = surface_electrodex & surface_electrodez
 
@@ -765,8 +766,8 @@ class SurfaceGroundedSrc(DownHoleTerminatingSrc):
             positive_electrodex = (mesh.gridFz[:, 0] == src_a[0])
 
             positive_electrodez = (
-                (mesh.gridFz[:, 2] >= src_a[2] - mesh.hz.min()) &
-                (mesh.gridFz[:, 2] <= src_a[2] + 2*mesh.hz.min())
+                (mesh.gridFz[:, 2] >= src_a[2]) &
+                (mesh.gridFz[:, 2] < 1.5*mesh.hz.min())
             )
 
             self._positive_electrode = (

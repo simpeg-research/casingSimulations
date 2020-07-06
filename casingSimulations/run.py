@@ -8,9 +8,11 @@ from scipy.constants import mu_0
 import discretize
 from discretize import utils
 import properties
-from SimPEG.EM import FDEM, TDEM
-from SimPEG import Utils, Maps
-from SimPEG.EM.Static import DC
+from SimPEG import maps
+from SimPEG.electromagnetics import frequency_domain as fdem
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG.electromagnetics import resistivity as dc
+from SimPEG.utils import setKwargs
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -81,7 +83,7 @@ class BaseSimulation(BaseCasing):
 
     def __init__(self, **kwargs):
         # set keyword arguments
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         # if the working directory does not exsist, create it
         if not os.path.isdir(self.directory):
@@ -120,6 +122,11 @@ class BaseSimulation(BaseCasing):
     @property
     def survey(self):
         return self._survey
+
+    @property
+    def mesh(self):
+        return self.meshGenerator.mesh
+
 
     def write_py(self, includeDC=True, include2D=True):
         """
@@ -222,7 +229,7 @@ class SimulationFDEM(BaseSimulation):
         choices=["e", "b", "h", "j"]
     )
 
-    physics = "FDEM"
+    physics = "fdem"
 
     def __init__(self, **kwargs):
         super(SimulationFDEM, self).__init__(**kwargs)
@@ -231,7 +238,7 @@ class SimulationFDEM(BaseSimulation):
     def prob(self):
         if getattr(self, '_prob', None) is None:
             self._prob = getattr(
-                FDEM, 'Problem3D_{}'.format(self.formulation)
+                fdem, 'Problem3D_{}'.format(self.formulation)
             )(
                 self.meshGenerator.mesh,
                 sigmaMap=self.physprops.wires.sigma,
@@ -241,12 +248,12 @@ class SimulationFDEM(BaseSimulation):
             )
 
             if getattr(self, 'srcList') is not None:
-                self._survey = FDEM.Survey(self.srcList.srcList)
+                self._survey = fdem.Survey(self.srcList.srcList)
             elif getattr(self, 'src') is not None:
-                self._survey = FDEM.Survey(self.src.srcList)
+                self._survey = fdem.Survey(self.src.srcList)
             else:
                 raise Exception("one of src, srcList must be set")
-            self._prob.pair(self._survey)
+            self._prob.survey = self._survey
         return self._prob
 
     @property
@@ -269,7 +276,7 @@ class SimulationTDEM(BaseSimulation):
         choices=["e", "b", "h", "j"]
     )
 
-    physics = "TDEM"
+    physics = "tdem"
 
     def __init__(self, **kwargs):
         super(SimulationTDEM, self).__init__(**kwargs)
@@ -278,7 +285,7 @@ class SimulationTDEM(BaseSimulation):
     def prob(self):
         if getattr(self, '_prob', None) is None:
             self._prob = getattr(
-                    TDEM, 'Problem3D_{}'.format(self.formulation)
+                    tdem, 'Problem3D_{}'.format(self.formulation)
                     )(
                     self.meshGenerator.mesh,
                     timeSteps=self.modelParameters.timeSteps,
@@ -288,9 +295,9 @@ class SimulationTDEM(BaseSimulation):
                     verbose=self.verbose
                 )
 
-            self._survey = TDEM.Survey(self.srcList.srcList)
+            self._survey = tdem.Survey(self.srcList.srcList)
 
-            self._prob.pair(self._survey)
+            self._prob.survey = self._survey
         return self._prob
 
     @property
@@ -324,22 +331,22 @@ class SimulationDC(BaseSimulation):
         default="phi"
     )
 
-    physics = "DC"
+    physics = "dc"
 
     def __init__(self, **kwargs):
         super(SimulationDC, self).__init__(**kwargs)
 
-        self._prob = DC.Problem3D_CC(
+        self._prob = dc.Problem3D_CC(
             self.meshGenerator.mesh,
             sigmaMap=self.physprops.wires.sigma,
             bc_type='Dirichlet',
             Solver=Solver
         )
         self._srcList = [
-            DC.Src.Dipole([], self.src_a[i, :], self.src_b[i, :])
+            dc.sources.Dipole([], self.src_a[i, :], self.src_b[i, :])
             for i in range(self.src_a.shape[0])
         ]
         # self._src = DC.Src.Dipole([], self.src_a, self.src_b)
-        self._survey = DC.Survey(self._srcList)
+        self._survey = dc.Survey(self._srcList)
 
-        self._prob.pair(self._survey)
+        self._prob.survey = self._survey

@@ -1,10 +1,6 @@
 language: python
 python:
 - 3.6
-- "3.7-dev"
-matrix:
-  allow_failures:
-    - python: "3.7-dev"
 
 env:
   - TEST_DIR=tests
@@ -12,22 +8,14 @@ env:
 sudo: false
 
 before_install:
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  - wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh -O miniconda.sh;
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
 
 install:
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython jupyter mkl;
-    else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython jupyter mkl;
-    fi
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython jupyter mkl;
   - python setup.py install
   - pip install -r requirements_dev.txt
 

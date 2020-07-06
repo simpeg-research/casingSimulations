@@ -2,7 +2,8 @@ import numpy as np
 import properties
 import json
 import os
-from SimPEG import Maps, Utils
+from SimPEG import maps
+from SimPEG.utils import setKwargs
 from scipy.constants import mu_0
 
 import discretize
@@ -132,7 +133,7 @@ class Wholespace(SurveyParametersMixin, BaseCasing):
     )
 
     def __init__(self, filename=None, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     def __str__(self):
         return self.info
@@ -858,10 +859,10 @@ class PhysicalProperties(object):
         """
         wires to hook up maps to sigma, mu
 
-        :rtype: SimPEG.Maps.Wires
+        :rtype: SimPEG.maps.Wires
         """
         if getattr(self, '_wires', None) is None:
-            self._wires = Maps.Wires(
+            self._wires = maps.Wires(
                 ('sigma', self.mesh.nC), ('mu', self.mesh.nC)
             )
         return self._wires
