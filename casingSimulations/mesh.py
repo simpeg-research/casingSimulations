@@ -522,9 +522,6 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     pfx2 = properties.Float(
         "padding factor to pad to infinity", default=1.5
     )
-    _ncx1 = properties.Integer(
-        "number of core cells in the first region of the mesh"
-    )
 
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
