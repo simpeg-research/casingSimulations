@@ -39,7 +39,7 @@ def face3DthetaSlice(mesh3D, j3D, theta_ind=0):
         return j3D
 
     j3D_x = j3D[:mesh3D.nFx].reshape(mesh3D.vnFx, order='F')
-    j3D_z = j3D[mesh3D.vnF[:2].sum():].reshape(mesh3D.vnFz, order='F')
+    j3D_z = j3D[sum(mesh3D.vnF[:2]):].reshape(mesh3D.vnFz, order='F')
 
     j3Dslice = np.vstack([
         utils.mkvc(j3D_x[:, theta_ind, :], 2),
@@ -60,7 +60,7 @@ def edge3DthetaSlice(mesh3D, h3D, theta_ind=0):
     :param int theta_ind: index of the theta slice that you want
     """
 
-    h3D_y = h3D[mesh3D.nEx:mesh3D.vnE[:2].sum()].reshape(
+    h3D_y = h3D[mesh3D.nEx:sum(mesh3D.vnE[:2])].reshape(
         mesh3D.vnEy, order='F'
     )
 
