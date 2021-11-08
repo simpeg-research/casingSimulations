@@ -281,12 +281,12 @@ def get_plotting_data(
             plotme = fields[src, view]
 
     if prim_sec in ["secondary", "percent"]:
-        prim_src = primary_fields.simulation.survey.source_list.source_list[src_ind]
+        prim_src = primary_fields.simulation.survey.source_list[src_ind]
 
         if physics == "time_domain":
-            background = primary_fields[src, view, time_ind]
+            background = primary_fields[prim_src, view, time_ind]
         else:
-            background = primary_fields[src, view]
+            background = primary_fields[prim_src, view]
 
         plotme = plotme - background
 
@@ -604,14 +604,16 @@ def plot_depth_slice(
 
     if view in ["e", "b", "h", "j", "dbdt", "dhdt"]:
 
-        norm = LogNorm()
+        if clim is None:
+            norm = LogNorm()
+        else:
+            norm = LogNorm(vmin=np.min(clim), vmax=np.max(clim))
         if prim_sec == "percent":
             norm = None
 
         out = plan_mesh.plotImage(
             getattr(plotme, real_or_imag), view="vec", vType="CCv", ax=ax,
             pcolorOpts={"norm":norm},
-            clim=clim,
             streamOpts=stream_opts,
             stream_threshold=clim[0] if clim is not None else None
         )
@@ -622,7 +624,6 @@ def plot_depth_slice(
                 "cmap": "RdBu_r" if view in ["charge", "charge_density"] else "viridis",
                 "norm": norm
             },
-            clim=clim,
         )
 
     if show_cb:
