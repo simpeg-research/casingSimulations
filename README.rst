@@ -44,6 +44,7 @@ Citation
 Heagy, L. J. (2018). Electromagnetic methods for imaging subsurface injections (T). University of British Columbia. Retrieved from https://open.library.ubc.ca/collections/ubctheses/24/items/1.0374170
 
 .. code:: 
+
     @phdthesis{Heagy_2018, 
         series={Electronic Theses and Dissertations (ETDs) 2008+}, 
         title={Electromagnetic methods for imaging subsurface injections}, 

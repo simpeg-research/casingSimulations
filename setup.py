@@ -4,7 +4,7 @@ from __future__ import print_function
 in settings where steel cased wells are present.
 """
 
-from distutils.core import setup
+from setuptools import setup, Extension
 from setuptools import find_packages
 
 CLASSIFIERS = [
