@@ -14,7 +14,7 @@ from .utils import face3DthetaSlice, mesh2d_from_3d
 
 from SimPEG.electromagnetics.static.resistivity.fields import FieldsDC
 from SimPEG.electromagnetics.time_domain.fields import (
-    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j
+    FieldsTDEM, Fields3DMagneticFluxDensity, Fields3DElectricField, Fields3DMagneticField, Fields3DCurrentDensity
 )
 from SimPEG.electromagnetics.frequency_domain.fields import FieldsFDEM
 
@@ -687,9 +687,9 @@ class FieldsViewer(properties.HasProperties):
         elif all(isinstance(f, FieldsTDEM) for f in fields_dict.values()):
             self._physics = "TDEM"
             self.fields_opts = ["sigma", "mur", "e", "j", "dbdt", "dhdt"]
-            if isinstance(self.fields_dict[model_keys[0]], Fields3D_j):
+            if isinstance(self.fields_dict[model_keys[0]], Fields3DCurrentDensity):
                 self.fields_opts += ["charge", "charge_density"]
-            elif isinstance(self.fields_dict[model_keys[0]], (Fields3D_b, Fields3D_h)):
+            elif isinstance(self.fields_dict[model_keys[0]], (Fields3DMagneticFluxDensity, Fields3DMagneticField)):
                 self.fields_opts += ["sigma", "mur", "h", "b"]
             self.reim_opts = ["real"]
 
