@@ -1,10 +1,6 @@
 Casing Simulations
 ==================
 
-.. image:: https://travis-ci.org/simpeg-research/casingSimulations.svg?branch=master
-    :target: https://travis-ci.org/simpeg-research/casingSimulations
-    :alt: Testing Status
-
 .. image:: https://readthedocs.org/projects/casingresearch/badge/?version=latest
     :target: http://casingresearch.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
@@ -41,6 +37,7 @@ Repositories using casingSimulations
   A repository of notebooks looking a DC resistivity surveys in the presence of steel cased wells.
   These notebooks were used to generate the figures in `Direct current resistivity with steel-cased wells <https://doi.org/10.1093/gji/ggz281>`_
   
+
 Citation
 --------
 
