@@ -2,7 +2,7 @@ from __future__ import division
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm, SymLogNorm
+from matplotlib.colors import LogNorm, SymLogNorm, Normalize
 from scipy.spatial import cKDTree
 from scipy.constants import mu_0
 import ipywidgets
@@ -28,7 +28,7 @@ def get_theta_ind_mirror(mesh, theta_ind):
     )
 
 def plot_slice(
-    mesh, v, ax=None, clim=None, pcolorOpts=None, theta_ind=0,
+    mesh, v, ax=None, clim=None, pcolor_opts=None, theta_ind=0,
     cb_extend=None, show_cb=True
 ):
     """
@@ -37,14 +37,17 @@ def plot_slice(
     :param numpy.array prop: cell centered property to plot
     :param matplotlib.axes ax: axis
     :param numpy.array clim: colorbar limits
-    :param dict pcolorOpts: dictionary of pcolor options
+    :param dict pcolor_opts: dictionary of pcolor options
     """
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 
-    if pcolorOpts is None:
-        pcolorOpts = {}
+    if pcolor_opts is None:
+        pcolor_opts = {}
+    if clim is not None:
+        norm = Normalize(vmin=xlim.min(), vmax=clim.max())
+        pcolor_opts["norm"] = norm
 
     # generate a 2D mesh for plotting slices
     mesh2D = mesh2d_from_3d(mesh)
@@ -60,7 +63,7 @@ def plot_slice(
     out = mesh2D.plotImage(
         plotme, ax=ax,
         mirror=True, mirror_data=mirror_data,
-        pcolorOpts=pcolorOpts, clim=clim
+        pcolor_opts=pcolor_opts,
     )
 
     out += (ax, )
@@ -84,7 +87,7 @@ def plotFace2D(
     j, real_or_imag="real", ax=None, range_x=None,
     range_y=None, sample_grid=None,
     log_scale=True, clim=None, mirror=False, mirror_data=None,
-    pcolorOpts=None,
+    pcolor_opts=None,
     show_cb=True,
     stream_threshold=None, stream_opts=None
 ):
@@ -108,17 +111,17 @@ def plotFace2D(
     elif len(j) == mesh2D.nC*2:
         vType = "CCv"
 
-    if pcolorOpts is None:
-        pcolorOpts = {}
+    if pcolor_opts is None:
+        pcolor_opts = {}
 
     if log_scale is True:
-        pcolorOpts["norm"] = LogNorm()
+        pcolor_opts["norm"] = LogNorm()
     else:
-        pcolorOpts = {}
+        pcolor_opts = {}
 
     if clim is not None:
-        pcolorOpts["vmin"]=clim.min()
-        pcolorOpts["vmax"]=clim.max()
+        norm = Normalize(vmin=xlim.min(), vmax=clim.max())
+        pcolor_opts["norm"] = norm
 
     f = mesh2D.plotImage(
         getattr(j, real_or_imag),
@@ -129,7 +132,7 @@ def plotFace2D(
             getattr(mirror_data, real_or_imag) if mirror_data is not None
             else None)
         ,
-        pcolorOpts=pcolorOpts, clim=clim, stream_threshold=stream_threshold,
+        pcolor_opts=pcolor_opts, stream_threshold=stream_threshold,
         streamOpts=stream_opts
     )
 
@@ -150,7 +153,7 @@ def plotEdge2D(
     mesh2D,
     h, real_or_imag="real", ax=None, range_x=None,
     range_y=None, sample_grid=None,
-    log_scale=True, clim=None, mirror=False, pcolorOpts=None
+    log_scale=True, clim=None, mirror=False, pcolor_opts=None
 ):
     """
     Create a pcolor plot (a slice in the theta direction) of an edge vector
@@ -176,9 +179,9 @@ def plotEdge2D(
         vType = "CCv"
 
     if log_scale is True:
-        pcolorOpts["norm"] = LogNorm()
+        pcolor_opts["norm"] = LogNorm()
     else:
-        pcolorOpts = {}
+        pcolor_opts = {}
 
     cb = plt.colorbar(
         mesh2D.plotImage(
@@ -186,7 +189,7 @@ def plotEdge2D(
             view="real", vType=vType, ax=ax,
             range_x=range_x, range_y=range_y, sample_grid=sample_grid,
             mirror=mirror,
-            pcolorOpts=pcolorOpts,
+            pcolor_opts=pcolor_opts,
         )[0], ax=ax
     )
 
@@ -412,11 +415,10 @@ def plot_cross_section(
     if plot_type == "scalar":
         out = mesh2D.plotImage(
             getattr(plotme, real_or_imag), ax=ax,
-            pcolorOpts = {
+            pcolor_opts = {
                 "cmap": "RdBu_r" if view in ["charge", "charge_density"] else "viridis",
                 "norm": norm
             },
-            clim=clim,
             mirror_data=mirror_data,
             mirror=True
         )
@@ -613,14 +615,14 @@ def plot_depth_slice(
 
         out = plan_mesh.plotImage(
             getattr(plotme, real_or_imag), view="vec", vType="CCv", ax=ax,
-            pcolorOpts={"norm":norm},
+            pcolor_opts={"norm":norm},
             streamOpts=stream_opts,
             stream_threshold=clim[0] if clim is not None else None
         )
     else:
         out = plan_mesh.plotImage(
             getattr(plotme, real_or_imag), ax=ax,
-            pcolorOpts = {
+            pcolor_opts = {
                 "cmap": "RdBu_r" if view in ["charge", "charge_density"] else "viridis",
                 "norm": norm
             },
@@ -960,7 +962,7 @@ class FieldsViewer(properties.HasProperties):
 
             out = plan_mesh.plotImage(
                 getattr(plotme, real_or_imag), view="vec", vType="CCv", ax=ax,
-                pcolorOpts={"norm":norm},
+                pcolor_opts={"norm":norm},
                 clim=clim,
                 streamOpts=stream_opts,
                 stream_threshold=clim[0] if clim is not None else None
@@ -968,7 +970,7 @@ class FieldsViewer(properties.HasProperties):
         else:
             out = plan_mesh.plotImage(
                 getattr(plotme, real_or_imag), ax=ax,
-                pcolorOpts = {
+                pcolor_opts = {
                     "cmap": "RdBu_r" if view in ["charge", "charge_density"] else "viridis",
                     "norm": norm
                 },
