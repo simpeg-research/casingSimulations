@@ -46,7 +46,7 @@ def plot_slice(
     if pcolor_opts is None:
         pcolor_opts = {}
     if clim is not None:
-        norm = Normalize(vmin=xlim.min(), vmax=clim.max())
+        norm = Normalize(vmin=clim.min(), vmax=clim.max())
         pcolor_opts["norm"] = norm
 
     # generate a 2D mesh for plotting slices
@@ -120,7 +120,7 @@ def plotFace2D(
         pcolor_opts = {}
 
     if clim is not None:
-        norm = Normalize(vmin=xlim.min(), vmax=clim.max())
+        norm = Normalize(vmin=clim.min(), vmax=clim.max())
         pcolor_opts["norm"] = norm
 
     f = mesh2D.plotImage(
