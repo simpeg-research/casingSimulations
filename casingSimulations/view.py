@@ -115,13 +115,16 @@ def plotFace2D(
         pcolor_opts = {}
 
     if log_scale is True:
-        pcolor_opts["norm"] = LogNorm()
+        if clim is not None:
+            pcolor_opts["norm"] = LogNorm(vmin=clim.min(), vmax=clim.max())
+        else:
+            pcolor_opts["norm"] = LogNorm()
     else:
-        pcolor_opts = {}
+        if clim is not None:
+            norm = Normalize(vmin=clim.min(), vmax=clim.max())
+            pcolor_opts["norm"] = norm
 
-    if clim is not None:
-        norm = Normalize(vmin=clim.min(), vmax=clim.max())
-        pcolor_opts["norm"] = norm
+
 
     f = mesh2D.plotImage(
         getattr(j, real_or_imag),
