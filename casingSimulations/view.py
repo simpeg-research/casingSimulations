@@ -529,6 +529,7 @@ def plot_depth_slice(
     rotate=False,
     k=10,
     denominator=None,
+    component="vec",
 ):
 
     # create default ax
@@ -580,26 +581,35 @@ def plot_depth_slice(
 
     # deal with vectors
     if view in ["e", "b", "h", "j", "dbdt", "dhdt"]:
-        plotme_x = discretize.utils.mkvc(
-            (plotme_cart[:, 0]).reshape(mesh.vnC, order="F")[:, :, z_ind]
-        )
-        plotme_y = discretize.utils.mkvc(
-            (plotme_cart[:, 1]).reshape(mesh.vnC, order="F")[:, :, z_ind]
-        )
-
-        plotme = np.hstack([
-            (plotme_x[inds] * weights).sum(1),
-            (plotme_y[inds] * weights).sum(1)
-        ])
-
-        if rotate is True:
+        if component == "vec":
             plotme_x = discretize.utils.mkvc(
-                plotme[:plan_mesh.nC].reshape(plan_mesh.vnC, order="F").T
+                (plotme_cart[:, 0]).reshape(mesh.vnC, order="F")[:, :, z_ind]
             )
             plotme_y = discretize.utils.mkvc(
-                plotme[plan_mesh.nC:].reshape(plan_mesh.vnC, order="F").T
+                (plotme_cart[:, 1]).reshape(mesh.vnC, order="F")[:, :, z_ind]
             )
-            plotme = np.hstack([plotme_y, plotme_x])
+
+            plotme = np.hstack([
+                (plotme_x[inds] * weights).sum(1),
+                (plotme_y[inds] * weights).sum(1)
+            ])
+        else:
+            plotme_z = discretize.utils.mkvc(
+                (plotme_cart[:, 2]).reshape(mesh.vnC, order="F")[:, :, z_ind]
+            )
+            plotme = plotme_z
+
+        if rotate is True:
+            if component == "vec":
+                plotme_x = discretize.utils.mkvc(
+                    plotme[:plan_mesh.nC].reshape(plan_mesh.vnC, order="F").T
+                )
+                plotme_y = discretize.utils.mkvc(
+                    plotme[plan_mesh.nC:].reshape(plan_mesh.vnC, order="F").T
+                )
+                plotme = np.hstack([plotme_y, plotme_x])
+            else:
+                plotme = plotme.T
 
     else:
         plotme = (discretize.utils.mkvc(plotme)[inds] * weights).sum(1)
@@ -607,7 +617,7 @@ def plot_depth_slice(
         if rotate is True:
             plotme = plotme.reshape(plan_mesh.vnC, order="F").T
 
-    if view in ["e", "b", "h", "j", "dbdt", "dhdt"]:
+    if view in ["e", "b", "h", "j", "dbdt", "dhdt"] and component == "vec":
 
         if clim is None:
             norm = LogNorm()
@@ -626,7 +636,7 @@ def plot_depth_slice(
         out = plan_mesh.plotImage(
             getattr(plotme, real_or_imag), ax=ax,
             pcolor_opts = {
-                "cmap": "RdBu_r" if view in ["charge", "charge_density"] else "viridis",
+                "cmap": "RdBu_r",
                 "norm": norm
             },
         )
