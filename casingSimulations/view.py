@@ -597,7 +597,7 @@ def plot_depth_slice(
             plotme_z = discretize.utils.mkvc(
                 (plotme_cart[:, 2]).reshape(mesh.vnC, order="F")[:, :, z_ind]
             )
-            plotme = plotme_z
+            plotme = (plotme_z[inds] * weights).sum(1)
 
         if rotate is True:
             if component == "vec":
