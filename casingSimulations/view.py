@@ -383,6 +383,8 @@ def plot_cross_section(
 
         # if not mesh.isSymmetric:
         plotme = plotme.reshape(mesh.vnC, order="F")
+        if physics == "frequency_domain":
+            plotme = plotme[:, :, None]
         mirror_data = discretize.utils.mkvc(
             plotme[:, theta_ind_mirror, :]
         )
@@ -999,8 +1001,10 @@ class FieldsViewer(properties.HasProperties):
         title = "{} {} \n z={:1.1e}m".format(
             prim_sec, view, self.mesh.vectorCCz[z_ind]
         )
-        if physics == "FDEM":
-            title += "\nf = {:1.1e} Hz".format(src.frequency)
+        if self._physics == "FDEM":
+            title += "\nf = {:1.1e} Hz".format(
+                self.fields_dict[model_key].simulation.survey.source_list[src_ind].frequency
+            )
         elif self._physics == "TDEM":
             title += "\n t = {:1.1e} s".format(
                 self.fields_dict[model_key]._times[time_ind]
