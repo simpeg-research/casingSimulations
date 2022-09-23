@@ -463,7 +463,7 @@ def plot_cross_section(
 
     title = "{} {}".format(prim_sec, view)
     if physics == "frequency_domain":
-        title += "\nf = {:1.1e} Hz".format(src.frequency)
+        title += "\nf = {:1.1e} Hz".format(fields.survey.source_list[src_ind].frequency)
     elif physics == "time_domain":
         title += "\n t = {:1.1e} s".format(
             fields._times[time_ind]
@@ -1003,7 +1003,7 @@ class FieldsViewer(properties.HasProperties):
         )
         if self._physics == "FDEM":
             title += "\nf = {:1.1e} Hz".format(
-                self.fields_dict[model_key].simulation.survey.source_list[src_ind].frequency
+                self.fields_dict[model_key].survey.source_list[src_ind].frequency
             )
         elif self._physics == "TDEM":
             title += "\n t = {:1.1e} s".format(
