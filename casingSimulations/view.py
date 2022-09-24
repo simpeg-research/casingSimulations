@@ -653,7 +653,7 @@ def plot_depth_slice(
         prim_sec, view, mesh.vectorCCz[z_ind]
     )
     if physics == "frequency_domain":
-        title += "\nf = {:1.1e} Hz".format(src.frequency)
+        title += "\nf = {:1.1e} Hz".format(fields.survey.source_list[src_ind].frequency)
     elif physics == "time_domain":
         title += "\n t = {:1.1e} s".format(
             fields._times[time_ind]
