@@ -595,7 +595,17 @@ def plot_depth_slice(
                 (plotme_x[inds] * weights).sum(1),
                 (plotme_y[inds] * weights).sum(1)
             ])
-        else:
+        elif component == "x":
+            plotme_x = discretize.utils.mkvc(
+                (plotme_cart[:, 0]).reshape(mesh.vnC, order="F")[:, :, z_ind]
+            )
+            plotme = (plotme_x[inds] * weights).sum(1)
+        elif component == "y":
+            plotme_y = discretize.utils.mkvc(
+                (plotme_cart[:, 1]).reshape(mesh.vnC, order="F")[:, :, z_ind]
+            )
+            plotme = (plotme_z[inds] * weights).sum(1)
+        elif component == "z":
             plotme_z = discretize.utils.mkvc(
                 (plotme_cart[:, 2]).reshape(mesh.vnC, order="F")[:, :, z_ind]
             )
