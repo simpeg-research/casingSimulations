@@ -43,10 +43,10 @@ def pad_for_casing_and_data(
     npadx1 = np.floor(np.log(csx2/csx1) / np.log(pfx1))
 
     # finest uniform region
-    hx1a = utils.meshTensor([(csx1, ncx1)])
+    hx1a = utils.unpack_widths([(csx1, ncx1)])
 
     # pad to second uniform region
-    hx1b = utils.meshTensor([(csx1, npadx1, pfx1)])
+    hx1b = utils.unpack_widths([(csx1, npadx1, pfx1)])
 
     # scale padding so it matches cell size properly
     dx1 = np.sum(hx1a)+np.sum(hx1b)
@@ -55,10 +55,10 @@ def pad_for_casing_and_data(
 
     # second uniform chunk of mesh
     ncx2 = np.ceil((domain_x - dx1)/csx2)
-    hx2a = utils.meshTensor([(csx2, ncx2)])
+    hx2a = utils.unpack_widths([(csx2, ncx2)])
 
     # pad to infinity
-    hx2b = utils.meshTensor([(csx2, npadx, pfx2)])
+    hx2b = utils.unpack_widths([(csx2, npadx, pfx2)])
 
     return np.hstack([hx1a, hx1b, hx2a, hx2b])
 
@@ -285,7 +285,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
         :rtype: numpy.array
         """
         if getattr(self, '_hx', None) is None:
-            self._hx = utils.meshTensor([
+            self._hx = utils.unpack_widths([
                 (self.csx, self.npadx, -self.pfx),
                 (self.csx, self.ncx),
                 (self.csx, self.npadx, self.pfx)
@@ -300,7 +300,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
         :rtype: numpy.array
         """
         if getattr(self, '_hy', None) is None:
-            self._hy = utils.meshTensor([
+            self._hy = utils.unpack_widths([
                 (self.csy, self.npady, -self.pfy),
                 (self.csy, self.ncy),
                 (self.csy, self.npady, self.pfy)
@@ -315,7 +315,7 @@ class TensorMeshGenerator(BaseMeshGenerator):
         :rtype: numpy.array
         """
         if getattr(self, '_hz', None) is None:
-            self._hz = utils.meshTensor([
+            self._hz = utils.unpack_widths([
                 (self.csz, self.npadz, -self.pfz),
                 (self.csz, self.ncz),
                 (self.csz, self.npadz, self.pfz)
@@ -445,7 +445,7 @@ class BaseCylMixin(properties.HasProperties):
         """
         if getattr(self, '_hz', None) is None:
 
-            self._hz = utils.meshTensor([
+            self._hz = utils.unpack_widths([
                 (self.csz, self.npadz, -self.pfz),
                 (self.csz, self.ncz),
                 (self.csz, self.npadz, self.pfz)
@@ -458,7 +458,7 @@ class BaseCylMixin(properties.HasProperties):
         """
         mesh2D = self.copy()
         # mesh2D.modelParameters = self.modelParameters.copy()  # see https://github.com/3ptscience/properties/issues/175
-        mesh2D.hy = np.r_[2*np.pi]
+        mesh2D.h[1] = np.r_[2*np.pi]
         return mesh2D
 
     # Plot the physical Property Models
@@ -515,7 +515,7 @@ class CylMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
         super(CylMeshGenerator, self).__init__(**kwargs)
-        self._discretizePair = discretize.CylMesh
+        self._discretizePair = discretize.CylindricalMesh
 
     # number of cells in each direction
     @property
@@ -531,7 +531,7 @@ class CylMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     @property
     def hx(self):
         if getattr(self, '_hx', None) is None:
-            self._hx = utils.meshTensor([
+            self._hx = utils.unpack_widths([
                 (self.csx, self.ncx),
                 (self.csx, self.npadx, self.pfx)
             ])
@@ -560,7 +560,7 @@ class CasingMeshGenerator(BaseMeshGenerator, BaseCylMixin):
     # Instantiate the class with casing parameters
     def __init__(self, **kwargs):
         super(CasingMeshGenerator, self).__init__(**kwargs)
-        self._discretizePair = discretize.CylMesh
+        self._discretizePair = discretize.CylindricalMesh
 
     @property
     def hx(self):

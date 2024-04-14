@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 
-def casing_currents(j, mesh, model_parameters):
+def casing_currents(j, mesh, casing_a, casing_b, casing_z):
     """
     Compute the current (A) within the casing
 
@@ -19,9 +19,9 @@ def casing_currents(j, mesh, model_parameters):
     :return: :code:`(ix_casing, iz_casing)`
     """
 
-    casing_a = model_parameters.casing_a
-    casing_b = model_parameters.casing_b
-    casing_z = model_parameters.casing_z
+    # casing_a = model_parameters.casing_a
+    # casing_b = model_parameters.casing_b
+    # casing_z = model_parameters.casing_z
 
     IxCasing = {}
     IzCasing = {}

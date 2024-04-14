@@ -54,7 +54,7 @@ def plot_slice(
 
     vplt = v.reshape(mesh.vnC, order="F")
     plotme = discretize.utils.mkvc(vplt[:, theta_ind, :])
-    if not mesh.isSymmetric:
+    if not mesh.is_symmetric:
         theta_ind_mirror = get_theta_ind_mirror(mesh, theta_ind)
         mirror_data = discretize.utils.mkvc(vplt[:, theta_ind_mirror, :])
     else:
@@ -347,7 +347,7 @@ def plot_cross_section(
     physics = fields.__module__.split(".")[-2]
 
     # 2D mesh for plotting
-    if mesh.isSymmetric:
+    if mesh.is_symmetric:
         mesh2D = mesh
     else:
         mesh2D = mesh2d_from_3d(mesh)
@@ -357,7 +357,7 @@ def plot_cross_section(
         prim_sec=prim_sec, primary_fields=primary_fields,
     )
 
-    if not mesh.isSymmetric:
+    if not mesh.is_symmetric:
         theta_ind_mirror = get_theta_ind_mirror(mesh, theta_ind)
     else:
         theta_ind_mirror = 0
@@ -381,7 +381,7 @@ def plot_cross_section(
             )
             clim = clim[1]*np.r_[-1., 1.] if clim is not None else None
 
-        # if not mesh.isSymmetric:
+        # if not mesh.is_symmetric:
         plotme = plotme.reshape(mesh.vnC, order="F")
         if physics == "frequency_domain":
             plotme = plotme[:, :, None]
@@ -401,7 +401,7 @@ def plot_cross_section(
 
             plot_type = "scalar"
 
-            if len(mesh.hy) == 1:
+            if len(mesh.h[1]) == 1:
                 plotme = mesh.aveE2CC * plotme
 
             else:
@@ -550,7 +550,7 @@ def plot_depth_slice(
     physics = fields.__module__.split(".")[-2]
 
     # 2D mesh for plotting
-    if mesh.isSymmetric:
+    if mesh.is_symmetric:
         mesh2D = mesh
     else:
         mesh2D = mesh2d_from_3d(mesh)
@@ -734,7 +734,7 @@ class FieldsViewer(properties.HasProperties):
 
     @property
     def _mesh2D(self):
-        if self.mesh.isSymmetric:
+        if self.mesh.is_symmetric:
             return self.mesh
         return mesh2d_from_3d(self.mesh)
 
@@ -1120,7 +1120,7 @@ class FieldsViewer(properties.HasProperties):
         fixed["ax"] = ax
         fixed["figwidth"] = figwidth
 
-        if not self.mesh.isSymmetric:
+        if not self.mesh.is_symmetric:
             widget_defaults["theta_ind"]=0
         else:
             fixed["theta_ind"] = 0

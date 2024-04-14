@@ -3,7 +3,7 @@ import numpy as np
 import time
 import os
 import datetime
-from discretize import utils, CylMesh
+from discretize import utils, CylindricalMesh
 import properties
 import casingSimulations
 
@@ -31,11 +31,11 @@ def face3DthetaSlice(mesh3D, j3D, theta_ind=0):
     (x, z components), consistent with what would be found from a
     2D simulation
 
-    :param discretize.CylMesh mesh3D: 3D cyl mesh
+    :param discretize.CylindricalMesh mesh3D: 3D cyl mesh
     :param numpy.ndarray j3D: vector of fluxes on mesh
     :param int theta_ind: index of the theta slice that you want
     """
-    if mesh3D.isSymmetric:
+    if mesh3D.is_symmetric:
         return j3D
 
     j3D_x = j3D[:mesh3D.nFx].reshape(mesh3D.vnFx, order='F')
@@ -55,7 +55,7 @@ def edge3DthetaSlice(mesh3D, h3D, theta_ind=0):
     (y component), consistent with what would be found from a
     2D simulation
 
-    :param discretize.CylMesh mesh3D: 3D cyl mesh
+    :param discretize.CylindricalMesh mesh3D: 3D cyl mesh
     :param numpy.ndarray h3D: vector of fields on mesh
     :param int theta_ind: index of the theta slice that you want
     """
@@ -71,7 +71,7 @@ def ccv3DthetaSlice(mesh3D, v3D, theta_ind=0):
     """
     Grab a theta slice through a 3D field defined at cell centers
 
-    :param discretize.CylMesh mesh3D: 3D cyl mesh
+    :param discretize.CylindricalMesh mesh3D: 3D cyl mesh
     :param numpy.ndarray v3D: vector of fields on mesh
     :param int theta_ind: index of the theta slice that you want
     """
@@ -90,8 +90,8 @@ def mesh2d_from_3d(mesh):
         """
         create cylindrically symmetric mesh generator
         """
-        mesh2D = CylMesh(
-            [mesh.hx, 1., mesh.hz], x0=mesh.x0
+        mesh2D = CylindricalMesh(
+            [mesh.h[0], 1., mesh.h[2]], x0=mesh.x0
         )
         return mesh2D
 
